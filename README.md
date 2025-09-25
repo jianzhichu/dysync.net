@@ -16,7 +16,7 @@
 docker run -d --restart=always \
   -v /volume2/mediay/dysync:/app/downloads \
   -v /volume1/docker/dysync/db:/app/db \
-  -p 18101:3002 \
+  -p 18101:10101\
   --name dysync2025 \
   registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:v1.0.0
 ```
