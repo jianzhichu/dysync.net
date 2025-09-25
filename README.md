@@ -49,6 +49,11 @@ services:
 #     driver: bridge
     
 ```
+## Cookie获取方法：
+
+打开抖音网页版登录后 F12 找到 网络或者network 刷一下网页，随便找一个请求，点击后再右边找Cookie
+
+![输入图片说明](cookie.png)
 
 ## 软件截图
 
