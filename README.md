@@ -14,6 +14,10 @@
 ## 运行方式
 
 ### 使用Docker运行
+
+
+##注意：下面命令中的映射路径 /app/downloads 要与菜单"抖音授权"中文件存储路径一致。如果有多个抖音用户同步，需要指定多个路径。如果不映射出来，文件会存在容器中，不方便放到NAS 影视播放器播放。
+
 ```bash
 docker run -d --restart=always \
   -v /volume2/mediay/dysync:/app/downloads \
@@ -25,7 +29,7 @@ docker run -d --restart=always \
 
 ### 使用Docker-Compose运行
 
-```
+```yml
 version: '3.8'
 
 services:
@@ -52,7 +56,6 @@ services:
     
 ```
 
-##注意：图中映射路径 /app/downloads 要与菜单"抖音授权"中文件存储路径一致。如果有多个抖音用户同步，需要指定多个路径。如果不映射出来，文件会存在容器中，不方便放到NAS 影视播放器播放。
 
 最后放一张EMBY的图
 
