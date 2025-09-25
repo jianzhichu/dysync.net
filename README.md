@@ -15,12 +15,13 @@
 打开抖音网页版登录后 F12 找到 网络或者network 刷一下网页，随便找一个请求，点击后再右边找Cookie
 
 
+## 默认账号密码
+douyin douyin2025 
+
 ## 运行方式
 
 ### 使用Docker运行
 
-## 默认账号密码
-douyin douyin2025 
 
 ```bash
 docker run -d --restart=always \
