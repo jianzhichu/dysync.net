@@ -100,6 +100,27 @@ services:
 #     driver: bridge
 
 ```
+### 方式 3：自己编译运行
+   ##### 前端源码在/app里面
+```
+yarn install
+yarn dev
+yarn run build
+
+### 运行可能报错，less包如果报错，运行下面的命令即可
+ yarn remove less && yarn add less@4.1.3 -D
+
+```
+ ##### 后台编译要先安装.netcore环境 netcore sdk
+ ```bash
+ dotnet --version  # 输出安装的 .NET Core 版本，说明安装成功
+ dotnet build
+ dotnet build -c Release  # 生成文件在 bin/Release/netX.X/ 目录
+
+### 调试模式运行
+dotnet run
+ ```
+ 
 ## 软件截图
 ![输入图片说明](docs/homepage.png)
 
