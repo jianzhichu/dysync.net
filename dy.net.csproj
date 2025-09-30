@@ -1,0 +1,92 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+	  <SpaRoot>app\</SpaRoot>
+		<DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+	  <GenerateDocumentationFile>True</GenerateDocumentationFile>
+
+
+	  <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+	  <ServerGarbageCollection>false</ServerGarbageCollection>
+	  <RetainVMGarbageCollection>true</RetainVMGarbageCollection>
+	  <ThreadPoolMinThreads>1</ThreadPoolMinThreads>
+	  <ThreadPoolMaxThreads>100</ThreadPoolMaxThreads>
+	  <!-- Supported as of .NET Core SDK 3.0 Preview 1 -->
+	  <TieredCompilation>true</TieredCompilation>
+	  <InvariantGlobalization>true</InvariantGlobalization>
+	  <DockerfileContext>.</DockerfileContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="app\**" />
+    <Compile Remove="logs\**" />
+    <Content Remove="app\**" />
+    <Content Remove="logs\**" />
+    <EmbeddedResource Remove="app\**" />
+    <EmbeddedResource Remove="logs\**" />
+    <None Remove="app\**" />
+    <None Remove="logs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <PackageReference Include="ClockSnowFlake" Version="1.1.0" />
+	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
+	  <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="6.0.10" />
+	  <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+	  <PackageReference Include="Quartz" Version="3.8.0" />
+	  <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
+	  <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.8.0" />
+	  <PackageReference Include="Quartz.Extensions.Hosting" Version="3.8.0" />
+	  <PackageReference Include="SqlSugarCore" Version="5.1.4.128" />
+	  <PackageReference Include="SqlSugarCoreNoDrive" Version="5.1.4.124" />
+	  <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
+	  <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="5.6.3" />
+	  <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.3.0" />
+	  <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.6.3" />
+	  <PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
+	  <PackageReference Include="Serilog.Sinks.Async" Version="1.4.0" />
+	  <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+	  <PackageReference Include="Serilog.Sinks.Seq" Version="4.0.0" />
+	  <PackageReference Include="Serilog" Version="3.1.1" />
+	  <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+	  <PackageReference Include="System.Net.Http" Version="4.3.4" />
+	  <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="db\" />
+	  
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="dy.net.sln" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Dockerfile">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+	<Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+		<!-- As part of publishing, ensure the JS resources are freshly built in production mode --> 
+		<Exec WorkingDirectory="$(SpaRoot)" Command="yarn install" />
+		<Exec WorkingDirectory="$(SpaRoot)" Command="yarn run build" />
+
+		 <!--Include the newly-built files in the publish output--> 
+		<ItemGroup>
+			<DistFiles Include="$(SpaRoot)dist\**; $(SpaRoot)dist-server\**" />
+			<DistFiles Include="$(SpaRoot)node_modules\**" Condition="'$(BuildServerSideRenderer)' == 'true'" />
+			<ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+				<RelativePath>%(DistFiles.Identity)</RelativePath>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+				<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+			</ResolvedFileToPublish>
+		</ItemGroup>
+	</Target>
+
+
+</Project>

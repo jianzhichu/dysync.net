@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/logo1.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>抖音同步</title>
+</head>
+
+<body>
+  <div id="stepin-app">
+    <style>
+      html {
+        overflow: hidden;
+      }
+
+      body {
+        height: 100vh;
+        text-align: center;
+        align-items: center;
+        background-color: #011627;
+        display: flex;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .loader {
+        color: rgb(201, 195, 195);
+        font-family: "Poppins", sans-serif;
+        font-weight: 500;
+        font-size: 20px;
+        -webkit-box-sizing: content-box;
+        box-sizing: content-box;
+        height: 40px;
+        padding: 10px 10px;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        text-align: center;
+        justify-content: center;
+        border-radius: 8px;
+      }
+
+      .words {
+        overflow: hidden;
+      }
+
+      .word {
+        display: block;
+        height: 100%;
+        padding-left: 6px;
+        color: #ffca29;
+        animation: spin_4991 4s infinite;
+      }
+
+      @keyframes spin_4991 {
+        10% {
+          -webkit-transform: translateY(-105%);
+          transform: translateY(-105%);
+        }
+
+        25% {
+          -webkit-transform: translateY(-100%);
+          transform: translateY(-100%);
+        }
+
+        35% {
+          -webkit-transform: translateY(-205%);
+          transform: translateY(-205%);
+        }
+
+        50% {
+          -webkit-transform: translateY(-200%);
+          transform: translateY(-200%);
+        }
+
+        60% {
+          -webkit-transform: translateY(-305%);
+          transform: translateY(-305%);
+        }
+
+        75% {
+          -webkit-transform: translateY(-300%);
+          transform: translateY(-300%);
+        }
+
+        85% {
+          -webkit-transform: translateY(-405%);
+          transform: translateY(-405%);
+        }
+
+        100% {
+          -webkit-transform: translateY(-400%);
+          transform: translateY(-400%);
+        }
+      }
+    </style>
+    <!-- <img style="margin-bottom: 8px;" width="64px" src="/vite.svg" /> -->
+    <div class="loader">
+      <!-- <img src="/vite.svg"> -->
+      <div> loading ...</div>
+      <!-- <div class="words">
+        <span class="word">buttons</span>
+        <span class="word">forms</span>
+        <span class="word">switches</span>
+        <span class="word">cards</span>
+        <span class="word">buttons</span>
+      </div> -->
+    </div>
+    <div class="" style="font-size: 15px; color: rgba(249, 244, 244, 0.55)">首次加载可能较慢，请耐心等待...</div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+  <script>
+    if (!global) {
+      var global = globalThis;
+    }
+  </script>
+</body>
+
+<!-- <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.15.4/css/all.min.css"> -->
+<style>
+  html {
+    overflow: hidden;
+  }
+</style>
+
+</html>
