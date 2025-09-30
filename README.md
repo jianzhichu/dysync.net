@@ -7,7 +7,7 @@
 ---
 
 #### 先放一张Emby的图
-![输入图片说明](image111.png)
+![输入图片说明](docs/emby.png)
 
 ### 1. 获取抖音 Cookie 以及用户sec_user_d
 
@@ -19,11 +19,13 @@ Cookie 是同步功能的关键，请严格按照以下步骤获取：
 4.  在搜索框中输入 `v1/web/aweme/listcollection`。
 5.  点击任意一条筛选出的请求，在右侧「Headers (标头)」中找到 `Cookie` 字段，**完整复制**其内容。
 
-![抖音 Cookie 获取步骤](getcookies.png)
-![输入图片说明](SecUserId.png)
+![输入图片说明](docs/getcookies.png)
+![输入图片说明](docs/secUserId.png)
+
 ### 2. 路径映射规则
 
 为了方便管理和播放，请理解并正确配置路径映射：
+![输入图片说明](docs/config1.png)
 
 *   **视频存储路径**：容器内路径为 `/app/downloads`。你需要将此路径映射到你本地的一个目录（如 NAS 或电脑硬盘）。**这个本地路径必须与后续在「抖音授权」页面配置的「文件存储路径」完全一致**。
 *   **数据库存储路径**：容器内路径为 `/app/db`。映射此路径用于持久化工具的配置和同步记录，防止容器删除后数据丢失。
@@ -31,7 +33,6 @@ Cookie 是同步功能的关键，请严格按照以下步骤获取：
 
 > **重要**：如果不进行路径映射，所有文件将保存在容器内部，无法直接在 EMBY/JF 中访问。
 
-![输入图片说明](cookie.png)
 ---
 
 ## 🔑 默认账号密码
@@ -97,8 +98,11 @@ services:
 
 ```
 ## 软件截图
-![输入图片说明](homepage.png)
-![输入图片说明](records.png)
-![输入图片说明](cookaaaa.png)
-![输入图片说明](configa.png)
-![输入图片说明](logs.png)
+![输入图片说明](docs/homepage.png)
+
+![输入图片说明](docs/datalist.png)
+
+![输入图片说明](docs/logs.png)
+
+![输入图片说明](docs/set.png)
+
