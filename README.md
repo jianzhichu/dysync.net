@@ -62,7 +62,7 @@ docker run -d --restart=always \
   --name dysync2025 \
   registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:v1.0.2
 
-
+###-p 后面的第二个端口 必须10101（源码里面写死了）
 ```
 
 ### 方式 2：Docker-Compose 运行（推荐）
