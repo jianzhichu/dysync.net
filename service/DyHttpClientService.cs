@@ -305,7 +305,7 @@ namespace dy.net.service
             {"downlink", "10"},
             {"effective_type", "4g"},
             {"round_trip_time", "0"},
-            {"webid", "7516440221375268388"}
+            //{"webid", "7516440221375268388"}
         };
             return parameters;
         }

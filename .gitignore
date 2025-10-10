@@ -4,3 +4,4 @@ bin
 logs
 upload
 data1
+/db/*.sqlite
