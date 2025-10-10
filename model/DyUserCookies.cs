@@ -41,5 +41,16 @@ namespace dy.net.model
         /// </summary>
         [SugarColumn(Length =500,IsNullable =true)]
         public string FavSavePath { get; set; }
+
+        ///// <summary>
+        ///// 最新收藏夹的分页页码
+        ///// </summary>
+        //[SugarColumn(Length =500,IsNullable =true)]
+        //public string CollectMaxCursor { get; set; }
+        ///// <summary>
+        ///// 最新我喜欢的分页页码
+        ///// </summary>
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string FavoriteMaxCursor { get; set; }
     }
 }

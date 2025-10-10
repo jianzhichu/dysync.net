@@ -56,7 +56,7 @@ namespace dy.net.job
             foreach (var cookie in cookies)
             {
                 Serilog.Log.Debug($"collect-开始同步 Cookie-[{cookie.UserName}]收藏视频");
-                if (string.IsNullOrEmpty(cookie.Cookies)|| cookie.Cookies.Length<1000)
+                if (string.IsNullOrWhiteSpace(cookie.Cookies)|| cookie.Cookies.Length<1000)
                 {
                     Serilog.Log.Debug($"collect-Cookie-[{cookie.UserName}]无效，跳过");
                     continue;
@@ -67,7 +67,9 @@ namespace dy.net.job
 
                     int index = 0;
                     bool hasMore = true;
-                    string cursor = "0";
+
+                    string cursor = "0"; 
+
                     while (hasMore)
                     {
                         var data = await _douyinService.SyncCollectVideos(cursor, count, cookie.Cookies);
@@ -78,7 +80,9 @@ namespace dy.net.job
                             Serilog.Log.Debug($"collect-Cookie[{cookie.UserName}]获取收藏数据失败，请检查一下Cookie");
                             break;
                         }
-                        cursor = data != null && !string.IsNullOrEmpty(data.Cursor) ? data.Cursor : "0";
+                        cursor = data != null && !string.IsNullOrWhiteSpace(data.Cursor) ? data.Cursor : "0";
+
+
                         if (data.AwemeList == null || !data.AwemeList.Any())
                         {
                             break;
@@ -98,7 +102,7 @@ namespace dy.net.job
                             if (v == null) continue;
 
                             var videoUrl = v.PlayAddr.UrlList != null && v.PlayAddr.UrlList.Any() ? v.PlayAddr.UrlList[0] : null;
-                            if (string.IsNullOrEmpty(videoUrl)) continue;
+                            if (string.IsNullOrWhiteSpace(videoUrl)) continue;
 
                             var tag1 = tags.FirstOrDefault(x => x.Level == 1)?.TagName;
                             var tag2 = tags.FirstOrDefault(x => x.Level == 2)?.TagName;
@@ -115,6 +119,8 @@ namespace dy.net.job
 
                             if (!File.Exists(savePath))
                             {
+                                Serilog.Log.Debug($"collect-视频[{SanitizePath(item.Desc)}]开始下载");
+
                                 var downVideo = await _douyinService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
                                 Serilog.Log.Debug($"collect-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
                                 if (downVideo)
@@ -193,7 +199,7 @@ namespace dy.net.job
                                 // 收集所有需要删除的目录（去重）
                                 foreach (var video in videos)
                                 {
-                                    if (!string.IsNullOrEmpty(video.VideoSavePath) && Directory.Exists(video.VideoSavePath))
+                                    if (!string.IsNullOrWhiteSpace(video.VideoSavePath) && Directory.Exists(video.VideoSavePath))
                                     {
                                         var deletePath = Path.GetDirectoryName(video.VideoSavePath);
                                         Directory.Delete(deletePath, recursive: true);
@@ -237,7 +243,7 @@ namespace dy.net.job
         {
             var coverUrl = item.Video.Cover.UrlList != null && item.Video.Cover.UrlList.Any()
                 ? item.Video.Cover.UrlList[0] : null;
-            if (string.IsNullOrEmpty(coverUrl)) return;
+            if (string.IsNullOrWhiteSpace(coverUrl)) return;
 
             var coverImgName = "poster.jpg";
             var coverSavePath = Path.Combine(saveFolder, coverImgName);
@@ -268,7 +274,7 @@ namespace dy.net.job
 
             var avatarUrl = item.Author.AvatarLarger?.UrlList != null && item.Author.AvatarLarger.UrlList.Any()
                 ? item.Author.AvatarLarger.UrlList[0] : null;
-            if (string.IsNullOrEmpty(avatarUrl)) return;
+            if (string.IsNullOrWhiteSpace(avatarUrl)) return;
             var path = Path.Combine(mainPath, "author");
             if (!Directory.Exists(path))
             {
@@ -293,10 +299,10 @@ namespace dy.net.job
         private static string CreateSaveFolder(DyUserCookies cookie, Aweme item, string? tag1, string? tag2)
         {
             // 路径中避免特殊字符，用ID替代描述
-            var safeTag1 = string.IsNullOrEmpty(tag1) ? "other" : SanitizePath(tag1);
+            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : SanitizePath(tag1);
             List<string> pathParts = new List<string> { cookie.SavePath, safeTag1 };
             return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
-            //if (string.IsNullOrEmpty(tag2))
+            //if (string.IsNullOrWhiteSpace(tag2))
             //    return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
             //else
             //    return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), tag2 + "@" + item.AwemeId);
@@ -305,6 +311,10 @@ namespace dy.net.job
         // 清理路径中的特殊字符（避免创建文件夹失败）
         private static string SanitizePath(string path)
         {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                path = "其他";
+            }
             foreach (var c in Path.GetInvalidFileNameChars())
             {
                 path = path.Replace(c, '_');

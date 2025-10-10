@@ -20,7 +20,7 @@ namespace dy.net.repository
         /// <returns></returns>
         public async Task<(int code, string erro)> UpdatePwd(UpdatePwdRequest loginUser)
         {
-            if (string.IsNullOrEmpty(loginUser.UserId))
+            if (string.IsNullOrWhiteSpace(loginUser.UserId))
             {
                 return (-1, "用户不存在");
             }
@@ -52,7 +52,7 @@ namespace dy.net.repository
 
         public async Task<LoginUserInfo> GetUser()
         {
-            return await this.GetFirstAsync(x=>!string.IsNullOrEmpty(x.Id));
+            return await this.GetFirstAsync(x=>!string.IsNullOrWhiteSpace(x.Id));
         }
 
 
@@ -84,7 +84,7 @@ namespace dy.net.repository
         /// <returns></returns>
         public  (int code, string erro) InitUser(LoginUserInfo userInfo)
         {
-            var isInit =  this.GetFirst(x=>!string.IsNullOrEmpty(x.Id));
+            var isInit =  this.GetFirst(x=>!string.IsNullOrWhiteSpace(x.Id));
             if (isInit!=null)
             {
                 return (-1, "系统用户已存在");

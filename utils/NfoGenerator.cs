@@ -21,29 +21,29 @@ namespace dy.net.utils
                 XElement root = new XElement("movie");
 
                 // 添加基本信息
-                if (!string.IsNullOrEmpty(videoInfo.Title))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Title))
                     root.Add(new XElement("title", videoInfo.Title));
 
-                if (!string.IsNullOrEmpty(videoInfo.OriginalTitle))
+                if (!string.IsNullOrWhiteSpace(videoInfo.OriginalTitle))
                     root.Add(new XElement("originaltitle", videoInfo.OriginalTitle));
 
-                if (!string.IsNullOrEmpty(videoInfo.SortTitle))
+                if (!string.IsNullOrWhiteSpace(videoInfo.SortTitle))
                     root.Add(new XElement("sorttitle", videoInfo.SortTitle));
 
                 if (videoInfo.Year > 0)
                     root.Add(new XElement("year", videoInfo.Year));
 
-                if (!string.IsNullOrEmpty(videoInfo.Plot))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Plot))
                     root.Add(new XElement("plot", videoInfo.Plot));
 
-                if (!string.IsNullOrEmpty(videoInfo.Outline))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Outline))
                     root.Add(new XElement("outline", videoInfo.Outline));
 
-                if (!string.IsNullOrEmpty(videoInfo.Tagline))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Tagline))
                     root.Add(new XElement("tagline", videoInfo.Tagline));
 
                 // 添加人员信息
-                if (!string.IsNullOrEmpty(videoInfo.Director))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Director))
                     root.Add(new XElement("director", videoInfo.Director));
 
                 // 添加演员
@@ -61,7 +61,7 @@ namespace dy.net.utils
                 }
 
                 // 添加媒体信息
-                if (!string.IsNullOrEmpty(videoInfo.Genre))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Genre))
                     root.Add(new XElement("genre", videoInfo.Genre));
 
                 if (videoInfo.Rating > 0)
@@ -70,36 +70,36 @@ namespace dy.net.utils
                 if (videoInfo.Votes > 0)
                     root.Add(new XElement("votes", videoInfo.Votes));
 
-                if (!string.IsNullOrEmpty(videoInfo.Studio))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Studio))
                     root.Add(new XElement("studio", videoInfo.Studio));
 
                 if (videoInfo.Premiered.HasValue)
                     root.Add(new XElement("premiered", videoInfo.Premiered.Value.ToString("yyyy-MM-dd")));
 
-                if (!string.IsNullOrEmpty(videoInfo.Runtime))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Runtime))
                     root.Add(new XElement("runtime", videoInfo.Runtime));
 
                 // 添加文件信息
-                if (!string.IsNullOrEmpty(videoInfo.FileName))
+                if (!string.IsNullOrWhiteSpace(videoInfo.FileName))
                     root.Add(new XElement("filenameandpath", videoInfo.FileName));
 
                 if (videoInfo.FileSize > 0)
                     root.Add(new XElement("filesize", videoInfo.FileSize));
 
                 // 添加新增字段
-                if (!string.IsNullOrEmpty(videoInfo.Country))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Country))
                     root.Add(new XElement("country", videoInfo.Country));
 
-                if (!string.IsNullOrEmpty(videoInfo.Language))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Language))
                     root.Add(new XElement("language", videoInfo.Language));
 
-                if (!string.IsNullOrEmpty(videoInfo.VideoCodec))
+                if (!string.IsNullOrWhiteSpace(videoInfo.VideoCodec))
                     root.Add(new XElement("codec", videoInfo.VideoCodec));
 
-                if (!string.IsNullOrEmpty(videoInfo.AudioCodec))
+                if (!string.IsNullOrWhiteSpace(videoInfo.AudioCodec))
                     root.Add(new XElement("audiocodec", videoInfo.AudioCodec));
 
-                if (!string.IsNullOrEmpty(videoInfo.Resolution))
+                if (!string.IsNullOrWhiteSpace(videoInfo.Resolution))
                     root.Add(new XElement("resolution", videoInfo.Resolution));
 
                 // 创建文档并保存
@@ -110,7 +110,7 @@ namespace dy.net.utils
 
                 // 确保目录存在
                 var directory = Path.GetDirectoryName(outputPath);
-                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }

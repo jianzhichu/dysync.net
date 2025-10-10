@@ -28,17 +28,17 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<CollectVideoInfo> SyncCollectVideos(string cursor, string count, string cookie)
         {
-            if (string.IsNullOrEmpty(cursor))
+            if (string.IsNullOrWhiteSpace(cursor))
             {
                 throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
             }
 
-            if (string.IsNullOrEmpty(count))
+            if (string.IsNullOrWhiteSpace(count))
             {
                 throw new ArgumentException($"“{nameof(count)}”不能为 null 或空。", nameof(count));
             }
 
-            if (string.IsNullOrEmpty(cookie))
+            if (string.IsNullOrWhiteSpace(cookie))
             {
                 throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
             }
@@ -94,17 +94,17 @@ namespace dy.net.service
         /// <exception cref="ArgumentException"></exception>
         public async Task<CollectVideoInfo> SyncFavoriteVideos(string cursor, string secUserId, string cookie)
         {
-            if (string.IsNullOrEmpty(cursor))
+            if (string.IsNullOrWhiteSpace(cursor))
             {
                 throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
             }
 
-            if (string.IsNullOrEmpty(secUserId))
+            if (string.IsNullOrWhiteSpace(secUserId))
             {
                 throw new ArgumentException($"“{nameof(secUserId)}”不能为 null 或空。", nameof(secUserId));
             }
 
-            if (string.IsNullOrEmpty(cookie))
+            if (string.IsNullOrWhiteSpace(cookie))
             {
                 throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
             }

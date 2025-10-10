@@ -36,11 +36,11 @@ namespace dy.net.repository
             }
 
             var where = this.Db.Queryable<DyCollectVideo>()
-                .WhereIF(!string.IsNullOrEmpty(tag), x => x.Tag1 == tag)
-                .WhereIF(!string.IsNullOrEmpty(author), x => x.Author == author)
+                .WhereIF(!string.IsNullOrWhiteSpace(tag), x => x.Tag1 == tag)
+                .WhereIF(!string.IsNullOrWhiteSpace(author), x => x.Author == author)
                 .WhereIF(start.HasValue, x => x.SyncTime >= start.Value)
                 .WhereIF(end.HasValue, x => x.SyncTime <= end.Value)
-                .WhereIF(!string.IsNullOrEmpty(viedoType) && viedoType != "*", x => x.ViedoType == viedoType);
+                .WhereIF(!string.IsNullOrWhiteSpace(viedoType) && viedoType != "*", x => x.ViedoType == viedoType);
 
 
             var totalCount = await where.CountAsync();

@@ -81,7 +81,7 @@ namespace dy.net.utils
             if (isUrl)
             {
                 var uri = new Uri(input);
-                var newQuery = string.IsNullOrEmpty(uri.Query)
+                var newQuery = string.IsNullOrWhiteSpace(uri.Query)
                     ? $"X-Bogus={xbValue}"
                     : $"{uri.Query.Substring(1)}&X-Bogus={xbValue}";
                 return ($"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}?{newQuery}", xbValue);

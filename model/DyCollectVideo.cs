@@ -125,6 +125,6 @@ namespace dy.net.model
         public string ViedoTypeStr  => ViedoType == "1" ? "我喜欢的" : "我收藏的";
 
         [SugarColumn(IsIgnore = true)]
-        public string ViedoCate =>(string.IsNullOrEmpty(Tag1) ? "" : Tag1) + "/" + (string.IsNullOrEmpty(Tag2) ? "" : Tag2);
+        public string ViedoCate =>(string.IsNullOrWhiteSpace(Tag1) ? "" : Tag1) + "/" + (string.IsNullOrWhiteSpace(Tag2) ? "" : Tag2);
     }
 }

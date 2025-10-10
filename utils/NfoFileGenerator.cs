@@ -18,23 +18,23 @@ namespace dy.net.utils
             if (videoInfo == null)
                 throw new ArgumentNullException(nameof(videoInfo));
 
-            if (string.IsNullOrEmpty(filePath))
+            if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentException("文件路径不能为空", nameof(filePath));
 
             // 创建根元素
             XElement root = new XElement("movie"); // 对于电影使用"movie"，电视剧可以使用"tvshow"
 
             // 添加视频信息
-            if (!string.IsNullOrEmpty(videoInfo.Title))
+            if (!string.IsNullOrWhiteSpace(videoInfo.Title))
                 root.Add(new XElement("title", videoInfo.Title));
 
-            if (!string.IsNullOrEmpty(videoInfo.Author))
+            if (!string.IsNullOrWhiteSpace(videoInfo.Author))
                 root.Add(new XElement("author", videoInfo.Author));
 
-            if (!string.IsNullOrEmpty(videoInfo.Thumbnail))
+            if (!string.IsNullOrWhiteSpace(videoInfo.Thumbnail))
                 root.Add(new XElement("thumb", new XAttribute("aspect", "poster"), videoInfo.Thumbnail));
 
-            if (!string.IsNullOrEmpty(videoInfo.Poster))
+            if (!string.IsNullOrWhiteSpace(videoInfo.Poster))
                 root.Add(new XElement("fanart",
                     new XElement("thumb", videoInfo.Poster)
                 ));

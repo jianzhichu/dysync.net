@@ -292,7 +292,7 @@ namespace dy.net
                 connString = CreateSqliteDBConn();
             }
 
-            if (string.IsNullOrEmpty(connString))
+            if (string.IsNullOrWhiteSpace(connString))
             {
                 return null;
             }

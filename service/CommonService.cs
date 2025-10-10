@@ -53,7 +53,7 @@ namespace dy.net.service
         /// </summary>
         public void UpdateCollectViedoType()
         {
-            var collectViedos= sqlSugarClient.Queryable<DyCollectVideo>().Where(x=>string.IsNullOrEmpty(x.ViedoType)).ToList();
+            var collectViedos= sqlSugarClient.Queryable<DyCollectVideo>().Where(x=>string.IsNullOrWhiteSpace(x.ViedoType)).ToList();
 
             if (collectViedos.Any())
             {
