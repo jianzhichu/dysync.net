@@ -112,7 +112,7 @@ namespace dy.net.Controllers
             }
             else
             {
-                var user = await _userService.GetUser();
+                var user = await _userService.GetUser(loginUserInfo.UserName);
 
                 if (user == null)
                 {

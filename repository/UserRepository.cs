@@ -50,9 +50,16 @@ namespace dy.net.repository
         }
 
 
-        public async Task<LoginUserInfo> GetUser()
+        public async Task<LoginUserInfo> GetUser(string userName=null)
         {
-            return await this.GetFirstAsync(x=>!string.IsNullOrWhiteSpace(x.Id));
+            if (string.IsNullOrWhiteSpace(userName))
+            {
+                return await this.GetFirstAsync(x=>!string.IsNullOrWhiteSpace(x.Id));
+            }
+            else
+            {
+                return await this.GetFirstAsync(x => x.UserName == userName);
+            }
         }
 
 

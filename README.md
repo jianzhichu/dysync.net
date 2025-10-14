@@ -61,7 +61,7 @@ docker run -d --restart=always \
   -v /你的/本地/数据库/路径:/app/db \
   -p 18101:10101 \
   --name dysync2025 \
-  registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:v1.0.3
+  registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net
 
 ###-p 后面的第二个端口 必须10101（源码里面写死了）
 ```
@@ -73,7 +73,7 @@ version: '3.8'
 
 services:
   dysync:
-    image: registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:v1.0.3
+    image: registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net
     container_name: dysync2025  # 容器名称，可自定义
     restart: always  # 容器异常退出时自动重启
     ports:

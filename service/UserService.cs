@@ -20,9 +20,9 @@ namespace dy.net.service
             return await _userRepository.UpdatePwd(loginUser);
         }
 
-        public async Task<LoginUserInfo> GetUser()
+        public async Task<LoginUserInfo> GetUser(string userName=null)
         {
-            return await _userRepository.GetUser();
+            return await _userRepository.GetUser(userName);
         }
 
         public async Task<bool> UpdateAvatar(string avatar)
