@@ -8,19 +8,30 @@ import { EditFilled } from '@ant-design/icons-vue';
 import { useApiStore } from '@/store';
 import type { UnwrapRef } from 'vue';
 
+import { StarOutlined, StarFilled, StarTwoTone } from '@ant-design/icons-vue';
 const columns = [
   {
-    title: '用户昵称',
+    title: 'Cookie名',
     dataIndex: 'userName',
+    width: 100,
   },
-  { title: '状态', dataIndex: 'status' },
-  { title: '收藏文件存储路径', dataIndex: 'savePath' },
-  { title: '喜欢文件存储路径', dataIndex: 'favSavePath' },
-  { title: 'Cookie', dataIndex: 'cookies' },
-  { title: 'SecUserId', dataIndex: 'secUserId' },
+  { title: '状态', dataIndex: 'status', width: 80 },
+  { title: '收藏路径', dataIndex: 'savePath', width: 100 },
+  { title: '喜欢路径', dataIndex: 'favSavePath', width: 100 },
+  { title: 'Up主路径', dataIndex: 'upSavePath', width: 100 },
+  // { title: 'Cookie', dataIndex: 'cookies' },
+  { title: 'Up主secUserId', dataIndex: 'upSecUserIds' },
+  { title: '用户secUserId', dataIndex: 'secUserId' },
   { title: '操作', dataIndex: 'edit', width: 200 },
   // { title: 'id', dataIndex: 'id', width: 200, hiden: false },
 ];
+
+// 定义数组中单个对象的类型：包含uper和uid字段（可选字符串类型，根据实际需求调整是否可选）
+interface UpSecUserIdItem {
+  uper?: string; // 若要求必填，可去掉问号 `uper: string;`
+  uid?: string; // 同上，必填则去掉问号
+  syncAll: number;
+}
 
 type DataItem = {
   id?: string;
@@ -31,6 +42,9 @@ type DataItem = {
   secUserId?: string;
   status?: number;
   _isNew?: boolean;
+  upSecUserIdsJson?: UpSecUserIdItem[];
+  upSecUserIds?: string;
+  upSavePath?: string;
 };
 
 // const dataSource = reactive<DataItem[]>([
@@ -100,6 +114,8 @@ const newAuthor = (author?: DataItem) => {
   author.secUserId = undefined;
   author.status = 0;
   author.id = '0';
+  author.upSecUserIdsJson = undefined;
+  author.upSavePath = undefined;
   return author;
 };
 
@@ -137,7 +153,7 @@ function submit() {
       } else {
         copyObject(editRecord.value, resData);
       }
-
+      // alert(JSON.stringify(form.upSecUserIdsJson));
       // console.log('1', authors);
       // console.log('2', res);
       useApiStore()
@@ -213,32 +229,96 @@ const showCookies = (recode: DataItem) => {
   showCookiesModal.value = true;
   showCookiesData = recode.cookies;
 };
+
+const showUpersModal = ref(false);
+let showUpersData = '';
+const showUpers = (recode: DataItem) => {
+  showUpersModal.value = true;
+  showUpersData = recode.upSecUserIds;
+};
+
+const addRow = () => {
+  form.upSecUserIdsJson.push({ uper: '', uid: '', syncAll: 0 });
+};
+const removeRow = (index) => {
+  form.upSecUserIdsJson.splice(index, 1);
+};
+const rowCount = 4;
 </script>
 <template>
   <a-modal :title="form._isNew ? '新增Cookie' : '编辑Cookie'" v-model:visible="showModal" @ok="submit" @cancel="cancel" width="1000px">
     <a-form ref="formModel" :model="form" :labelCol="{ span: 3 }" :wrapperCol="{ span: 20 }">
-      <a-form-item label="用户名" required name="userName">
+      <a-form-item label="Cookie别名" required name="userName">
         <a-input v-model:value="form.userName" />
       </a-form-item>
       <a-form-item label="id" required name="id" v-show="false">
         <a-input v-model:value="form.id" />
       </a-form-item>
-      <a-form-item required label="收藏存储路径" name="savePath">
+      <a-form-item label="收藏的存储路径" name="savePath">
         <a-input v-model:value="form.savePath" />
       </a-form-item>
 
-      <a-form-item required label="Cookie" name="cookies">
-        <a-textarea v-model:value="form.cookies" rows='13' />
+      <a-form-item label="Cookie" name="cookies">
+        <a-textarea v-model:value="form.cookies" :rows='rowCount' />
       </a-form-item>
-      <a-form-item label="喜欢存储路径" name="favSavePath">
-        <a-input v-model:value="form.favSavePath" />
-        <a-alert message="如果要同步“我喜欢的”视频，需要填写！！！" type="warning" />
+      <a-form-item label="喜欢的存储路径" name="favSavePath">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <a-input v-model:value="form.favSavePath" style="flex: 1;" />
+          <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
+            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
+          </a-tooltip>
+        </div>
       </a-form-item>
       <a-form-item label="SecUserId" name="secUserId">
-        <a-input v-model:value="form.secUserId" />
-        <a-alert message="如果要同步“我喜欢的”视频，需要填写！！！" type="warning" />
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <a-input v-model:value="form.secUserId" style="flex: 1;" />
+          <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
+            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
+          </a-tooltip>
+        </div>
       </a-form-item>
-      <a-form-item required label="状态" name="status">
+      <a-form-item label="Up主视频存储路径" name="upSavePath">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <a-input v-model:value="form.upSavePath" style="flex: 1;" />
+          <a-tooltip title="同步指定博主视频时必填！！！">
+            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
+          </a-tooltip>
+        </div>
+      </a-form-item>
+
+      <!-- 新增：uper和uid动态行区域 -->
+      <a-form-item label="Uper主secUserIds" name="upSecUserIdsJson">
+        <!-- 添加行按钮 -->
+        <a-button type="primary" @click="addRow" style="margin-bottom: 12px">
+          添加抖音Up主 <template #icon>
+            <PlusOutlined />
+          </template>
+        </a-button>
+
+        <!-- 动态渲染所有行 -->
+        <div v-for="(row, index) in form.upSecUserIdsJson" :key="index" style="display: flex; gap: 12px; margin-bottom: 8px; align-items: center">
+          <!-- uper输入框 -->
+          <a-input v-model:value="row.uper" placeholder="请输入博主名字，可随意" style="flex: 1" />
+
+          <!-- uid输入框 -->
+          <a-input v-model:value="row.uid" placeholder="请输入博主secUserId" style="flex: 3" />
+          <!-- syncAll 开关字段 -->
+          <div style="flex: 1; display: flex; align-items: center;">
+            <!-- 用 a-tooltip 包裹文字，实现气泡提示 -->
+            <a-tooltip title="默认关闭，仅同步 UP 主最新一页数据；开启将同步全部作品（量大不建议开启）">
+              <span style="margin-right: 8px; cursor: default;color:#faad14">同步全部作品</span>
+            </a-tooltip>
+            <a-switch v-model:checked="row.syncAll" />
+          </div>
+          <!-- 删除当前行按钮 -->
+          <a-button type="text" danger @click="removeRow(index)">
+            <template #icon>
+              <DeleteOutlined />
+            </template>
+          </a-button>
+        </div>
+      </a-form-item>
+      <a-form-item label="状态" name="status">
         <a-select style="width: 90px" v-model:value="form.status" :options="[
             { label: '关闭', value: 0 },
             { label: '开启', value: 1 },
@@ -279,7 +359,10 @@ const showCookies = (recode: DataItem) => {
       <template v-else-if="column.dataIndex === 'cookies'">
         <!-- 触发按钮 -->
         <a-button @click="showCookies(record)">查看</a-button>
-
+      </template>
+      <template v-else-if="column.dataIndex === 'upSecUserIds'">
+        <!-- 触发按钮 -->
+        <a-button @click="showUpers(record)">查看</a-button>
       </template>
       <template v-else-if="column.dataIndex === 'edit'">
         <a-button :disabled="showModal" type="link" @click="edit(record)">
@@ -307,6 +390,14 @@ const showCookies = (recode: DataItem) => {
     <!-- 弹窗内容 -->
     <div class="cookie-content">
       {{ showCookiesData || '无Cookie数据' }}
+    </div>
+  </a-modal>
+
+  <!-- Modal弹窗 -->
+  <a-modal title="要同步的Up主信息" :visible="showUpersModal" style="width:1200px;" @cancel="showUpersModal = false" @ok="showUpersModal = false">
+    <!-- 弹窗内容 -->
+    <div class="cookie-content">
+      {{ showUpersData || '未设置' }}
     </div>
   </a-modal>
 </template>

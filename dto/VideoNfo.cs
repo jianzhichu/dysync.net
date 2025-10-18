@@ -21,5 +21,9 @@
         /// 作者/创作者
         /// </summary>
         public string Author { get; set; }
+
+        // 新增的属性
+        public DateTime? ReleaseDate { get; set; } // 可空，避免无发布时间时的默认值
+        public IEnumerable<string> Genres { get; set; } // 分类标签集合（如 ["动作", "科幻"]）
     }
 }

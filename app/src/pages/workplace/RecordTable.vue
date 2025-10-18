@@ -1,27 +1,30 @@
 <template>
-  <a-form layout="inline" style="margin-top:10px;" :model="quaryData">
-    <a-form-item label="同步日期">
-      <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" />
-    </a-form-item>
-    <a-form-item label="抖音作者" ref="author" name="author">
-      <a-input v-model:value="quaryData.author"></a-input>
-    </a-form-item>
-    <a-form-item>
-      <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged">
-        <a-radio-button value="*">全部</a-radio-button>
-        <a-radio-button value="1">我喜欢的</a-radio-button>
-        <a-radio-button value="2">我收藏的</a-radio-button>
-      </a-radio-group>
-    </a-form-item>
-    <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
-      <a-space>
-        <a-button type="primary" @click="GetRecords">查询</a-button>
-        <a-button type="danger" @click="StartNow">立即重新同步</a-button>
-      </a-space>
-    </a-form-item>
-  </a-form>
-  <a-table :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading">
-  </a-table>
+  <div>
+    <a-form layout="inline" style="margin-top:10px;" :model="quaryData">
+      <a-form-item label="同步日期">
+        <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" />
+      </a-form-item>
+      <a-form-item label="抖音作者" ref="author" name="author">
+        <a-input v-model:value="quaryData.author"></a-input>
+      </a-form-item>
+      <a-form-item>
+        <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged">
+          <a-radio-button value="*">全部</a-radio-button>
+          <a-radio-button value="1">喜欢的</a-radio-button>
+          <a-radio-button value="2">收藏的</a-radio-button>
+          <a-radio-button value="3">关注的</a-radio-button>
+        </a-radio-group>
+      </a-form-item>
+      <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
+        <a-space>
+          <a-button type="primary" @click="GetRecords">查询</a-button>
+          <a-button type="danger" @click="StartNow">立即重新同步</a-button>
+        </a-space>
+      </a-form-item>
+    </a-form>
+    <a-table :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading">
+    </a-table>
+  </div>
 </template>
 <script lang="ts" setup>
 import { defineComponent, reactive, ref } from 'vue';

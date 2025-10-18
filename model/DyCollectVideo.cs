@@ -122,7 +122,7 @@ namespace dy.net.model
         public string ViedoType { get; set; }
 
         [SugarColumn(IsIgnore = true)]
-        public string ViedoTypeStr  => ViedoType == "1" ? "我喜欢的" : "我收藏的";
+        public string ViedoTypeStr  => ViedoType == "1" ? "喜欢的" : (ViedoType == "2"? "收藏的":"关注的");
 
         [SugarColumn(IsIgnore = true)]
         public string ViedoCate =>(string.IsNullOrWhiteSpace(Tag1) ? "" : Tag1) + "/" + (string.IsNullOrWhiteSpace(Tag2) ? "" : Tag2);

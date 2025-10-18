@@ -336,10 +336,10 @@ namespace dy.net.dto
         [JsonProperty("level")]
         public int Level { get; set; }
         /// <summary>
-        /// 
+        /// 改成long 防止报错
         /// </summary>
         [JsonProperty("tag_id")]
-        public int TagId { get; set; }
+        public long TagId { get; set; }
         /// <summary>
         /// 人文社科
         /// </summary>

@@ -1,4 +1,5 @@
 ﻿using dy.net.dto;
+using System.Text;
 using System.Xml.Linq;
 
 namespace dy.net.utils
@@ -8,44 +9,109 @@ namespace dy.net.utils
     /// </summary>
     public class NfoFileGenerator
     {
-        /// <summary>
-        /// 根据视频信息生成NFO文件
-        /// </summary>
-        /// <param name="videoInfo">视频信息对象</param>
-        /// <param name="filePath">保存NFO文件的路径</param>
+
         public static void GenerateNfoFile(VideoNfo videoInfo, string filePath)
         {
-            if (videoInfo == null)
-                throw new ArgumentNullException(nameof(videoInfo));
+            try
+            {
+                if (videoInfo == null)
+                    throw new ArgumentNullException(nameof(videoInfo));
 
-            if (string.IsNullOrWhiteSpace(filePath))
-                throw new ArgumentException("文件路径不能为空", nameof(filePath));
+                if (string.IsNullOrWhiteSpace(filePath))
+                    throw new ArgumentException("文件路径不能为空", nameof(filePath));
 
-            // 创建根元素
-            XElement root = new XElement("movie"); // 对于电影使用"movie"，电视剧可以使用"tvshow"
+                // 创建根元素
+                XElement root = new XElement("movie");
 
-            // 添加视频信息
-            if (!string.IsNullOrWhiteSpace(videoInfo.Title))
-                root.Add(new XElement("title", videoInfo.Title));
+                // 添加视频信息（先清理无效字符）
+                if (!string.IsNullOrWhiteSpace(videoInfo.Title))
+                    root.Add(new XElement("title", CleanInvalidXmlChars(videoInfo.Title)));
 
-            if (!string.IsNullOrWhiteSpace(videoInfo.Author))
-                root.Add(new XElement("author", videoInfo.Author));
+                if (!string.IsNullOrWhiteSpace(videoInfo.Author))
+                    root.Add(new XElement("author", CleanInvalidXmlChars(videoInfo.Author)));
 
-            if (!string.IsNullOrWhiteSpace(videoInfo.Thumbnail))
-                root.Add(new XElement("thumb", new XAttribute("aspect", "poster"), videoInfo.Thumbnail));
+                // 发布时间（无需清理，因为是格式化的日期字符串）
+                if (videoInfo.ReleaseDate.HasValue)
+                    root.Add(new XElement("releasedate", videoInfo.ReleaseDate.Value.ToString("yyyy-MM-dd")));
 
-            if (!string.IsNullOrWhiteSpace(videoInfo.Poster))
-                root.Add(new XElement("fanart",
-                    new XElement("thumb", videoInfo.Poster)
-                ));
+                // 分类标签（清理每个标签）
+                if (videoInfo.Genres != null && videoInfo.Genres.Any())
+                {
+                    foreach (var genre in videoInfo.Genres)
+                    {
+                        if (!string.IsNullOrWhiteSpace(genre))
+                            root.Add(new XElement("genre", CleanInvalidXmlChars(genre)));
+                    }
+                }
 
-            // 创建XDocument并保存
-            XDocument doc = new XDocument(
-                new XDeclaration("1.0", "utf-8", "yes"),
-                root
-            );
+                if (!string.IsNullOrWhiteSpace(videoInfo.Thumbnail))
+                    root.Add(new XElement("thumb", new XAttribute("aspect", "poster"), CleanInvalidXmlChars(videoInfo.Thumbnail)));
 
-            doc.Save(filePath);
+                if (!string.IsNullOrWhiteSpace(videoInfo.Poster))
+                    root.Add(new XElement("fanart",
+                        new XElement("thumb", CleanInvalidXmlChars(videoInfo.Poster))
+                    ));
+
+                // 创建XDocument并保存
+                XDocument doc = new XDocument(
+                    new XDeclaration("1.0", "utf-8", "yes"),
+                    root
+                );
+
+                doc.Save(filePath);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"生成 {videoInfo?.Title ?? "未知视频"}, NFO文件时出错: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清理字符串中无效的XML字符（包括无效的UTF-16代理对）
+        /// </summary>
+        private static string CleanInvalidXmlChars(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            StringBuilder cleaned = new StringBuilder();
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                // XML 1.0 允许的字符范围：#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+                if (IsValidXmlChar(c))
+                {
+                    // 检查是否是高代理项，如果是则需要配对低代理项
+                    if (char.IsHighSurrogate(c))
+                    {
+                        // 确保不越界，且下一个字符是低代理项
+                        if (i + 1 < input.Length && char.IsLowSurrogate(input[i + 1]))
+                        {
+                            cleaned.Append(c);       // 高代理项
+                            cleaned.Append(input[i + 1]); // 低代理项
+                            i++; // 跳过已处理的低代理项
+                        }
+                        // 否则，高代理项无效，跳过
+                    }
+                    else
+                    {
+                        cleaned.Append(c);
+                    }
+                }
+                // 无效字符直接跳过
+            }
+            return cleaned.ToString();
+        }
+
+        /// <summary>
+        /// 判断字符是否为XML允许的有效字符
+        /// </summary>
+        private static bool IsValidXmlChar(char c)
+        {
+            return (c == 0x9) || (c == 0xA) || (c == 0xD)
+                   || (c >= 0x20 && c <= 0xD7FF)
+                   || (c >= 0xE000 && c <= 0xFFFD)
+                   || (c >= 0x10000 && c <= 0x10FFFF);
         }
     }
 }

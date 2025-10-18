@@ -1,5 +1,6 @@
 ﻿using dy.net.model;
 using dy.net.repository;
+using SqlSugar;
 using System.Linq.Expressions;
 
 namespace dy.net.service
@@ -34,7 +35,7 @@ namespace dy.net.service
             }
             return  _cookieRepository.Insert(dyUserCookies);
         }
-
+      
         // 查询单个
         public async Task<DyUserCookies> GetByIdAsync(string id)
         {

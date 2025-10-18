@@ -17,6 +17,7 @@ namespace dy.net.job
         private readonly DyCollectVideoService _douyinVideoService;
         private readonly CommonService commonService;
         private readonly Random _random = new Random();
+        private string count = "18"; // 每页请求的视频数量，默认18
 
         public DouYinFavoritSyncJob(DyCookieService dyCookieService, DyHttpClientService dyHttpClientService, DyCollectVideoService dyCollectVideoService,CommonService commonService)
         {
@@ -35,7 +36,10 @@ namespace dy.net.job
                 Serilog.Log.Debug("favorite-请先在设置中初始化配置，再执行同步任务");
                 return;
             }
-        
+            if (config.BatchCount > 0)
+            {
+                count = config.BatchCount.ToString();
+            }
             var cookies = await _dyCookieService.GetAllCookies();
             if (cookies == null || !cookies.Any())
             {
@@ -74,8 +78,12 @@ namespace dy.net.job
                     string cursor = "0";
                     while (hasMore)
                     {
-                        var data = await _douyinService.SyncFavoriteVideos(cursor, cookie.SecUserId, cookie.Cookies);
-                        hasMore = data != null && data.HasMore == 1;
+                        var data = await _douyinService.SyncFavoriteVideos(count,cursor, cookie.SecUserId, cookie.Cookies);
+                        hasMore = data != null && data.HasMore == 1 && cookie.FavHasSyncd == 0;
+                        if (cookie.FavHasSyncd == 1)
+                        {
+                            Serilog.Log.Debug($"collect-Cookie[{cookie.UserName}]已完整同步过，后续只获取最新一页数据");
+                        }
                         //Serilog.Log.Debug($"还有数据需要同步吗？{(hasMore ? "YES" : "NO")}");
                         if (data == null)
                         {
@@ -121,7 +129,7 @@ namespace dy.net.job
                             if (!File.Exists(savePath))
                             {
                                 Serilog.Log.Debug($"favorite-视频[{SanitizePath(item.Desc)}]开始下载");
-
+                                await Task.Delay(_random.Next(1, 4) * 1000);
                                 var downVideo = await _douyinService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
                                 Serilog.Log.Debug($"favorite-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
                                 if (downVideo)
@@ -132,10 +140,16 @@ namespace dy.net.job
                                     var avatarImgName = $"{item.Author.Uid}.jpg";
                                     var avatarSavePath = Path.Combine(cookie.FavSavePath, "author", avatarImgName);
                                     await DownAuthorAvatar(cookie.FavSavePath, item, avatarSavePath, cookie.Cookies);
-                                    var avatarUrl = item.Author?.AvatarThumb?.UrlList != null && item.Author.AvatarThumb.UrlList.Any()
-                                        ? item.Author.AvatarThumb.UrlList[0] : null;
+                                    var avatarUrl = item.Author?.AvatarLarger?.UrlList != null && item.Author.AvatarLarger.UrlList.Any()
+                                      ? item.Author.AvatarLarger.UrlList[0] : null;
+                                    // 尝试使用AvatarThumb作为备用头像URL
+                                    if (string.IsNullOrWhiteSpace(avatarUrl))
+                                    {
+                                        avatarUrl = item.Author?.AvatarThumb?.UrlList != null && item.Author.AvatarThumb.UrlList.Any()
+                                            ? item.Author.AvatarThumb.UrlList[0] : null;
+                                    }
 
-                             
+
 
                                     // 构造视频数据
                                     DyCollectVideo video = new()
@@ -173,10 +187,11 @@ namespace dy.net.job
                                         Poster = Path.Combine(saveFolder, "poster.jpg"),
                                         Title = video.VideoTitle,
                                         Thumbnail= Path.Combine(saveFolder, "fanart.jpg"),
+                                        ReleaseDate = video.CreateTime,
+                                        Genres = new List<string> { tag1, tag2, tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
                                     }, nfoPath);
 
                                 }
-                                await Task.Delay(_random.Next(1, 3) * 1000);
                             }
                             else
                             {
@@ -214,10 +229,15 @@ namespace dy.net.job
                         else {
                                 //Serilog.Log.Debug($"没有查询到新的视频");
                         }
-                        await Task.Delay(_random.Next(2, 5) * 1000);
+                        await Task.Delay(_random.Next(5, 10) * 1000);
                     }
                     if (syncCount > 0)
+                    {
                         Serilog.Log.Debug($"Cookie-[{cookie.UserName}],本次共同步成功{syncCount}条视频");
+                        // 更新同步状态为已同步
+                        cookie.FavHasSyncd = 1;
+                        await _dyCookieService.UpdateAsync(cookie);
+                    }
                     else { 
                         Serilog.Log.Debug($"favorite-Cookie-[{cookie.UserName}],本次没有查询到新的视频");
                     }

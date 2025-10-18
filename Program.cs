@@ -238,8 +238,11 @@ namespace dy.net
                     SavePath = "/app/collect",
                     Status = 0,
                     SecUserId = "--",
-                    FavSavePath = "/app/favorite"
+                    FavSavePath = "/app/favorite",
+                    UpSavePath = "/app/uper",
                 });
+
+
 
                 // 初始化配置
                 var commonService = services.GetRequiredService<CommonService>();
@@ -247,11 +250,13 @@ namespace dy.net
                 {
                     Id = IdGener.GetLong().ToString(),
                     Cron = "30",
-                    BatchCount = 10
+                    BatchCount = 20
                 });
 
                 // 更新收藏视频类型--兼容老版本-原来的旧数据没有这个类型字段
                 commonService.UpdateCollectViedoType();
+
+                commonService.UpdateAllCookieSyncedToZero();
 
                 // 启动定时任务
                 var quartzJobService = services.GetRequiredService<QuartzJobService>();

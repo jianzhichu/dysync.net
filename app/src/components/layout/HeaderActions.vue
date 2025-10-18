@@ -35,17 +35,17 @@ const noticeList = reactive([
   <StepinHeaderAction>
     <DayNightSwitch />
   </StepinHeaderAction>
-  <StepinHeaderAction>
-    <a-tooltip>
-      <!-- placement="rightTop" -->
-      <template #title><span style="color:yellow">Swagger Api</span></template>
-      <a class="action-item" href="/swagger" target="_blank">
-        <!-- <ApiOutlined /> -->
-        <img class="gitee-logo" alt="swagger api" src="@/assets/swagger.png" />
-      </a>
-    </a-tooltip>
+  <!-- <StepinHeaderAction> -->
+  <!-- <a-tooltip> -->
+  <!-- placement="rightTop" -->
+  <!-- <template #title><span style="color:yellow">Swagger Api</span></template> -->
+  <!-- <a class="action-item" href="/swagger" target="_blank"> -->
+  <!-- <ApiOutlined /> -->
+  <!-- <img class="gitee-logo" alt="swagger api" src="@/assets/swagger.png" /> -->
+  <!-- </a> -->
+  <!-- </a-tooltip> -->
 
-  </StepinHeaderAction>
+  <!-- </StepinHeaderAction> -->
   <!-- <StepinHeaderAction>
     <a class="action-item" href="http://github.com/stepui/stepin-template" target="_blank">
       <GithubOutlined />

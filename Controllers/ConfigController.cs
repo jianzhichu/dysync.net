@@ -5,6 +5,7 @@ using dy.net.service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using static Dm.net.buffer.ByteArrayBuffer;
 
 namespace dy.net.Controllers
@@ -56,6 +57,10 @@ namespace dy.net.Controllers
         [HttpPost("add")]
         public async Task<IActionResult> AddAsync([FromBody] DyUserCookies dyUserCookies)
         {
+           if(dyUserCookies.UpSecUserIdsJson!=null)
+            {
+                dyUserCookies.UpSecUserIds = JsonConvert.SerializeObject( dyUserCookies.UpSecUserIdsJson);
+            }
             var result = await dyCookieService.Add(dyUserCookies);
             if (result)
             {
@@ -71,6 +76,12 @@ namespace dy.net.Controllers
         [HttpPost("update")]
         public async Task<IActionResult> UpdateAsync([FromBody] DyUserCookies dyUserCookies)
         {
+
+            if (dyUserCookies.UpSecUserIdsJson != null )
+            {
+                dyUserCookies.UpSecUserIds = JsonConvert.SerializeObject(dyUserCookies.UpSecUserIdsJson);
+            }
+
             if (dyUserCookies.Id == "0")
             {
                 dyUserCookies.Id=IdGener.GetLong().ToString();
@@ -140,8 +151,20 @@ namespace dy.net.Controllers
 
         private async Task ReStartJob() {
             var config= commonService.GetConfig();
-            if(config!=null)
-            await quartzJobService.StartJob(config.Cron);
+
+            var cookies = await dyCookieService.GetAllCookies();
+            //重置同步状态
+            foreach (var cookie in cookies)
+            {
+                cookie.CollHasSyncd = 0;
+                cookie.FavHasSyncd = 0;
+                cookie.UperSyncd = 0;
+                await dyCookieService.UpdateAsync(cookie);
+            }
+          
+            if (config!=null)
+             quartzJobService.StartJob(config.Cron);
+            //避免前端等待
         }
     }
 }

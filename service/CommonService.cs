@@ -63,5 +63,16 @@ namespace dy.net.service
                 sqlSugarClient.Updateable(collectViedos).ExecuteCommand();
             }
         }
+        /// <summary>
+        /// 重置所有Cookie的同步状态为0
+        /// </summary>
+        /// <returns></returns>
+        public bool UpdateAllCookieSyncedToZero()
+        {
+            var sql = "update dy_cookie set CollHasSyncd=0,FavHasSyncd=0,UperSyncd=0";
+            return sqlSugarClient.Ado.ExecuteCommand(sql) > 0;
+        }
+
+
     }
 }

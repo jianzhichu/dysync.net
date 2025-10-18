@@ -4,7 +4,7 @@
     <div class="login-box rounded-lg bg-gray-900 shadow-lg p-8 max-w-2xl mx-auto my-10 border border-gray-800 transition-all duration-300 hover:shadow-xl">
       <a-form :model="form" :wrapperCol="{ span: 24 }" @finish="login" class="login-form w-full p-lg text-gray-200">
         <div class="third-platform">
-          <div class="third-title mb-6 text-xl text-center font-semibold text-white">抖音同步工具</div>
+          <div class="third-title mb-6 text-xl text-center font-semibold text-white">抖音同步小帮手</div>
         </div>
         <a-divider class="my-6 bg-gray-700"></a-divider>
 

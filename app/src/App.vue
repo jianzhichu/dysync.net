@@ -1,6 +1,6 @@
 <template>
   <ThemeProvider is-root v-bind="themeConfig" :apply-style="false">
-    <stepin-view system-name="douyin.sync.net" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo1.png">
+    <stepin-view system-name="dy.sync.net" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo1.png">
       <template #headerActions>
         <HeaderActions @showSetting="showSetting = true" />
       </template>
@@ -46,7 +46,7 @@ const { navigation, useTabs, theme, contentClass } = storeToRefs(useSettingStore
 const themeConfig = computed(() => themeList.find((item) => item.key === theme.value)?.config ?? {});
 
 const user = reactive({
-  name: 'admin',
+  name: 'douyin',
   avatar: avatar,
   menuList: [
     // { title: '个人中心', key: 'personal', icon: 'UserOutlined', onClick: () => router.push('/profile') },
