@@ -153,7 +153,7 @@ const dataSource = ref(datas);
 const onViedoTypeChanged = (e) => {
   // console.log(e.target.value);
   quaryData.viedoType = e.target.value;
-  pagination.value.current = 0;
+  pagination.value.current = 1;
   GetRecords();
 };
 </script>
