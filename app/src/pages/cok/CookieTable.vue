@@ -30,7 +30,7 @@ const columns = [
 interface UpSecUserIdItem {
   uper?: string; // 若要求必填，可去掉问号 `uper: string;`
   uid?: string; // 同上，必填则去掉问号
-  syncAll: number;
+  syncAll: boolean;
 }
 
 type DataItem = {
@@ -238,7 +238,7 @@ const showUpers = (recode: DataItem) => {
 };
 
 const addRow = () => {
-  form.upSecUserIdsJson.push({ uper: '', uid: '', syncAll: 0 });
+  form.upSecUserIdsJson.push({ uper: '', uid: '', syncAll: false });
 };
 const removeRow = (index) => {
   form.upSecUserIdsJson.splice(index, 1);
@@ -286,37 +286,40 @@ const rowCount = 4;
         </div>
       </a-form-item>
 
-      <!-- 新增：uper和uid动态行区域 -->
       <a-form-item label="Uper主secUserIds" name="upSecUserIdsJson">
-        <!-- 添加行按钮 -->
-        <a-button type="primary" @click="addRow" style="margin-bottom: 12px">
-          添加抖音Up主 <template #icon>
-            <PlusOutlined />
-          </template>
-        </a-button>
-
-        <!-- 动态渲染所有行 -->
-        <div v-for="(row, index) in form.upSecUserIdsJson" :key="index" style="display: flex; gap: 12px; margin-bottom: 8px; align-items: center">
-          <!-- uper输入框 -->
-          <a-input v-model:value="row.uper" placeholder="请输入博主名字，可随意" style="flex: 1" />
-
-          <!-- uid输入框 -->
-          <a-input v-model:value="row.uid" placeholder="请输入博主secUserId" style="flex: 3" />
-          <!-- syncAll 开关字段 -->
-          <div style="flex: 1; display: flex; align-items: center;">
-            <!-- 用 a-tooltip 包裹文字，实现气泡提示 -->
-            <a-tooltip title="默认关闭，仅同步 UP 主最新一页数据；开启将同步全部作品（量大不建议开启）">
-              <span style="margin-right: 8px; cursor: default;color:#faad14">同步全部作品</span>
-            </a-tooltip>
-            <a-switch v-model:checked="row.syncAll" />
-          </div>
-          <!-- 删除当前行按钮 -->
-          <a-button type="text" danger @click="removeRow(index)">
+        <a-form-item-rest> <!-- 用这个包裹所有辅助元素 -->
+          <!-- 添加行按钮 -->
+          <a-button type="primary" @click="addRow" style="margin-bottom: 12px">
+            添加抖音Up主
             <template #icon>
-              <DeleteOutlined />
+              <PlusOutlined />
             </template>
           </a-button>
-        </div>
+
+          <!-- 动态渲染所有行 -->
+          <div v-for="(row, index) in form.upSecUserIdsJson" :key="index" style="display: flex; gap: 12px; margin-bottom: 8px; align-items: center">
+            <!-- uper输入框 -->
+            <a-input v-model:value="row.uper" placeholder="博主别名，可自定义" style="flex: 1" />
+
+            <!-- uid输入框 -->
+            <a-input v-model:value="row.uid" placeholder="博主secUserId" style="flex: 3" />
+
+            <!-- syncAll 开关字段 -->
+            <div style="flex: 1; display: flex; align-items: center;">
+              <a-tooltip title="默认关闭，仅同步 UP 主最新一页数据；开启将同步全部作品（量大不建议开启）">
+                <span style="margin-right: 8px; cursor: default;color:#faad14">同步全部作品</span>
+              </a-tooltip>
+              <a-switch v-model:checked="row.syncAll" />
+            </div>
+
+            <!-- 删除当前行按钮 -->
+            <a-button type="text" danger @click="removeRow(index)">
+              <template #icon>
+                <DeleteOutlined />
+              </template>
+            </a-button>
+          </div>
+        </a-form-item-rest>
       </a-form-item>
       <a-form-item label="状态" name="status">
         <a-select style="width: 90px" v-model:value="form.status" :options="[

@@ -1,4 +1,5 @@
-﻿using dy.net.model;
+﻿using dy.net.dto;
+using dy.net.model;
 using SqlSugar;
 using System.Threading.Tasks;
 
@@ -69,8 +70,31 @@ namespace dy.net.service
         /// <returns></returns>
         public bool UpdateAllCookieSyncedToZero()
         {
-            var sql = "update dy_cookie set CollHasSyncd=0,FavHasSyncd=0,UperSyncd=0";
-            return sqlSugarClient.Ado.ExecuteCommand(sql) > 0;
+            //var sql = "update dy_cookie set CollHasSyncd=0,FavHasSyncd=0,UperSyncd=0";
+            // sqlSugarClient.Ado.ExecuteCommand(sql) > 0;
+            var cookies= sqlSugarClient.Queryable<DyUserCookies>().ToList();
+
+            foreach (var cookie in cookies)
+            {
+                cookie.CollHasSyncd = 0;
+                cookie.FavHasSyncd = 0;
+                cookie.UperSyncd = 0;
+                var upers = cookie.UpSecUserIds;
+                if (!string.IsNullOrWhiteSpace(upers))
+                {
+                    var uperList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<DyUpSecUserIdDto>>(upers);
+                    if (uperList != null && uperList.Count > 0)
+                    {
+                        foreach (var uper in uperList)
+                        {
+                            uper.syncAll = false;
+                        }
+                    }
+                    var newUpers = Newtonsoft.Json.JsonConvert.SerializeObject(uperList);
+                    cookie.UpSecUserIds = newUpers;
+                }
+            }
+            return sqlSugarClient.Updateable(cookies).ExecuteCommand() > 0;
         }
 
 

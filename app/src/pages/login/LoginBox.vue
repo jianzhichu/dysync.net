@@ -14,7 +14,14 @@
         </a-form-item>
 
         <a-form-item :required="true" name="password" class="mb-6">
-          <a-input v-model:value="form.password" autocomplete="new-password" placeholder="请输入密码" class="login-input h-[45px] rounded-md bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-primary text-lg" type="password" />
+          <a-input v-model:value="form.password" autocomplete="new-password" placeholder="请输入密码" class="login-input h-[45px] rounded-md text-white placeholder:text-gray-500 focus:border-primary text-lg" :type="showPassword ? 'text' : 'password'">
+            <!-- 密码显示/隐藏切换按钮 -->
+            <!-- 直接使用图标作为点击元素 -->
+            <template #suffix>
+              <EyeOutlined v-if="showPassword" @click="showPassword = !showPassword" class="text-gray-500 hover:text-white cursor-pointer transition-colors" aria-label="隐藏密码" />
+              <EyeInvisibleOutlined v-else @click="showPassword = !showPassword" class="text-gray-500 hover:text-white cursor-pointer transition-colors" aria-label="显示密码" />
+            </template>
+          </a-input>
         </a-form-item>
 
         <a-button htmlType="submit" class="h-[48px] w-full rounded-md transition-colors hover:opacity-90 bg-primary border-primary text-lg" type="primary" :loading="loading">
@@ -30,6 +37,8 @@ import { reactive, ref } from 'vue';
 import { useAccountStore } from '@/store';
 import { ThemeProvider } from 'stepin';
 
+// 控制密码显示/隐藏的状态
+const showPassword = ref(false);
 export interface LoginFormProps {
   username: string;
   password: string;

@@ -257,7 +257,7 @@ namespace dy.net
                 commonService.UpdateCollectViedoType();
 
                 commonService.UpdateAllCookieSyncedToZero();
-
+                Serilog.Log.Debug("系统初始化，会默认将-博主作品同步功能-同步全部作品重置为关闭（若要开启，可以到抖音授权菜单中更改）");
                 // 启动定时任务
                 var quartzJobService = services.GetRequiredService<QuartzJobService>();
                 quartzJobService.StartJob(config?.Cron ?? "30");

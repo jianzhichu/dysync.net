@@ -1,4 +1,4 @@
-# dysync.net - 抖音同步工具（我收藏的、我喜欢的）
+# dysync.net - 抖音同步工具（我收藏的、我喜欢的，指定博主）
 
 `dysync.net` 是一款基于 **.NET Core 6.0** 和 **Vue** 开发的工具，用于同步抖音收藏夹以及我喜欢的视频，解决个人收藏和喜欢的视频容易失效的问题。支持多账号同步，并已预设刮削信息，同步后的视频可直接在 Emby 或 Jellyfin 中播放。
 
@@ -21,7 +21,7 @@ Cookie 是同步功能的关键，请严格按照以下步骤获取：
 
 ![输入图片说明](docs/getcookies.png)
 ![输入图片说明](docs/secUserId.png)
-
+![输入图片说明](docs/upers-uid.png)
 ### 2. 路径映射规则
 
 为了方便管理和播放，请理解并正确配置路径映射：
@@ -59,7 +59,8 @@ docker run -d --restart=always \
   -v /你的/本地/视频1/路径:/app/collect \
   -v /你的/本地/视频2/路径:/app/favorite \
   -v /你的/本地/数据库/路径:/app/db \
-  -p 18101:10101 \
+  -v /你的/本地/数据库/路径:/app/uper \
+  -p 10101:10101 \
   --name dysync2025 \
   registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net
 
@@ -77,7 +78,7 @@ services:
     container_name: dysync2025  # 容器名称，可自定义
     restart: always  # 容器异常退出时自动重启
     ports:
-      - "18101:10101"  # 端口映射：本地端口:容器端口（容器端口10101不可修改）
+      - "10101:10101"  # 端口映射：本地端口:容器端口（容器端口10101不可修改）
     volumes:
       # 第一个账号的收藏的视频存储路径（本地路径:容器路径）
       - /本地视频路径1:/app/collect
@@ -85,6 +86,7 @@ services:
       - /本地视频路径1:/app/favorite
       # 数据库存储路径
       - /本地数据库路径:/app/db
+      - /指定博主视频路径:/app/uper
       # 第二个账号的视频存储路径（多账号示例，需在后台对应配置）
       - /本地视频路径2:/app/yeyeye
     # （可选）如需添加环境变量，取消下方注释并配置

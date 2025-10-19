@@ -82,7 +82,7 @@ namespace dy.net.job
                         hasMore = data != null && data.HasMore == 1 && cookie.FavHasSyncd == 0;
                         if (cookie.FavHasSyncd == 1)
                         {
-                            Serilog.Log.Debug($"collect-Cookie[{cookie.UserName}]已完整同步过，后续只获取最新一页数据");
+                            Serilog.Log.Debug($"favorite-Cookie[{cookie.UserName}]已完整同步过，后续只获取最新一页数据");
                         }
                         //Serilog.Log.Debug($"还有数据需要同步吗？{(hasMore ? "YES" : "NO")}");
                         if (data == null)
