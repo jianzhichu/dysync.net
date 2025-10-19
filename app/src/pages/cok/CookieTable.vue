@@ -277,7 +277,7 @@ const rowCount = 4;
           </a-tooltip>
         </div>
       </a-form-item>
-      <a-form-item label="Up主视频存储路径" name="upSavePath">
+      <a-form-item label="博主视频存储路径" name="upSavePath">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.upSavePath" style="flex: 1;" />
           <a-tooltip title="同步指定博主视频时必填！！！">
@@ -286,7 +286,7 @@ const rowCount = 4;
         </div>
       </a-form-item>
 
-      <a-form-item label="Uper主secUserIds" name="upSecUserIdsJson">
+      <a-form-item label="博主信息" name="upSecUserIdsJson">
         <a-form-item-rest> <!-- 用这个包裹所有辅助元素 -->
           <!-- 添加行按钮 -->
           <a-button type="primary" @click="addRow" style="margin-bottom: 12px">
