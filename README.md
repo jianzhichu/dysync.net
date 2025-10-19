@@ -9,7 +9,7 @@
 #### 先放一张Emby的图
 ![输入图片说明](docs/emby.png)
 
-### 1. 获取抖音 Cookie 以及用户sec_user_d
+### 1. 获取抖音 Cookie 以及用户sec_user_d以及指定博主的sec_user_id
 
 Cookie 是同步功能的关键，请严格按照以下步骤获取：
 
