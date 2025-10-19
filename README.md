@@ -29,7 +29,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
   进入自己的抖音主页，浏览器地址栏中 `sec_user_id=` 后的字符串即为个人 ID（如 `https://www.douyin.com/user/sec_user_id=xxx`）。
 - **博主 sec_user_id**（同步指定博主作品用）：  
   1. 进入目标博主主页；  
-  2. 方式1：直接复制地址栏中 `user/` 到  `/from_tab_name`中间部分内容即是博主的 `sec_user_id`；  
+  2. 方式1：直接复制地址栏中 `user/` 到  `?from_tab_name`中间部分内容即是博主的 `sec_user_id`；  
   3. 方式2：按 `F12` → 「Network」→ 任意请求 → 「Headers」→ 提取 `sec_user_id` 字段值。
 
 > ⚠️ 风控提示：同步博主作品时，**慎用开启全量同步**（一次性下载过多易被抖音限制访问）。
