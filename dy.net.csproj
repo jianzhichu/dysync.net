@@ -37,6 +37,7 @@
 	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
 	  <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="6.0.10" />
 	  <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+	  <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
 	  <PackageReference Include="Quartz" Version="3.8.0" />
 	  <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
 	  <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.8.0" />
@@ -69,6 +70,9 @@
 
   <ItemGroup>
     <None Update="db\dy.sqlite">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Dockerfile-arm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Dockerfile">
