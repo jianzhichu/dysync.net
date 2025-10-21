@@ -152,15 +152,15 @@ namespace dy.net.Controllers
         private async Task ReStartJob() {
             var config= commonService.GetConfig();
 
-            var cookies = await dyCookieService.GetAllCookies();
+            //var cookies = await dyCookieService.GetAllCookies();
             //重置同步状态
-            foreach (var cookie in cookies)
-            {
-                cookie.CollHasSyncd = 0;
-                cookie.FavHasSyncd = 0;
-                cookie.UperSyncd = 0;
-                await dyCookieService.UpdateAsync(cookie);
-            }
+            //foreach (var cookie in cookies)
+            //{
+            //    cookie.CollHasSyncd = 0;
+            //    cookie.FavHasSyncd = 0;
+            //    cookie.UperSyncd = 0;
+            //    await dyCookieService.UpdateAsync(cookie);
+            //}
           
             if (config!=null)
              quartzJobService.StartJob(config.Cron);
