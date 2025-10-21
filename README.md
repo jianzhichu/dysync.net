@@ -89,38 +89,33 @@ docker run -d --restart=always \
 ### Arm设备请使用 registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:arm_0.1.1 版本镜像
 创建 docker-compose.yml 文件，复制以下内容，替换「本地路径」后执行 docker-compose up -d：
 
-```yaml
 version: '3.8'
 
 services:
   dysync:
     image: registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net
-    container_name: dysync2025  # 容器名称可自定义
-    restart: always  # 容器异常退出时自动重启
+    container_name: dysync2025
+    restart: always
     ports:
-      - "10101:10101"  # 端口映射：本地端口:容器端口（容器端口10101不可修改）
+      - "10101:10101"
     volumes:
-      # 第一个账号：收藏视频存储路径（本地路径:容器路径）
-      - /本地/收藏视频路径:/app/collect
-      # 第一个账号：喜欢视频存储路径（本地路径:容器路径）
-      - /本地/喜欢视频路径:/app/favorite
-      # 数据库存储路径（持久化配置和同步记录）
-      - /本地/数据库路径:/app/db
-      # 指定博主视频存储路径
-      - /本地/博主视频路径:/app/uper
-      # 多账号示例：第二个账号视频存储路径（需在后台对应配置）
-      - /本地/第二个账号视频路径:/app/yeyeye
-    # （可选）环境变量配置（取消注释并修改）
-    # environment:
-    #   - ENV_VAR_NAME=value
-    # （可选）自定义网络配置（取消注释并修改）
-    # networks:
-    #   - custom_network
+      - /volume1/docker/dysync/db:/app/db
 
-# （可选）自定义网络配置
-# networks:
-#   custom_network:
-#     driver: bridge
+      - /volume2/mediay/dysync:/app/collect
+      - /volume2/mediay/dysync_fav:/app/favorite
+      - /volume2/mediay/dysync_up:/app/uper
+      # 下面是多账号路径映射示例（可选）
+      - /volume2/mediay/dysync2:/app/yeyeye  
+      - /volume2/mediay/dysync2_fav:/app/yeyeye_fav  
+      - /volume2/mediay/dysync2_up:/app/yeyeye_up
+    # 配置DNS服务器（解决域名解析失败导致的无法访问外网）
+    network_mode: bridge
+    dns:
+      - 8.8.8.8  # Google DNS
+      - 114.114.114.114  # 国内DNS
+      - 223.5.5.5 
+
+
 ```
 ## 🚀 5. 软件截图
 

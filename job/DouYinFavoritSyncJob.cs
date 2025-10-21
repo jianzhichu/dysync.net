@@ -118,11 +118,6 @@ namespace dy.net.job
                             var tag3 = tags.FirstOrDefault(x => x.Level == 3)?.TagName;
                             string saveFolder = CreateSaveFolder(cookie, item, tag1, tag2);
 
-                            // 创建文件夹（提前创建，避免下载时才操作）
-                            if (!Directory.Exists(saveFolder))
-                            {
-                                Directory.CreateDirectory(saveFolder);
-                            }
                             var fileName = $"{item.AwemeId}.{v.Format}"; // 用ID做文件名，避免特殊字符
                             var savePath = Path.Combine(saveFolder, fileName);
 
@@ -131,7 +126,15 @@ namespace dy.net.job
                                 Serilog.Log.Debug($"favorite-视频[{SanitizePath(item.Desc)}]开始下载");
                                 await Task.Delay(_random.Next(1, 4) * 1000);
                                 var downVideo = await _douyinService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
-                                Serilog.Log.Debug($"favorite-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+
+                                if (downVideo)
+                                {
+                                    Serilog.Log.Debug($"favorite-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                }
+                                else
+                                {
+                                    Serilog.Log.Error($"favorite-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                }
                                 if (downVideo)
                                 {
                                     await DownVideoCover(item, saveFolder, cookie.Cookies);
@@ -327,7 +330,14 @@ namespace dy.net.job
             // 路径中避免特殊字符，用ID替代描述
             var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : SanitizePath(tag1);
             List<string> pathParts = new List<string> { cookie.FavSavePath, safeTag1 };
-            return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
+            var saveFolder= Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
+
+            // 创建文件夹（提前创建，避免下载时才操作）
+            if (!Directory.Exists(saveFolder))
+            {
+                Directory.CreateDirectory(saveFolder);
+            }
+            return saveFolder;
             //if (string.IsNullOrWhiteSpace(tag2))
             //    return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
             //else

@@ -125,13 +125,9 @@ namespace dy.net.job
                                 var tag1 = tags.FirstOrDefault(x => x.Level == 1)?.TagName;
                                 var tag2 = tags.FirstOrDefault(x => x.Level == 2)?.TagName;
                                 var tag3 = tags.FirstOrDefault(x => x.Level == 3)?.TagName;
-                                string saveFolder = CreateSaveFolder(cookie, item, tag1, tag2);
+                                string saveFolder = CreateSaveFolder(cookie, uper.uper);
 
-                                // 创建文件夹（提前创建，避免下载时才操作）
-                                if (!Directory.Exists(saveFolder))
-                                {
-                                    Directory.CreateDirectory(saveFolder);
-                                }
+                              
                                 var fileName = $"{item.AwemeId}.{v.Format}"; // 用ID做文件名，避免特殊字符
                                 var savePath = Path.Combine(saveFolder, fileName);
 
@@ -140,7 +136,14 @@ namespace dy.net.job
                                     Serilog.Log.Debug($"dyuploder-[{uper.uper}]-视频[{SanitizePath(item.Desc)}]开始下载");
                                     await Task.Delay(_random.Next(1, 4) * 1000);
                                     var downVideo = await _douyinService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
-                                    Serilog.Log.Debug($"dyuploder-[{uper.uper}]-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                    if(downVideo)
+                                    {
+                                        Serilog.Log.Debug($"dyuploder-[{uper.uper}]-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                    }
+                                    else
+                                    {
+                                        Serilog.Log.Error($"dyuploder-[{uper.uper}]-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                    }
                                     if (downVideo)
                                     {
                                         await DownVideoCover(item, saveFolder, cookie.Cookies);
@@ -154,7 +157,7 @@ namespace dy.net.job
                                         // 有可能下载大头像失败，尝试用缩略图地址
                                         if (string.IsNullOrWhiteSpace(avatarUrl))
                                         {
-                                            avatarUrl=item.Author?.AvatarThumb?.UrlList != null && item.Author.AvatarThumb.UrlList.Any()
+                                            avatarUrl = item.Author?.AvatarThumb?.UrlList != null && item.Author.AvatarThumb.UrlList.Any()
                                                 ? item.Author.AvatarThumb.UrlList[0] : null;
                                         }
 
@@ -326,16 +329,21 @@ namespace dy.net.job
         /// 创建目录
         /// </summary>
         /// <param name="cookie"></param>
-        /// <param name="item"></param>
-        /// <param name="tag1"></param>
-        /// <param name="tag2"></param>
+        /// <param name="uperName"></param>
         /// <returns></returns>
-        private static string CreateSaveFolder(DyUserCookies cookie, Aweme item, string? tag1, string? tag2)
+        private static string CreateSaveFolder(DyUserCookies cookie, string uperName)
         {
+            var saveFolder = Path.Combine(cookie.UpSavePath, uperName);
+            // 创建文件夹（提前创建，避免下载时才操作）
+            if (!Directory.Exists(saveFolder))
+            {
+                Directory.CreateDirectory(saveFolder);
+            }
+            return saveFolder;
             // 路径中避免特殊字符，用ID替代描述
-            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : SanitizePath(tag1);
-            List<string> pathParts = new List<string> { cookie.UpSavePath, safeTag1 };
-            return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
+            //var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : SanitizePath(tag1);
+            //List<string> pathParts = new List<string> { cookie.UpSavePath, safeTag1 };
+            //return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
             //if (string.IsNullOrWhiteSpace(tag2))
             //    return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
             //else
