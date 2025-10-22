@@ -28,7 +28,7 @@
               </svg>
             </div>
           </div>
-          <div class="stat-value">{{ fileSizeTotal }} G / {{totalDiskSize}} G</div>
+          <div class="stat-value">{{ fileSizeTotal }} G</div>
           <div class="stat-trend"></div>
         </div>
       </section>

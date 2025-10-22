@@ -1,30 +1,32 @@
 <template>
-  <ThemeProvider :color="{ middle: { 'bg-base': '#1a1a1a' }, primary: { DEFAULT: '#36bffA' } }">
-    <!-- 加宽后的登录框，使用更大的宽度设置 -->
-    <div class="login-box rounded-lg bg-gray-900 shadow-lg p-8 max-w-2xl mx-auto my-10 border border-gray-800 transition-all duration-300 hover:shadow-xl">
-      <a-form :model="form" :wrapperCol="{ span: 24 }" @finish="login" class="login-form w-full p-lg text-gray-200">
+  <ThemeProvider :color="{ 
+    middle: { 'bg-base': '#f8fafc' }, // 浅灰底色
+    primary: { DEFAULT: '#60a5fa' } // 柔和蓝色作为主色调
+  }">
+    <!-- 清新风格登录框 -->
+    <div class="login-box rounded-xl bg-white shadow-md p-8 max-w-2xl mx-auto my-10 border border-gray-100 transition-all duration-300 hover:shadow-lg">
+      <a-form :model="form" :wrapperCol="{ span: 24 }" @finish="login" class="login-form w-full p-lg text-gray-700">
         <div class="third-platform">
-          <div class="third-title mb-6 text-xl text-center font-semibold text-white">抖音同步小帮手</div>
+          <div class="third-title mb-6 text-xl text-center font-semibold text-gray-800">抖音同步小帮手</div>
         </div>
-        <a-divider class="my-6 bg-gray-700"></a-divider>
+        <a-divider class="my-6 bg-gray-200"></a-divider>
 
-        <!-- 增加输入框宽度并调整间距 -->
+        <!-- 清新风格输入框 -->
         <a-form-item :required="true" name="username" class="mb-5">
-          <a-input v-model:value="form.username" autocomplete="new-username" placeholder="请输入用户名" class="login-input h-[45px] rounded-md bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-primary text-lg" />
+          <a-input v-model:value="form.username" autocomplete="new-username" placeholder="请输入用户名" class="login-input h-[45px] rounded-md bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary text-base transition-all focus:ring-1 focus:ring-primary" />
         </a-form-item>
 
         <a-form-item :required="true" name="password" class="mb-6">
-          <a-input v-model:value="form.password" autocomplete="new-password" placeholder="请输入密码" class="login-input h-[45px] rounded-md text-white placeholder:text-gray-500 focus:border-primary text-lg" :type="showPassword ? 'text' : 'password'">
-            <!-- 密码显示/隐藏切换按钮 -->
-            <!-- 直接使用图标作为点击元素 -->
+          <a-input v-model:value="form.password" autocomplete="new-password" placeholder="请输入密码" class="login-input h-[45px] rounded-md bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary text-base transition-all focus:ring-1 focus:ring-primary" :type="showPassword ? 'text' : 'password'">
+            <!-- 密码显示/隐藏图标 -->
             <template #suffix>
-              <EyeOutlined v-if="showPassword" @click="showPassword = !showPassword" class="text-gray-500 hover:text-white cursor-pointer transition-colors" aria-label="隐藏密码" />
-              <EyeInvisibleOutlined v-else @click="showPassword = !showPassword" class="text-gray-500 hover:text-white cursor-pointer transition-colors" aria-label="显示密码" />
+              <EyeOutlined v-if="showPassword" @click="showPassword = !showPassword" class="text-gray-400 hover:text-primary cursor-pointer transition-colors" aria-label="隐藏密码" />
+              <EyeInvisibleOutlined v-else @click="showPassword = !showPassword" class="text-gray-400 hover:text-primary cursor-pointer transition-colors" aria-label="显示密码" />
             </template>
           </a-input>
         </a-form-item>
 
-        <a-button htmlType="submit" class="h-[48px] w-full rounded-md transition-colors hover:opacity-90 bg-primary border-primary text-lg" type="primary" :loading="loading">
+        <a-button htmlType="submit" class="h-[48px] w-full rounded-md transition-colors hover:bg-primary/90 bg-primary border-primary text-white text-base shadow-sm hover:shadow" type="primary" :loading="loading">
           登录
         </a-button>
       </a-form>
@@ -36,6 +38,7 @@
 import { reactive, ref } from 'vue';
 import { useAccountStore } from '@/store';
 import { ThemeProvider } from 'stepin';
+import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons-vue';
 
 // 控制密码显示/隐藏的状态
 const showPassword = ref(false);

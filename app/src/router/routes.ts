@@ -87,7 +87,7 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: '数据看板',
     meta: {
-      icon: 'SettingOutlined',
+      icon: 'RadarChartOutlined',
       view: 'self',
       target: '_self',
       renderMenu: true,
@@ -99,7 +99,7 @@ const routes: RouteRecordRaw[] = [
     path: '/workplace',
     name: '同步记录',
     meta: {
-      icon: 'SettingOutlined',
+      icon: 'SwapOutlined',
       view: 'self',
       target: '_self',
       renderMenu: true,
@@ -111,7 +111,7 @@ const routes: RouteRecordRaw[] = [
     path: '/cok',
     name: '抖音授权',
     meta: {
-      icon: 'SettingOutlined',
+      icon: 'SafetyCertificateOutlined',
       view: 'self',
       target: '_self',
       renderMenu: true,

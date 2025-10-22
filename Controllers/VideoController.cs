@@ -1,6 +1,9 @@
 ﻿using dy.net.dto;
 using dy.net.service;
+using dy.net.utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System.Drawing.Printing;
 
 namespace dy.net.Controllers
@@ -50,7 +53,28 @@ namespace dy.net.Controllers
                 data
             });
         }
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult Index()
+        {
+            List<MyClass> myClasses = new List<MyClass>();
+            foreach (var drive in DriveInfo.GetDrives())
+            {
+                myClasses.Add(new MyClass { name=drive.Name, x1= drive.TotalSize, x2= drive.TotalFreeSpace });
+                Serilog.Log.Debug($"Drive: {drive.Name}, Total Size: {drive.TotalSize}, Free Space: {drive.TotalFreeSpace}");
+            }
+            //var disk=DiskInfoHelper.GetDockerHostTotalDiskSpaceGB();
+            return Ok(JsonConvert.SerializeObject(myClasses)+"\r\n"+JsonConvert.SerializeObject(myClasses.Sum(x=>x.x1)+"\r\n"+ JsonConvert.SerializeObject(myClasses.Sum(x => x.x2))));
+        }
 
 
+        public class MyClass
+        {
+            public string name { get; set; }
+
+            public long x1 { get; set; }
+
+            public long x2 { get; set; }
+        }
     }
 }

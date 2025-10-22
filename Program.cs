@@ -182,7 +182,8 @@ namespace dy.net
                 var quartzJobService = services.GetRequiredService<QuartzJobService>();
                 quartzJobService.StartJob(config?.Cron ?? "30");
 
-                Serilog.Log.Debug("系统初始化完成，会默认将-博主作品同步功能-同步全部作品重置为关闭（若要开启，可以到抖音授权菜单中更改）");
+                Serilog.Log.Debug("系统初始化完成，会默认将-博主作品同步功能-同步全部作品重置为关闭（若要开启，可以到抖音授权页面中修改）");
+                Serilog.Log.Debug($"默认设置的每次读取行数为:{config.BatchCount}，可前往系统配置页修改");
             }
             catch (Exception ex)
             {

@@ -41,6 +41,7 @@ namespace dy.net.job
                 count = config.BatchCount.ToString();
             }
             var cookies = await _dyCookieService.GetAllCookies();
+            cookies=cookies.Where(c => !string.IsNullOrWhiteSpace(c.FavSavePath)).ToList();
             if (cookies == null || !cookies.Any())
             {
                 Serilog.Log.Debug("favorite-无可用Cookie，任务终止");

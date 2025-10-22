@@ -42,28 +42,27 @@ namespace dy.net.job
             {
                 count = config.BatchCount.ToString();
             }
-            Serilog.Log.Debug($"dyuploder-当前设置的每次扫描行数为:{count}");
 
             var cookies = await _dyCookieService.GetAllCookies();
-            cookies = cookies.Where(x => !string.IsNullOrWhiteSpace(x.UpSecUserIds))?.ToList();
+            cookies = cookies.Where(x => !string.IsNullOrWhiteSpace(x.UpSecUserIds)&&!string.IsNullOrWhiteSpace(x.UpSavePath))?.ToList();
             if (!cookies.Any())
             {
-                Serilog.Log.Debug("dyuploder-无可用抖音UP主SecUserId，任务终止");
+                Serilog.Log.Debug("dyuploder-无可用cookie，任务终止");
                 return;
             }
             else
             {
-                Serilog.Log.Debug($"dyuploder-当前有{cookies.Count}个cookie开启了同步,即将开始同步");
+                //Serilog.Log.Debug($"dyuploder-当前有{cookies.Count}个cookie开启了同步,即将开始同步");
                 //return;
             }
           
             foreach (var cookie in cookies)
             {
-                if(string.IsNullOrWhiteSpace(cookie.UpSavePath))
-                {
-                    Serilog.Log.Debug($"dyuploder-Cookie[{cookie.UserName}]的UP主保存路径无效，跳过");
-                    continue;
-                }
+                //if(string.IsNullOrWhiteSpace(cookie.UpSavePath))
+                //{
+                //    Serilog.Log.Debug($"dyuploder-Cookie[{cookie.UserName}]的UP主保存路径无效，跳过");
+                //    continue;
+                //}
                 var ups=JsonConvert.DeserializeObject<List<DyUpSecUserIdDto>>(cookie.UpSecUserIds);
 
                 foreach (var uper in ups)

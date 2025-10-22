@@ -76,7 +76,7 @@ namespace dy.net.service
                 VideoCollectSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "2").Sum(x => x.FileSize)),
                 VideoFollowSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "3").Sum(x => x.FileSize)),
 
-                TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
+                //TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
             };
             data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount(), Icon = x.FirstOrDefault().AuthorAvatarUrl }).OrderByDescending(d => d.Count).ToList();
             return data;

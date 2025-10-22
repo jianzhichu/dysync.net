@@ -39,9 +39,10 @@ namespace dy.net.job
             {
                 count = config.BatchCount.ToString();
             }
-            Serilog.Log.Debug($"collect-当前设置的每次扫描行数为:{count}");
+          
 
             var cookies = await _dyCookieService.GetAllCookies();
+            cookies= cookies.Where(c => !string.IsNullOrWhiteSpace(c.SavePath)).ToList();
             if (cookies == null || !cookies.Any())
             {
                 Serilog.Log.Debug("collect-无可用Cookie，任务终止");
@@ -49,7 +50,7 @@ namespace dy.net.job
             }
             else
             {
-                Serilog.Log.Debug($"collect-当前有{cookies.Count}个cookie开启了同步,即将开始同步");
+                //Serilog.Log.Debug($"collect-当前有{cookies.Count}个cookie开启了同步,即将开始同步");
                 //return;
             }
 
@@ -65,11 +66,11 @@ namespace dy.net.job
                     Serilog.Log.Debug($"collect-Cookie-[{cookie.UserName}]无效，跳过");
                     continue;
                 }
-                if (string.IsNullOrWhiteSpace(cookie.SavePath))
-                {
-                    Serilog.Log.Debug($"collect-Cookie-[{cookie.UserName}]未设置保存路径，跳过");
-                    continue;
-                }
+                //if (string.IsNullOrWhiteSpace(cookie.SavePath))
+                //{
+                //    Serilog.Log.Debug($"collect-Cookie-[{cookie.UserName}]未设置保存路径，跳过");
+                //    continue;
+                //}
                 try
                 {
                     int syncCount = 0;// 记录本次Cookie同步的视频数量
