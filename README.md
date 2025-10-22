@@ -53,7 +53,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 > 1. 本地路径需与后续后台「抖音授权」页面配置的「文件存储路径」**完全一致**；  
 > 2. 未配置路径映射时，文件仅存于容器内部，Emby/Jellyfin 无法访问，且容器删除后数据丢失。
 
-![路径配置示例](docs/upersuidset.png)
+![路径配置示例](docs/auth2.png)
 
 ---
 
@@ -72,7 +72,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 将下方命令中的「本地路径」替换为你的实际路径，终端执行即可：
 ```bash
 
-### Arm设备请使用 registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:arm_0.1.1 版本镜像
+### Arm设备请使用 registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:arm_1.0 版本镜像
 ### 方式一：Docker 命令行
 docker run -d --restart=always \
   -v /你的/本地/收藏视频路径:/app/collect \
@@ -86,7 +86,7 @@ docker run -d --restart=always \
 
 
 ### 方式二：Docker Compose 运行（推荐）
-### Arm设备请使用 registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:arm_0.1.1 版本镜像
+### Arm设备请使用 registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:arm_1.0 版本镜像
 创建 docker-compose.yml 文件，复制以下内容，替换「本地路径」后执行 docker-compose up -d：
 
 version: '3.8'
@@ -121,7 +121,11 @@ services:
 
 ![输入图片说明](docs/homepage.png)
 
+![输入图片说明](docs/homepage_night.png)
+
 ![输入图片说明](docs/datalist.png)
+
+![输入图片说明](docs/auth.png)
 
 ![输入图片说明](docs/logs.png)
 
