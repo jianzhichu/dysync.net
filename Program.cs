@@ -112,45 +112,10 @@ namespace dy.net
             services.AddResponseCompression();
 
             // JWT认证
-            ConfigureJwtAuthentication(services);
+            services.ConfigureJwtAuthentication();
         }
 
-        /// <summary>
-        /// 配置JWT认证
-        /// </summary>
-        private static void ConfigureJwtAuthentication(IServiceCollection services)
-        {
-            var key = Encoding.ASCII.GetBytes(Md5Util.JWT_TOKEN_KEY);
-
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = context =>
-                    {
-                        context.Token = context.Request.Headers["Authorization"]
-                                               .FirstOrDefault()?.Split(" ").Last();
-                        return Task.CompletedTask;
-                    }
-                };
-                options.RequireHttpsMetadata = false;
-                options.SaveToken = true;
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.FromSeconds(60)
-                };
-            });
-        }
+      
 
         /// <summary>
         /// 配置中间件
@@ -188,28 +153,6 @@ namespace dy.net
         }
 
         /// <summary>
-        /// 配置上传路径
-        /// </summary>
-        private static void ConfigureUploadPath(WebApplication app, bool isDevelopment)
-        {
-            var uploadPath = isDevelopment
-                ? Md5Util.UPLOAD_PATH_DEV
-                : Md5Util.UPLOAD_PATH_PRO;
-
-            if (!Directory.Exists(uploadPath))
-            {
-                Directory.CreateDirectory(uploadPath);
-            }
-
-            // 如需启用文件上传访问可取消注释
-            // app.UseStaticFiles(new StaticFileOptions
-            // {
-            //     FileProvider = new PhysicalFileProvider(uploadPath),
-            //     RequestPath = "/upload"
-            // });
-        }
-
-        /// <summary>
         /// 初始化应用服务数据
         /// </summary>
         private static void InitApplicationServices(WebApplication app)
@@ -221,46 +164,25 @@ namespace dy.net
             {
                 // 初始化用户
                 var userService = services.GetRequiredService<UserService>();
-                userService.InitUser(new LoginUserInfo
-                {
-                    UserName = "douyin",
-                    Password = "douyin2025",
-                    CreateTime = DateTime.Now
-                });
+                userService.InitUser();
 
                 // 初始化Cookie
                 var cookieService = services.GetRequiredService<DyCookieService>();
-                cookieService.Init(new DyUserCookies
-                {
-                    UserName = "douyin",
-                    Cookies = "--",
-                    Id = "2026",
-                    SavePath = "/app/collect",
-                    Status = 0,
-                    SecUserId = "--",
-                    FavSavePath = "/app/favorite",
-                    UpSavePath = "/app/uper",
-                });
-
-
+                cookieService.Init();
 
                 // 初始化配置
                 var commonService = services.GetRequiredService<CommonService>();
-                var config = commonService.InitConfig(new AppConfig
-                {
-                    Id = IdGener.GetLong().ToString(),
-                    Cron = "30",
-                    BatchCount = 10
-                });
+                var config = commonService.InitConfig();
 
                 // 更新收藏视频类型--兼容老版本-原来的旧数据没有这个类型字段
                 commonService.UpdateCollectViedoType();
-
+                // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
-                Serilog.Log.Debug("系统初始化，会默认将-博主作品同步功能-同步全部作品重置为关闭（若要开启，可以到抖音授权菜单中更改）");
                 // 启动定时任务
                 var quartzJobService = services.GetRequiredService<QuartzJobService>();
                 quartzJobService.StartJob(config?.Cron ?? "30");
+
+                Serilog.Log.Debug("系统初始化完成，会默认将-博主作品同步功能-同步全部作品重置为关闭（若要开启，可以到抖音授权菜单中更改）");
             }
             catch (Exception ex)
             {
@@ -269,63 +191,8 @@ namespace dy.net
             }
         }
 
-        /// <summary>
-        /// 创建SQLite数据库连接字符串
-        /// </summary>
-        private static string CreateSqliteDBConn()
-        {
-            var dbFolder = Path.Combine(Environment.CurrentDirectory, "db");
-            Directory.CreateDirectory(dbFolder); // 不存在则创建，无需判断
+     
 
-            var dbPath = Path.Combine(dbFolder, "dy.sqlite");
-            if (!File.Exists(dbPath))
-            {
-                using (File.Create(dbPath)) { } // 使用using确保文件流关闭
-            }
-
-            return $"DataSource={dbPath}";
-        }
-
-        /// <summary>
-        /// 初始化数据库
-        /// </summary>
-        private static ISqlSugarClient InitDataBase(DbType dbType, string connString)
-        {
-            // 处理SQLite连接字符串
-            if (dbType == DbType.Sqlite)
-            {
-                connString = CreateSqliteDBConn();
-            }
-
-            if (string.IsNullOrWhiteSpace(connString))
-            {
-                return null;
-            }
-
-            return new SqlSugarClient(new ConnectionConfig
-            {
-                ConnectionString = connString,
-                InitKeyType = InitKeyType.Attribute,
-                DbType = dbType,
-                IsAutoCloseConnection = true
-            }, db =>
-            {
-                // 日志配置
-                db.Aop.OnLogExecuting = (sql, pars) => Serilog.Log.Debug(sql);
-                db.Aop.OnError = e =>
-                {
-                    Serilog.Log.Error(e.Message);
-                    Serilog.Log.Error(e.Sql);
-                };
-
-                // 创建数据库和表
-                db.DbMaintenance.CreateDatabase();
-                var modelTypes = Assembly.GetExecutingAssembly()
-                                         .GetTypes()
-                                         .Where(t => t.Namespace?.StartsWith("dy.net.model") ?? false)
-                                         .ToArray();
-                db.CodeFirst.InitTables(modelTypes);
-            });
-        }
+       
     }
 }

@@ -1,9 +1,12 @@
 ﻿using dy.net.job;
 using dy.net.service;
+using dy.net.utils;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Quartz;
 using Serilog;
@@ -16,6 +19,7 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
+using System.Text;
 
 namespace dy.net.extension
 {
@@ -70,6 +74,44 @@ namespace dy.net.extension
             }
 
             return conn;
+        }
+
+
+        /// <summary>
+        /// 配置JWT认证
+        /// </summary>
+        public static void ConfigureJwtAuthentication(this IServiceCollection services)
+        {
+            var key = Encoding.ASCII.GetBytes(Md5Util.JWT_TOKEN_KEY);
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        context.Token = context.Request.Headers["Authorization"]
+                                               .FirstOrDefault()?.Split(" ").Last();
+                        return Task.CompletedTask;
+                    }
+                };
+                options.RequireHttpsMetadata = false;
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(60)
+                };
+            });
         }
 
         public static void AddSqlsugar(this IServiceCollection services, IConfiguration configuration)

@@ -59,26 +59,33 @@ namespace dy.net.service
             List<DyCollectVideo> list = await this._dyCollectVideoRepository.GetAllAsync();
             if (!list.Any())
                 return new VideoStaticsDto();
-            var Categories = list.GroupBy(x => x.Tag1).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount() }).OrderByDescending(p=>p.Count).ToList();
+            var Categories = list.GroupBy(x => x.Tag1).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount() }).OrderByDescending(p => p.Count).ToList();
             Categories.Where(x => string.IsNullOrWhiteSpace(x.Name)).ToList().ForEach(x => x.Name = "其他");
             var data = new VideoStaticsDto
             {
                 AuthorCount = list.Select(x => x.AuthorId).Distinct().Count(),
-                CategoryCount=list.Select(x=>x.Tag1).Distinct().Count(),
+                CategoryCount = list.Select(x => x.Tag1).Distinct().Count(),
                 VideoCount = list.Count,
-                Categories= Categories,
-                FavoriteCount= list.Count(x => x.ViedoType=="1"),
-                CollectCount= list.Count(x => x.ViedoType=="2"),
-                ViedoSizeTotal = ByteToGbConverter.ConvertBytesToGb(list.Sum(x=>x.FileSize))
+                Categories = Categories,
+                FavoriteCount = list.Count(x => x.ViedoType == "1"),
+                CollectCount = list.Count(x => x.ViedoType == "2"),
+                FollowCount = list.Count(x => x.ViedoType == "3"),
+
+                VideoSizeTotal = ByteToGbConverter.ConvertBytesToGb(list.Sum(x => x.FileSize)),
+                VideoFavoriteSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "1").Sum(x => x.FileSize)),
+                VideoCollectSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "2").Sum(x => x.FileSize)),
+                VideoFollowSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "3").Sum(x => x.FileSize)),
+
+                TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
             };
-            data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount(), Icon=x.FirstOrDefault().AuthorAvatarUrl }).OrderByDescending(d=>d.Count).ToList();
+            data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount(), Icon = x.FirstOrDefault().AuthorAvatarUrl }).OrderByDescending(d => d.Count).ToList();
             return data;
         }
 
 
         //分页查询
 
-        public async Task<(List<DyCollectVideo> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize, string tag = null, string author = null,string viedoType=null,List<string>? dates=null)
+        public async Task<(List<DyCollectVideo> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize, string tag = null, string author = null, string viedoType = null, List<string>? dates = null)
         {
             return await _dyCollectVideoRepository.GetPagedAsync(pageIndex, pageSize, tag, author, viedoType, dates);
         }

@@ -26,14 +26,29 @@ namespace dy.net.service
             return await _cookieRepository.InsertAsync(dyUserCookies);
         }
 
-        public bool Init(DyUserCookies dyUserCookies)
+        public bool Init()
         {
-            var exist =  _cookieRepository.GetFirst(x => x.Id == dyUserCookies.Id);
-            if(exist != null)
+            var initId= "2026";
+            var exist = _cookieRepository.GetFirst(x => x.Id == initId);
+            if (exist != null)
             {
                 return false;
             }
-            return  _cookieRepository.Insert(dyUserCookies);
+            var cookie = new DyUserCookies
+            {
+                UserName = "douyin",
+                Cookies = "--",
+                Id = initId,
+                SavePath = "/app/collect",
+                Status = 0,
+                SecUserId = "--",
+                FavSavePath = "/app/favorite",
+                UpSavePath = "/app/uper",
+                CollHasSyncd = 0,
+                FavHasSyncd = 0,
+                UperSyncd = 0
+            };
+            return  _cookieRepository.Insert(cookie);
         }
       
         // 查询单个

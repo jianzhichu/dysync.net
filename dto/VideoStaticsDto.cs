@@ -23,11 +23,19 @@
 
         public long CategoryCount { get; set; }
 
-        public double ViedoSizeTotal { get; set; }
+        public string VideoSizeTotal { get; set; }
+
+        public string VideoCollectSize { get; set; }
+        public string VideoFollowSize { get; set; }
+        public string VideoFavoriteSize { get; set; }
 
         public long CollectCount { get; set; }
         public long FavoriteCount { get; set; }
 
+        public long FollowCount { get; set; }
+
+
+        public string TotalDiskSize { get; set; }
         public List<VideoStaticsItemDto> Authors { get; set; } = new List<VideoStaticsItemDto>();
         public List<VideoStaticsItemDto> Categories { get; set; } = new List<VideoStaticsItemDto>();
     }

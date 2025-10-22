@@ -1,7 +1,9 @@
 <template>
   <div class="stats-dashboard">
     <div class="dashboard-container">
-      <!-- 核心统计概览 - 平分宽度 -->
+      <!-- 页面标题 -->
+
+      <!-- 核心统计概览 -->
       <section class="stats-overview">
         <div class="stat-card primary-card">
           <div class="stat-header">
@@ -14,12 +16,14 @@
             </div>
           </div>
           <div class="stat-value">{{ totalVideos }}</div>
-          <div class="stat-trend"></div>
+          <div class="stat-trend">
+            <!-- <span class="trend-up">较上月 +5.2%</span> -->
+          </div>
         </div>
 
         <div class="stat-card secondary-card">
           <div class="stat-header">
-            <span class="stat-meta">总占用空间</span>
+            <span class="stat-meta">占用空间</span>
             <div class="stat-icon size-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 12H2v8h20v-8z" />
@@ -28,12 +32,14 @@
               </svg>
             </div>
           </div>
-          <div class="stat-value">{{ fileSizeTotal }} G / {{totalDiskSize}} G</div>
-          <div class="stat-trend"></div>
+          <div class="stat-value">{{ fileSizeTotal }} G</div>
+          <div class="stat-trend">
+            <!-- <span class="trend-up">较上月 +12.8%</span> -->
+          </div>
         </div>
       </section>
 
-      <!-- 次级统计卡片组 - 包含喜欢、收藏、关注的数量及空间统计 -->
+      <!-- 次级统计卡片组 -->
       <section class="stats-grid">
         <!-- 我喜欢的数量卡片 -->
         <div class="stat-card mini-card">
@@ -61,79 +67,47 @@
           <div class="stat-value">{{ collectCount }}</div>
         </div>
 
-        <!-- 我关注的数量卡片 -->
+        <!-- 作者总数卡片 -->
         <div class="stat-card mini-card">
           <div class="stat-header">
-            <span class="stat-meta">我关注的</span>
-            <div class="stat-icon follow-icon">
+            <span class="stat-meta">作者总数</span>
+            <div class="stat-icon author-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="8.5" cy="7" r="4"></circle>
-                <line x1="20" y1="8" x2="20" y2="14"></line>
-                <line x1="23" y1="11" x2="17" y2="11"></line>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
               </svg>
             </div>
           </div>
-          <div class="stat-value">{{ followCount }}</div>
+          <div class="stat-value">{{ totalAuthors }}</div>
         </div>
 
-        <!-- 喜欢占用空间卡片 -->
+        <!-- 分类总数卡片 -->
         <div class="stat-card mini-card">
           <div class="stat-header">
-            <span class="stat-meta">喜欢占用空间</span>
-            <div class="stat-icon size-icon">
+            <span class="stat-meta">分类总数</span>
+            <div class="stat-icon cate-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <path d="M17 5v4" />
+                <path d="M7 5v4" />
               </svg>
             </div>
           </div>
-          <div class="stat-value">{{ favoriteSize }} G</div>
-        </div>
-
-        <!-- 收藏占用空间卡片 -->
-        <div class="stat-card mini-card">
-          <div class="stat-header">
-            <span class="stat-meta">收藏占用空间</span>
-            <div class="stat-icon size-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
-          </div>
-          <div class="stat-value">{{ collectSize }} G</div>
-        </div>
-
-        <!-- 关注占用空间卡片 -->
-        <div class="stat-card mini-card">
-          <div class="stat-header">
-            <span class="stat-meta">关注占用空间</span>
-            <div class="stat-icon size-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="8.5" cy="7" r="4"></circle>
-                <line x1="20" y1="8" x2="20" y2="14"></line>
-                <line x1="23" y1="11" x2="17" y2="11"></line>
-              </svg>
-            </div>
-          </div>
-          <div class="stat-value">{{ followSize }} G</div>
+          <div class="stat-value">{{ categoryTotal }}</div>
         </div>
       </section>
 
       <!-- 详细分类统计 -->
       <section class="detailed-stats">
         <div class="stats-header">
+          <h2>详细统计</h2>
           <div class="tab-controls">
-            <a-badge :count="totalAuthors">
-              <button class="tab-btn" :class="{ active: currentTab === 'author' }" @click="changeTab('author')">
-                视频作者
-              </button>
-            </a-badge>
-            <a-badge :count="categoryTotal">
-              <button class="tab-btn" :class="{ active: currentTab === 'type' }" @click="changeTab('type')">
-                视频分类
-              </button>
-            </a-badge>
+            <button class="tab-btn" :class="{ active: currentTab === 'author' }" @click="currentTab = 'author'">
+              视频作者
+            </button>
+            <button class="tab-btn" :class="{ active: currentTab === 'type' }" @click="currentTab = 'type'">
+              视频分类
+            </button>
           </div>
         </div>
 
@@ -181,6 +155,7 @@
 
     <!-- SVG图标定义 -->
     <svg style="display: none;">
+      <!-- 所有图标定义保持不变 -->
       <symbol id="cup" viewBox="0 0 12 12">
         <path d="M18 4h2v16h-2zM4 4h14v2H4zM4 8h10v2H4zM4 12h10v2H4zM4 16h6v2H4zM4 20h6v2H4z" />
       </symbol>
@@ -207,23 +182,16 @@ interface Category {
   icon: string;
 }
 
-// 状态管理 - 包含喜欢、收藏、关注的数量及空间统计
+// 状态管理
 const totalVideos = ref<number>(0);
 const totalAuthors = ref<number>(0);
 const categoryTotal = ref<number>(0);
-const fileSizeTotal = ref<string>('0.00');
-const totalDiskSize = ref<string>('0.00');
-
+const fileSizeTotal = ref<number>(0);
 const favoriteCount = ref<number>(0);
 const collectCount = ref<number>(0);
-const followCount = ref<number>(0); // 新增：关注的数量
-const favoriteSize = ref<string>('0.00'); // 喜欢占用空间
-const collectSize = ref<string>('0.00'); // 收藏占用空间
-const followSize = ref<string>('0.00'); // 新增：关注占用空间
 const categories = ref<Category[]>([]);
 const authors = ref<Author[]>([]);
 const currentTab = ref<string>('author');
-const tabCount = ref<number>(0); // tab切换时显示数量
 
 // 组件名称
 defineOptions({
@@ -232,34 +200,19 @@ defineOptions({
 
 // 加载数据
 onMounted(() => {
-  // const html = document.documentElement;
-  // html.classList.add('dark-mode');
   loadDashboardData();
 });
 
-const changeTab = (e: any) => {
-  currentTab.value = e;
-  if (e == 'author') {
-    tabCount.value = totalAuthors.value;
-  } else {
-    tabCount.value = categoryTotal.value;
-  }
-};
 const loadDashboardData = async () => {
   try {
     const res = await useApiStore().VideoStatics();
+    totalVideos.value = res.data.videoCount;
     totalAuthors.value = res.data.authorCount;
     categoryTotal.value = res.data.categoryCount;
-    totalVideos.value = res.data.videoCount;
-    fileSizeTotal.value = res.data.videoSizeTotal || 0.0;
-    totalDiskSize.value = res.data.totalDiskSize || 0.0;
     favoriteCount.value = res.data.favoriteCount;
     collectCount.value = res.data.collectCount;
-    followCount.value = res.data.followCount || 0; // 新增：读取关注数量
-    favoriteSize.value = res.data.videoFavoriteSize || 0.0;
-    collectSize.value = res.data.videoCollectSize || 0.0;
-    followSize.value = res.data.videoFollowSize || 0.0; // 新增：读取关注占用空间
     categories.value = res.data.categories;
+    fileSizeTotal.value = res.data.viedoSizeTotal; // 修复拼写错误
     authors.value = res.data.authors;
 
     // 分类图标和颜色随机分配
@@ -322,73 +275,60 @@ const colorArray = [
 </script>
 
 <style scoped>
-/* 白天模式默认样式 */
+/* 白天模式默认样式（无dark-mode类时生效） */
 .stats-dashboard {
   min-height: 100vh;
-  background-color: #ffffff;
-  color: #333333;
+  background-color: #ffffff; /* 白天背景：白色 */
+  color: #333333; /* 白天文本：深灰 */
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   padding: 20px 0;
 }
 
+/* 加宽整体宽度并减少两侧留白 */
 .dashboard-container {
-  max-width: 1400px;
+  max-width: 1400px; /* 从1200px加宽至1600px */
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0 15px; /* 两侧留白从20px减至15px */
 }
 
+/* 响应式适配：避免宽屏溢出 */
 @media (max-width: 1700px) {
   .dashboard-container {
-    max-width: 95%;
+    max-width: 95%; /* 中等屏幕用百分比控制宽度 */
   }
 }
 
-/* 概览区域布局 - 始终平分宽度 */
-.stats-overview {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* 1:1平分宽度 */
-  gap: 20px;
+/* 头部样式 */
+.dashboard-header {
   margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0; /* 白天边框：浅灰 */
 }
 
-/* 次级统计网格布局 - 适配6个卡片（喜欢、收藏、关注的数量+空间） */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 15px;
-  margin-bottom: 30px;
+.dashboard-header h1 {
+  font-size: 28px;
+  margin: 0 0 10px 0;
+  color: #333333; /* 白天标题：深灰 */
 }
 
-@media (min-width: 576px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr); /* 中等屏幕每行3个 */
-  }
+.header-subtitle {
+  font-size: 16px;
+  color: #666666; /* 白天副标题：中灰 */
+  margin: 0;
 }
 
-@media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr); /* 平板屏幕每行3个 */
-  }
-}
-
-@media (min-width: 992px) {
-  .stats-grid {
-    grid-template-columns: repeat(6, 1fr); /* 大屏幕每行6个，均匀分布 */
-  }
-}
-
-/* 其他样式保持不变 */
+/* 统计卡片样式（增强白天阴影） */
 .stat-card {
-  background: #f5f5f5;
+  background: #f5f5f5; /* 白天卡片背景：浅灰 */
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* 增强阴影 */
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); /* 增强hover阴影 */
 }
 
 .stat-header {
@@ -400,7 +340,7 @@ const colorArray = [
 
 .stat-meta {
   font-size: 14px;
-  color: #666666;
+  color: #666666; /* 白天元数据：中灰 */
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -434,10 +374,14 @@ const colorArray = [
   color: #ff9800;
 }
 
-/* 新增：关注图标样式 */
-.follow-icon {
+.author-icon {
   background-color: rgba(156, 39, 176, 0.2);
   color: #9c27b0;
+}
+
+.cate-icon {
+  background-color: rgba(0, 188, 212, 0.2);
+  color: #00bcd4;
 }
 
 .stat-value {
@@ -448,8 +392,33 @@ const colorArray = [
   line-height: 1;
 }
 
-.mini-card .stat-value {
-  font-size: 24px;
+.stat-trend {
+  font-size: 13px;
+}
+
+.trend-up {
+  color: #4caf50;
+  display: flex;
+  align-items: center;
+}
+
+.trend-up::before {
+  content: '↑';
+  margin-right: 4px;
+}
+
+/* 概览区域布局 */
+.stats-overview {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+@media (min-width: 768px) {
+  .stats-overview {
+    grid-template-columns: 2fr 1fr;
+  }
 }
 
 .primary-card {
@@ -458,6 +427,30 @@ const colorArray = [
 
 .secondary-card {
   border-top: 4px solid #2196f3;
+}
+
+/* 次级统计网格布局 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+@media (min-width: 576px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mini-card .stat-value {
+  font-size: 24px;
 }
 
 /* 详细统计区域 */
@@ -523,18 +516,18 @@ const colorArray = [
 @media (min-width: 576px) {
   .authors-grid,
   .categories-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (min-width: 992px) {
   .authors-grid,
   .categories-grid {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-/* 作者卡片 */
+/* 作者卡片（增强白天阴影） */
 .author-card {
   background: #eeeeee;
   border-radius: 8px;
@@ -543,12 +536,12 @@ const colorArray = [
   flex-direction: column;
   gap: 10px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); /* 新增阴影 */
 }
 
 .author-card:hover {
   transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12); /* 增强hover阴影 */
 }
 
 .author-avatar {
@@ -594,7 +587,7 @@ const colorArray = [
   transition: width 0.5s ease;
 }
 
-/* 分类卡片 */
+/* 分类卡片（增强白天阴影） */
 .category-card {
   background: #eeeeee;
   border-radius: 8px;
@@ -603,12 +596,12 @@ const colorArray = [
   align-items: center;
   gap: 15px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); /* 新增阴影 */
 }
 
 .category-card:hover {
   transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12); /* 增强hover阴影 */
 }
 
 .category-icon {

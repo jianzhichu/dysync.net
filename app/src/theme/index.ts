@@ -17,7 +17,8 @@ export function configTheme(key: string) {
   const { setNavigation, setTheme } = useSettingStore();
   switch (key) {
     case 'night':
-      setBgSeriesColors({ 'bg-base': '#1D1D1F' });
+      // setBgSeriesColors({ 'bg-base': '#1D1D1F' });
+      setBgSeriesColors({ 'bg-base': '#1a1a2e' });
       break;
     case 'header-dark':
       setNavigation('head');
@@ -84,10 +85,18 @@ export const themeList: Theme.ThemeConfig[] = [
   },
   {
     title: '暗夜紫',
-    key: 'purple',
+    key: 'purple2',
     imgUrl: PurpleImg,
     config: {
       color: { middle: { 'bg-base': '#361F68' } },
+    },
+  },
+  {
+    title: '暗夜',
+    key: 'purple',
+    imgUrl: PurpleImg,
+    config: {
+      color: { middle: { 'bg-base': '#1a1a2e' } },
     },
   },
   {

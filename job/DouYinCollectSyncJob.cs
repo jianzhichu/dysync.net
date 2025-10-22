@@ -65,6 +65,11 @@ namespace dy.net.job
                     Serilog.Log.Debug($"collect-Cookie-[{cookie.UserName}]无效，跳过");
                     continue;
                 }
+                if (string.IsNullOrWhiteSpace(cookie.SavePath))
+                {
+                    Serilog.Log.Debug($"collect-Cookie-[{cookie.UserName}]未设置保存路径，跳过");
+                    continue;
+                }
                 try
                 {
                     int syncCount = 0;// 记录本次Cookie同步的视频数量

@@ -26,7 +26,6 @@ const prodRollupOptions = {
 export default ({ command, mode }) => {
   // 获取环境变量
   const env = loadEnv(mode, process.cwd());
-
   return defineConfig({
     server: {
       host: "0.0.0.0",
@@ -85,7 +84,14 @@ export default ({ command, mode }) => {
       preprocessorOptions: {
         less: {
           plugins: [AntdvLessPlugin],
-          modifyVars: AntdvModifyVars,
+
+          modifyVars: {
+            ...AntdvModifyVars, // 保留默认变量（可选，按需添加）
+            '@primary-color': '#722ed1',
+            // 你的自定义主色调（核心：覆盖默认值）
+            // 其他需要修改的变量
+            // '@link-color': '#722ed1',
+          },
           javascriptEnabled: true,
         },
       },
