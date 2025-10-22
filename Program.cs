@@ -250,7 +250,7 @@ namespace dy.net
                 {
                     Id = IdGener.GetLong().ToString(),
                     Cron = "30",
-                    BatchCount = 20
+                    BatchCount = 10
                 });
 
                 // 更新收藏视频类型--兼容老版本-原来的旧数据没有这个类型字段
