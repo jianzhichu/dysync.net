@@ -1,6 +1,6 @@
 <template>
   <ThemeProvider is-root v-bind="themeConfig" :apply-style="false">
-    <stepin-view system-name="dy.sync.net" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo1.png">
+    <stepin-view system-name="抖音小帮手" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo.png">
       <template #headerActions>
         <HeaderActions @showSetting="showSetting = true" />
       </template>
@@ -85,16 +85,16 @@ onMounted(() => {
     .apiCheckInitStatus()
     .then((res) => {
       if (res.code === 0) {
-        useApiStore()
-          .apiUserInfo()
-          .then((res) => {
-            if (res.code === 0 && res.code !== '') {
-              if (res.data.avatar && res.data.avatar != null) {
-                user.avatar = `/upload/${res.data.avatar}`;
-              }
-              user.name = res.data.userName;
-            }
-          });
+        // useApiStore()
+        //   .apiUserInfo()
+        //   .then((res) => {
+        //     if (res.code === 0 && res.code !== '') {
+        //       if (res.data.avatar && res.data.avatar != null) {
+        //         user.avatar = `/upload/${res.data.avatar}`;
+        //       }
+        //       user.name = res.data.userName;
+        //     }
+        //   });
       }
     });
 });
@@ -122,6 +122,9 @@ onMounted(() => {
     box-shadow: inset 0 0 1px rgba(0, 0, 0, 0);
     border-radius: 4px;
     background: theme('backgroundColor.layout');
+  }
+  .system-name {
+    // color: #16213e !important;
   }
 }
 

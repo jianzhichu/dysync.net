@@ -116,15 +116,15 @@ const beforeUpload = (file: UploadProps['fileList'][number]) => {
 // const userInfo = ref<string>();
 
 const loadUserInfo = () => {
-  useApiStore()
-    .apiUserInfo()
-    .then((res) => {
-      if (res.code === 0) {
-        if (res.data.avatar != null && res.data.avatar !== '') imageUrl.value = `/upload/${res.data.avatar}`;
-        passwordFormData.UserId = res.data.id;
-        uploadAction.value = `/api/auth/UpdateUserAvatar?Uid=${res.data.id}`;
-      }
-    });
+  // useApiStore()
+  //   .apiUserInfo()
+  //   .then((res) => {
+  //     if (res.code === 0) {
+  //       if (res.data.avatar != null && res.data.avatar !== '') imageUrl.value = `/upload/${res.data.avatar}`;
+  //       passwordFormData.UserId = res.data.id;
+  //       uploadAction.value = `/api/auth/UpdateUserAvatar?Uid=${res.data.id}`;
+  //     }
+  //   });
 };
 
 interface PassFormState {

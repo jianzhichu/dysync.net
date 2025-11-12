@@ -55,7 +55,7 @@ const navList = [
         <div class="front-header flex items-baseline py-md px-xl">
           <div class="text-xxl text-text hover:text-text">
             <!-- <img src="@/assets/png.svg" /> -->
-            dy.sync.net
+            <!-- 抖音同步小帮手 -->
           </div>
           <!-- <div style="width: calc(100% - 430px)" class="front-navigation mx-xl flex overflow-hidden items-center text-lg overflow-ellipsis whitespace-nowrap">
             <div :class="`front-nav-item flex items-center cursor-pointer mx-base ${nav.children ? 'with-list' : ''}`" v-for="nav in navList">

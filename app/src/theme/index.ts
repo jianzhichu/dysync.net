@@ -1,16 +1,16 @@
 import { useThemeStore } from 'stepin/es/theme-provider';
 import { useSettingStore } from '@/store';
 
-import GreenImg from '@/assets/theme/green.png';
-import VscodeImg from '@/assets/theme/vscode.png';
-import PinkImg from '@/assets/theme/pink.png';
-import SideDarkImg from '@/assets/theme/side-dark.png';
-import HeaderDarkImg from '@/assets/theme/header-dark.png';
-import PurpleImg from '@/assets/theme/purple.png';
-import ChinaRedImg from '@/assets/theme/china-red.png';
-import OrangeImg from '@/assets/theme/orange.png';
-import IdeaImg from '@/assets/theme/idea.png';
-import LightImg from '@/assets/theme/light.png';
+// import GreenImg from '@/assets/theme/green.png';
+// import VscodeImg from '@/assets/theme/vscode.png';
+// import PinkImg from '@/assets/theme/pink.png';
+// import SideDarkImg from '@/assets/theme/side-dark.png';
+// import HeaderDarkImg from '@/assets/theme/header-dark.png';
+// import PurpleImg from '@/assets/theme/purple.png';
+// import ChinaRedImg from '@/assets/theme/china-red.png';
+// import OrangeImg from '@/assets/theme/orange.png';
+// import IdeaImg from '@/assets/theme/idea.png';
+// import LightImg from '@/assets/theme/light.png';
 
 export function configTheme(key: string) {
   const { setBgSeriesColors } = useThemeStore();
@@ -36,25 +36,25 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: '亮色模式',
     key: 'light',
-    imgUrl: LightImg,
+    // imgUrl: LightImg,
     config: { color: { middle: { 'bg-base': '#fff' } } },
   },
   {
     title: '侧边暗色菜单',
     key: 'side-dark',
-    imgUrl: SideDarkImg,
+    // imgUrl: SideDarkImg,
     config: { color: { middle: { 'bg-base': '#fff', 'bg-side': '#001129' } }, size: { 'width-side': '220px' } },
   },
   {
     title: '顶部暗色菜单',
     key: 'header-dark',
-    imgUrl: HeaderDarkImg,
+    // imgUrl: HeaderDarkImg,
     config: { color: { middle: { 'bg-base': '#fff', 'bg-header': '#001129' } } },
   },
   {
     title: 'VSCode风',
     key: 'vscode',
-    imgUrl: VscodeImg,
+    // imgUrl: VscodeImg,
     config: {
       color: { middle: { 'bg-base': '#23272E' } },
     },
@@ -62,7 +62,7 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: 'IDEA风',
     key: 'idea',
-    imgUrl: IdeaImg,
+    // imgUrl: IdeaImg,
     config: {
       color: { middle: { 'bg-base': '#2B2B2B' } },
     },
@@ -70,7 +70,7 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: '墨绿风',
     key: 'green',
-    imgUrl: GreenImg,
+    // imgUrl: GreenImg,
     config: {
       color: { middle: { 'bg-base': '#013a54' } },
     },
@@ -78,7 +78,7 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: '芭比粉',
     key: 'pink',
-    imgUrl: PinkImg,
+    // imgUrl: PinkImg,
     config: {
       color: { middle: { 'bg-base': '#B6266D' } },
     },
@@ -86,7 +86,7 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: '暗夜紫',
     key: 'purple2',
-    imgUrl: PurpleImg,
+    // imgUrl: PurpleImg,
     config: {
       color: { middle: { 'bg-base': '#361F68' } },
     },
@@ -94,7 +94,7 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: '暗夜',
     key: 'purple',
-    imgUrl: PurpleImg,
+    // imgUrl: PurpleImg,
     config: {
       color: { middle: { 'bg-base': '#1a1a2e' } },
     },
@@ -102,7 +102,7 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: '中国红',
     key: 'china',
-    imgUrl: ChinaRedImg,
+    // imgUrl: ChinaRedImg,
     config: {
       color: { middle: { 'bg-base': 'rgb(230, 0, 0)' } },
     },
@@ -110,7 +110,7 @@ export const themeList: Theme.ThemeConfig[] = [
   {
     title: '活力橙',
     key: 'orange',
-    imgUrl: OrangeImg,
+    // imgUrl: OrangeImg,
     config: {
       color: { middle: { 'bg-base': '#B1740D' } },
     },
