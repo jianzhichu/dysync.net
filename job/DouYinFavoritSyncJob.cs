@@ -124,17 +124,17 @@ namespace dy.net.job
 
                             if (!File.Exists(savePath))
                             {
-                                Serilog.Log.Debug($"favorite-视频[{SanitizePath(item.Desc)}]开始下载");
+                                Serilog.Log.Debug($"favorite-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]开始下载");
                                 await Task.Delay(_random.Next(1, 4) * 1000);
                                 var downVideo = await _douyinService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
 
                                 if (downVideo)
                                 {
-                                    Serilog.Log.Debug($"favorite-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                    Serilog.Log.Debug($"favorite-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
                                 }
                                 else
                                 {
-                                    Serilog.Log.Error($"favorite-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                    Serilog.Log.Error($"favorite-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
                                 }
                                 if (downVideo)
                                 {
@@ -329,9 +329,9 @@ namespace dy.net.job
         private static string CreateSaveFolder(DyUserCookies cookie, Aweme item, string? tag1, string? tag2)
         {
             // 路径中避免特殊字符，用ID替代描述
-            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : SanitizePath(tag1);
+            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : TikTokFileNameHelper.SanitizePath(tag1);
             List<string> pathParts = new List<string> { cookie.FavSavePath, safeTag1 };
-            var saveFolder= Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), SanitizePath(item.Desc) + "@" + item.AwemeId);
+            var saveFolder= Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), TikTokFileNameHelper.SanitizePath(item.Desc) + "@" + item.AwemeId);
 
             // 创建文件夹（提前创建，避免下载时才操作）
             if (!Directory.Exists(saveFolder))
@@ -345,22 +345,5 @@ namespace dy.net.job
             //    return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), tag2 + "@" + item.AwemeId);
         }
 
-        // 清理路径中的特殊字符（避免创建文件夹失败）
-        private static string SanitizePath(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                path = "其他";
-            }
-            foreach (var c in Path.GetInvalidFileNameChars())
-            {
-                path = path.Replace(c, '_');
-            }
-            if (path.Length > 50)
-            {
-                path = path.Substring(0, 50);
-            }
-            return path.Trim();
-        }
     }
 }

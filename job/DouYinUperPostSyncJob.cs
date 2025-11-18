@@ -5,6 +5,7 @@ using dy.net.service;
 using dy.net.utils;
 using Newtonsoft.Json;
 using Quartz;
+using SqlSugar.Extensions;
 
 namespace dy.net.job
 {
@@ -22,7 +23,7 @@ namespace dy.net.job
 
         private readonly string httpDownName = "dy_down_uper";
 
-        public DouYinUperPostSyncJob(DyCookieService dyCookieService, DyHttpClientService dyHttpClientService, DyCollectVideoService dyCollectVideoService,CommonService commonService)
+        public DouYinUperPostSyncJob(DyCookieService dyCookieService, DyHttpClientService dyHttpClientService, DyCollectVideoService dyCollectVideoService, CommonService commonService)
         {
             _dyCookieService = dyCookieService;
             _douyinService = dyHttpClientService;
@@ -44,7 +45,7 @@ namespace dy.net.job
             }
 
             var cookies = await _dyCookieService.GetAllCookies();
-            cookies = cookies.Where(x => !string.IsNullOrWhiteSpace(x.UpSecUserIds)&&!string.IsNullOrWhiteSpace(x.UpSavePath))?.ToList();
+            cookies = cookies.Where(x => !string.IsNullOrWhiteSpace(x.UpSecUserIds) && !string.IsNullOrWhiteSpace(x.UpSavePath))?.ToList();
             if (!cookies.Any())
             {
                 Serilog.Log.Debug("dyuploder-无可用cookie，任务终止");
@@ -55,7 +56,7 @@ namespace dy.net.job
                 //Serilog.Log.Debug($"dyuploder-当前有{cookies.Count}个cookie开启了同步,即将开始同步");
                 //return;
             }
-          
+
             foreach (var cookie in cookies)
             {
                 //if(string.IsNullOrWhiteSpace(cookie.UpSavePath))
@@ -63,7 +64,7 @@ namespace dy.net.job
                 //    Serilog.Log.Debug($"dyuploder-Cookie[{cookie.UserName}]的UP主保存路径无效，跳过");
                 //    continue;
                 //}
-                var ups=JsonConvert.DeserializeObject<List<DyUpSecUserIdDto>>(cookie.UpSecUserIds);
+                var ups = JsonConvert.DeserializeObject<List<DyUpSecUserIdDto>>(cookie.UpSecUserIds);
 
                 foreach (var uper in ups)
                 {
@@ -85,8 +86,8 @@ namespace dy.net.job
 
                         while (hasMore)
                         {
-                            var data = await _douyinService.SyncUpderPostVideos(count, cursor,uper.uid, cookie.Cookies);
-                            hasMore = data != null && data.HasMore == 1 && cookie.UperSyncd == 0 &&uper.syncAll;
+                            var data = await _douyinService.SyncUpderPostVideos(count, cursor, uper.uid, cookie.Cookies);
+                            hasMore = data != null && data.HasMore == 1 && cookie.UperSyncd == 0 && uper.syncAll;
                             if (cookie.UperSyncd == 1)
                             {
                                 Serilog.Log.Debug($"dyuploder-Cookie[{cookie.UserName}]已完整同步过，后续只获取最新一页数据");
@@ -126,22 +127,41 @@ namespace dy.net.job
                                 var tag3 = tags.FirstOrDefault(x => x.Level == 3)?.TagName;
                                 string saveFolder = CreateSaveFolder(cookie, uper.uper);
 
-                              
+
                                 var fileName = $"{item.AwemeId}.{v.Format}"; // 用ID做文件名，避免特殊字符
+
+                                string samplePrefix = null;
+                                string sampleName = null;
+                                if (config.UperUseViedoTitle)// 使用视频标题作为文件名
+                                {
+                                    sampleName = TikTokFileNameHelper.GenerateFileName(item.Desc, item.AwemeId);
+
+                                    var sampleViedo = await _douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
+                                    if (string.IsNullOrWhiteSpace(sampleViedo.Item1))
+                                    {
+                                        fileName = $"{sampleName}.{v.Format}";
+                                    }
+                                    else
+                                    {
+                                        fileName = $"{sampleViedo.Item1}.{v.Format}";
+                                        samplePrefix = sampleViedo.Item2;
+                                    }
+                                }
+
                                 var savePath = Path.Combine(saveFolder, fileName);
 
                                 if (!File.Exists(savePath))
                                 {
-                                    Serilog.Log.Debug($"dyuploder-[{uper.uper}]-视频[{SanitizePath(item.Desc)}]开始下载");
+                                    Serilog.Log.Debug($"dyuploder-[{uper.uper}]-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]开始下载");
                                     await Task.Delay(_random.Next(1, 4) * 1000);
                                     var downVideo = await _douyinService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
-                                    if(downVideo)
+                                    if (downVideo)
                                     {
-                                        Serilog.Log.Debug($"dyuploder-[{uper.uper}]-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                        Serilog.Log.Debug($"dyuploder-[{uper.uper}]-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
                                     }
                                     else
                                     {
-                                        Serilog.Log.Error($"dyuploder-[{uper.uper}]-视频[{SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
+                                        Serilog.Log.Error($"dyuploder-[{uper.uper}]-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载{(downVideo ? "成功" : "失败")}");
                                     }
                                     if (downVideo)
                                     {
@@ -186,8 +206,16 @@ namespace dy.net.job
                                             VideoCoverSavePath = Path.Combine(saveFolder, "poster.jpg"),
                                             SyncTime = DateTime.Now,
                                             DyUserId = data.Uid,
-                                            CookieId = cookie.Id
+                                            CookieId = cookie.Id,
+
                                         };
+
+                                        if (!string.IsNullOrEmpty(sampleName))
+                                        {
+                                            video.VideoTitleSimplify = sampleName;
+                                            if (!string.IsNullOrEmpty(samplePrefix))
+                                                video.VideoTitleSimplifyPrefix = samplePrefix;
+                                        }
                                         videos.Add(video);
 
                                         var nfoPath = Path.Combine(saveFolder, $"{item.AwemeId}.nfo");
@@ -245,7 +273,7 @@ namespace dy.net.job
                         if (syncCount > 0)
                         {
                             Serilog.Log.Debug($"dyuploder-[{uper.uper}],本次共同步成功{syncCount}条视频");
-                           
+
                         }
                         else
                         {
@@ -349,22 +377,5 @@ namespace dy.net.job
             //    return Path.Combine(pathParts[0], string.Join("-", pathParts.Skip(1)), tag2 + "@" + item.AwemeId);
         }
 
-        // 清理路径中的特殊字符（避免创建文件夹失败）
-        private static string SanitizePath(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                path = "其他";
-            }
-            foreach (var c in Path.GetInvalidFileNameChars())
-            {
-                path = path.Replace(c, '_');
-            }
-            if (path.Length > 50)
-            {
-                path = path.Substring(0, 50);
-            }
-            return path.Trim();
-        }
     }
 }

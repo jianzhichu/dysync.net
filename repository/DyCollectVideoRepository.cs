@@ -1,5 +1,8 @@
-﻿using dy.net.model;
+﻿using dy.net.dto;
+using dy.net.model;
+using Quartz.Util;
 using SqlSugar;
+using System.Linq;
 
 namespace dy.net.repository
 {
@@ -57,6 +60,50 @@ namespace dy.net.repository
                 }
             }
             return (list, totalCount);
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="AuthorId"></param>
+        /// <param name="ViedoNameSimplify"></param>
+        /// <returns></returns>
+        public async  Task<(string, string)> GetUperLastViedoFileName(string AuthorId,string ViedoNameSimplify)
+        {
+
+           var video=  await this.Db.Queryable<DyCollectVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == "3")
+                .Where(x => x.VideoTitleSimplify == ViedoNameSimplify)
+                .OrderByDescending(x => x.CreateTime).FirstAsync();
+
+            if (video != null)
+            {
+                if (string.IsNullOrWhiteSpace(video.VideoTitleSimplifyPrefix))
+                {
+                    return (ViedoNameSimplify, "001");
+                }
+
+                else
+                {
+                    //VideoTitleSimplifyPrefix的规则是从001开始
+                    var prefixNumber = video.VideoTitleSimplifyPrefix.TrimEnd('-');
+                    if (int.TryParse(prefixNumber, out int number))
+                    {
+                        number += 1;
+                        return (ViedoNameSimplify, number.ToString("D3"));
+                    }
+                    else
+                    {
+                        return (ViedoNameSimplify, "001");
+                    }
+                }
+            }
+            else
+            {
+                return (ViedoNameSimplify, "");
+            }
+
+
         }
 
     }

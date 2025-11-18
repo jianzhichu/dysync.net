@@ -20,5 +20,11 @@ namespace dy.net.model
         /// 每次查询数量
         /// </summary>
         public int BatchCount { get; set; } = 10;
+
+        /// <summary>
+        /// 博主视频是否 直接用标题做文件名，不另外加一层文件夹
+        /// </summary>
+        public bool UperUseViedoTitle { get; set; }
+     
     }
 }

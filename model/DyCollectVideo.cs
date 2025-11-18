@@ -33,6 +33,19 @@ namespace dy.net.model
         /// </summary>
         [SugarColumn(Length =2000,IsNullable =true)]
         public string VideoTitle { get; set; }
+
+        /// <summary>
+        /// 如果配置文件   UperFileNameUseViedoTitle=true
+        /// 简化后的标题 默认空 只有关注的博主的 视频会存储该字段，实际UP主的视频文件名是 VideoTitleSimplify + VideoTitleSimplifyPrefix
+        /// </summary>
+        [SugarColumn(Length =500,IsNullable =true)]
+        public string VideoTitleSimplify { get; set; }
+
+        /// <summary>
+        /// 精简标题的前缀 默认空，其实就是序号，类似 001-，002-
+        /// </summary>
+        [SugarColumn(Length =50,IsNullable =true)]
+        public string VideoTitleSimplifyPrefix { get; set; }
         /// <summary>
         /// 标签（分类）
         /// </summary>
@@ -118,6 +131,9 @@ namespace dy.net.model
         [SugarColumn(IsIgnore = true)]
         public string SyncTimeStr => SyncTime.ToString("yyyy-MM-dd HH:mm:ss");
 
+        /// <summary>
+        /// 1喜欢的，2收藏的，3关注的
+        /// </summary>
         [SugarColumn(Length =200,IsNullable =true)]
         public string ViedoType { get; set; }
 

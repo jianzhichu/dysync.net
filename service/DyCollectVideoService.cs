@@ -90,6 +90,19 @@ namespace dy.net.service
             return await _dyCollectVideoRepository.GetPagedAsync(pageIndex, pageSize, tag, author, viedoType, dates);
         }
 
+
+        /// <summary>
+        /// 关注的博主的视频如果配置为视频标题作为文件名，生成文件名
+        /// </summary>
+        /// <param name="AuthorId"></param>
+        /// <param name="ViedoNameSimplify"></param>
+        /// <returns></returns>
+        public async Task<(string, string)> GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
+        {
+
+            return await _dyCollectVideoRepository.GetUperLastViedoFileName(AuthorId, ViedoNameSimplify);
+        }
+
     }
 
 
