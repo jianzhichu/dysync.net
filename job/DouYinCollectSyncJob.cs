@@ -84,6 +84,7 @@ namespace dy.net.job
                     {
                         var data = await _douyinService.SyncCollectVideos(cursor, count, cookie.Cookies);
                         hasMore = data != null && data.HasMore == 1 && cookie.CollHasSyncd == 0;
+                        break;
                         if (cookie.CollHasSyncd == 1)
                         {
                             Serilog.Log.Debug($"collect-Cookie[{cookie.UserName}]已完整同步过，后续只获取最新一页数据");

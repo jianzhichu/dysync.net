@@ -158,8 +158,8 @@ namespace dy.net.dto
         //[JsonProperty("image_list")]
         //public object ImageList { get; set; }
 
-        //[JsonProperty("images")]
-        //public object Images { get; set; }
+        [JsonProperty("images")]
+        public List<ImageItemInfo> Images { get; set; }
 
         //[JsonProperty("img_bitrate")]
         //public object ImgBitrate { get; set; }
@@ -218,8 +218,8 @@ namespace dy.net.dto
         //[JsonProperty("is_top")]
         //public int IsTop { get; set; }
 
-        //[JsonProperty("is_use_music")]
-        //public bool IsUseMusic { get; set; }
+        [JsonProperty("is_use_music")]
+        public bool IsUseMusic { get; set; }
 
         //[JsonProperty("item_stitch")]
         //public int ItemStitch { get; set; }
@@ -245,8 +245,8 @@ namespace dy.net.dto
         //[JsonProperty("mix_info")]
         //public MixInfo MixInfo { get; set; }
 
-        //[JsonProperty("music")]
-        //public Music Music { get; set; }
+        [JsonProperty("music")]
+        public Music Music { get; set; }
 
         //[JsonProperty("origin_duet_resource_uri")]
         //public string OriginDuetResourceUri { get; set; }
@@ -718,218 +718,218 @@ namespace dy.net.dto
     //    public int Status { get; set; }
     //}
 
-    //public class Music
-    //{
-    //    [JsonProperty("album")]
-    //    public string Album { get; set; }
+    public class Music
+    {
+        //[JsonProperty("album")]
+        //public string Album { get; set; }
 
-    //    [JsonProperty("artist_user_infos")]
-    //    public object ArtistUserInfos { get; set; }
+        //[JsonProperty("artist_user_infos")]
+        //public object ArtistUserInfos { get; set; }
 
-    //    [JsonProperty("artists")]
-    //    public List<object> Artists { get; set; }
+        //[JsonProperty("artists")]
+        //public List<object> Artists { get; set; }
 
-    //    [JsonProperty("audition_duration")]
-    //    public int AuditionDuration { get; set; }
+        //[JsonProperty("audition_duration")]
+        //public int AuditionDuration { get; set; }
 
-    //    [JsonProperty("author")]
-    //    public string Author { get; set; }
+        //[JsonProperty("author")]
+        //public string Author { get; set; }
 
-    //    [JsonProperty("author_deleted")]
-    //    public bool AuthorDeleted { get; set; }
+        //[JsonProperty("author_deleted")]
+        //public bool AuthorDeleted { get; set; }
 
-    //    [JsonProperty("author_position")]
-    //    public object AuthorPosition { get; set; }
+        //[JsonProperty("author_position")]
+        //public object AuthorPosition { get; set; }
 
-    //    [JsonProperty("author_status")]
-    //    public int AuthorStatus { get; set; }
+        //[JsonProperty("author_status")]
+        //public int AuthorStatus { get; set; }
 
-    //    [JsonProperty("avatar_large")]
-    //    public ImageInfo AvatarLarge { get; set; }
+        //[JsonProperty("avatar_large")]
+        //public ImageInfo AvatarLarge { get; set; }
 
-    //    [JsonProperty("avatar_medium")]
-    //    public ImageInfo AvatarMedium { get; set; }
+        //[JsonProperty("avatar_medium")]
+        //public ImageInfo AvatarMedium { get; set; }
 
-    //    [JsonProperty("avatar_thumb")]
-    //    public ImageInfo AvatarThumb { get; set; }
+        //[JsonProperty("avatar_thumb")]
+        //public ImageInfo AvatarThumb { get; set; }
 
-    //    [JsonProperty("binded_challenge_id")]
-    //    public int BindedChallengeId { get; set; }
+        //[JsonProperty("binded_challenge_id")]
+        //public int BindedChallengeId { get; set; }
 
-    //    [JsonProperty("can_background_play")]
-    //    public bool CanBackgroundPlay { get; set; }
+        //[JsonProperty("can_background_play")]
+        //public bool CanBackgroundPlay { get; set; }
 
-    //    [JsonProperty("collect_stat")]
-    //    public int CollectStat { get; set; }
+        //[JsonProperty("collect_stat")]
+        //public int CollectStat { get; set; }
 
-    //    [JsonProperty("cover_hd")]
-    //    public ImageInfo CoverHd { get; set; }
+        //[JsonProperty("cover_hd")]
+        //public ImageInfo CoverHd { get; set; }
 
-    //    [JsonProperty("cover_large")]
-    //    public ImageInfo CoverLarge { get; set; }
+        //[JsonProperty("cover_large")]
+        //public ImageInfo CoverLarge { get; set; }
 
-    //    [JsonProperty("cover_medium")]
-    //    public ImageInfo CoverMedium { get; set; }
+        //[JsonProperty("cover_medium")]
+        //public ImageInfo CoverMedium { get; set; }
 
-    //    [JsonProperty("cover_thumb")]
-    //    public ImageInfo CoverThumb { get; set; }
+        //[JsonProperty("cover_thumb")]
+        //public ImageInfo CoverThumb { get; set; }
 
-    //    [JsonProperty("dmv_auto_show")]
-    //    public bool DmvAutoShow { get; set; }
+        //[JsonProperty("dmv_auto_show")]
+        //public bool DmvAutoShow { get; set; }
 
-    //    [JsonProperty("dsp_status")]
-    //    public int DspStatus { get; set; }
+        //[JsonProperty("dsp_status")]
+        //public int DspStatus { get; set; }
 
-    //    [JsonProperty("duration")]
-    //    public int Duration { get; set; }
+        //[JsonProperty("duration")]
+        //public int Duration { get; set; }
 
-    //    [JsonProperty("end_time")]
-    //    public int EndTime { get; set; }
+        //[JsonProperty("end_time")]
+        //public int EndTime { get; set; }
 
-    //    [JsonProperty("external_song_info")]
-    //    public List<object> ExternalSongInfo { get; set; }
+        //[JsonProperty("external_song_info")]
+        //public List<object> ExternalSongInfo { get; set; }
 
-    //    [JsonProperty("extra")]
-    //    public string Extra { get; set; }
+        //[JsonProperty("extra")]
+        //public string Extra { get; set; }
 
-    //    [JsonProperty("id")]
-    //    public long Id { get; set; }
+        //[JsonProperty("id")]
+        //public long Id { get; set; }
 
-    //    [JsonProperty("id_str")]
-    //    public string IdStr { get; set; }
+        //[JsonProperty("id_str")]
+        //public string IdStr { get; set; }
 
-    //    [JsonProperty("is_audio_url_with_cookie")]
-    //    public bool IsAudioUrlWithCookie { get; set; }
+        //[JsonProperty("is_audio_url_with_cookie")]
+        //public bool IsAudioUrlWithCookie { get; set; }
 
-    //    [JsonProperty("is_commerce_music")]
-    //    public bool IsCommerceMusic { get; set; }
+        //[JsonProperty("is_commerce_music")]
+        //public bool IsCommerceMusic { get; set; }
 
-    //    [JsonProperty("is_del_video")]
-    //    public bool IsDelVideo { get; set; }
+        //[JsonProperty("is_del_video")]
+        //public bool IsDelVideo { get; set; }
 
-    //    [JsonProperty("is_matched_metadata")]
-    //    public bool IsMatchedMetadata { get; set; }
+        //[JsonProperty("is_matched_metadata")]
+        //public bool IsMatchedMetadata { get; set; }
 
-    //    [JsonProperty("is_original")]
-    //    public bool IsOriginal { get; set; }
+        //[JsonProperty("is_original")]
+        //public bool IsOriginal { get; set; }
 
-    //    [JsonProperty("is_original_sound")]
-    //    public bool IsOriginalSound { get; set; }
+        //[JsonProperty("is_original_sound")]
+        //public bool IsOriginalSound { get; set; }
 
-    //    [JsonProperty("is_pgc")]
-    //    public bool IsPgc { get; set; }
+        //[JsonProperty("is_pgc")]
+        //public bool IsPgc { get; set; }
 
-    //    [JsonProperty("is_restricted")]
-    //    public bool IsRestricted { get; set; }
+        //[JsonProperty("is_restricted")]
+        //public bool IsRestricted { get; set; }
 
-    //    [JsonProperty("is_video_self_see")]
-    //    public bool IsVideoSelfSee { get; set; }
+        //[JsonProperty("is_video_self_see")]
+        //public bool IsVideoSelfSee { get; set; }
 
-    //    [JsonProperty("lyric_short_position")]
-    //    public object LyricShortPosition { get; set; }
+        //[JsonProperty("lyric_short_position")]
+        //public object LyricShortPosition { get; set; }
 
-    //    [JsonProperty("mid")]
-    //    public string Mid { get; set; }
+        //[JsonProperty("mid")]
+        //public string Mid { get; set; }
 
-    //    [JsonProperty("music_chart_ranks")]
-    //    public object MusicChartRanks { get; set; }
+        //[JsonProperty("music_chart_ranks")]
+        //public object MusicChartRanks { get; set; }
 
-    //    [JsonProperty("music_collect_count")]
-    //    public int MusicCollectCount { get; set; }
+        //[JsonProperty("music_collect_count")]
+        //public int MusicCollectCount { get; set; }
 
-    //    [JsonProperty("music_cover_atmosphere_color_value")]
-    //    public string MusicCoverAtmosphereColorValue { get; set; }
+        //[JsonProperty("music_cover_atmosphere_color_value")]
+        //public string MusicCoverAtmosphereColorValue { get; set; }
 
-    //    [JsonProperty("music_status")]
-    //    public int MusicStatus { get; set; }
+        //[JsonProperty("music_status")]
+        //public int MusicStatus { get; set; }
 
-    //    [JsonProperty("musician_user_infos")]
-    //    public object MusicianUserInfos { get; set; }
+        //[JsonProperty("musician_user_infos")]
+        //public object MusicianUserInfos { get; set; }
 
-    //    [JsonProperty("mute_share")]
-    //    public bool MuteShare { get; set; }
+        //[JsonProperty("mute_share")]
+        //public bool MuteShare { get; set; }
 
-    //    [JsonProperty("offline_desc")]
-    //    public string OfflineDesc { get; set; }
+        //[JsonProperty("offline_desc")]
+        //public string OfflineDesc { get; set; }
 
-    //    [JsonProperty("owner_handle")]
-    //    public string OwnerHandle { get; set; }
+        //[JsonProperty("owner_handle")]
+        //public string OwnerHandle { get; set; }
 
-    //    [JsonProperty("owner_id")]
-    //    public string OwnerId { get; set; }
+        //[JsonProperty("owner_id")]
+        //public string OwnerId { get; set; }
 
-    //    [JsonProperty("owner_nickname")]
-    //    public string OwnerNickname { get; set; }
+        //[JsonProperty("owner_nickname")]
+        //public string OwnerNickname { get; set; }
 
-    //    [JsonProperty("pgc_music_type")]
-    //    public int PgcMusicType { get; set; }
+        //[JsonProperty("pgc_music_type")]
+        //public int PgcMusicType { get; set; }
 
-    //    [JsonProperty("play_url")]
-    //    public ImageInfo PlayUrl { get; set; }
+        [JsonProperty("play_url")]
+        public ImageInfo PlayUrl { get; set; }
 
-    //    [JsonProperty("position")]
-    //    public object Position { get; set; }
+        //[JsonProperty("position")]
+        //public object Position { get; set; }
 
-    //    [JsonProperty("prevent_download")]
-    //    public bool PreventDownload { get; set; }
+        //[JsonProperty("prevent_download")]
+        //public bool PreventDownload { get; set; }
 
-    //    [JsonProperty("prevent_item_download_status")]
-    //    public int PreventItemDownloadStatus { get; set; }
+        //[JsonProperty("prevent_item_download_status")]
+        //public int PreventItemDownloadStatus { get; set; }
 
-    //    [JsonProperty("preview_end_time")]
-    //    public int PreviewEndTime { get; set; }
+        //[JsonProperty("preview_end_time")]
+        //public int PreviewEndTime { get; set; }
 
-    //    [JsonProperty("preview_start_time")]
-    //    public int PreviewStartTime { get; set; }
+        //[JsonProperty("preview_start_time")]
+        //public int PreviewStartTime { get; set; }
 
-    //    [JsonProperty("reason_type")]
-    //    public int ReasonType { get; set; }
+        //[JsonProperty("reason_type")]
+        //public int ReasonType { get; set; }
 
-    //    [JsonProperty("redirect")]
-    //    public bool Redirect { get; set; }
+        //[JsonProperty("redirect")]
+        //public bool Redirect { get; set; }
 
-    //    [JsonProperty("schema_url")]
-    //    public string SchemaUrl { get; set; }
+        //[JsonProperty("schema_url")]
+        //public string SchemaUrl { get; set; }
 
-    //    [JsonProperty("search_impr")]
-    //    public SearchImpr SearchImpr { get; set; }
+        //[JsonProperty("search_impr")]
+        //public SearchImpr SearchImpr { get; set; }
 
-    //    [JsonProperty("sec_uid")]
-    //    public string SecUid { get; set; }
+        //[JsonProperty("sec_uid")]
+        //public string SecUid { get; set; }
 
-    //    [JsonProperty("shoot_duration")]
-    //    public int ShootDuration { get; set; }
+        //[JsonProperty("shoot_duration")]
+        //public int ShootDuration { get; set; }
 
-    //    [JsonProperty("show_origin_clip")]
-    //    public bool ShowOriginClip { get; set; }
+        //[JsonProperty("show_origin_clip")]
+        //public bool ShowOriginClip { get; set; }
 
-    //    [JsonProperty("source_platform")]
-    //    public int SourcePlatform { get; set; }
+        //[JsonProperty("source_platform")]
+        //public int SourcePlatform { get; set; }
 
-    //    [JsonProperty("start_time")]
-    //    public int StartTime { get; set; }
+        //[JsonProperty("start_time")]
+        //public int StartTime { get; set; }
 
-    //    [JsonProperty("status")]
-    //    public int Status { get; set; }
+        //[JsonProperty("status")]
+        //public int Status { get; set; }
 
-    //    [JsonProperty("strong_beat_url")]
-    //    public ImageInfo StrongBeatUrl { get; set; }
+        //[JsonProperty("strong_beat_url")]
+        //public ImageInfo StrongBeatUrl { get; set; }
 
-    //    [JsonProperty("tag_list")]
-    //    public object TagList { get; set; }
+        //[JsonProperty("tag_list")]
+        //public object TagList { get; set; }
 
-    //    [JsonProperty("title")]
-    //    public string Title { get; set; }
+        //[JsonProperty("title")]
+        //public string Title { get; set; }
 
-    //    [JsonProperty("unshelve_countries")]
-    //    public object UnshelveCountries { get; set; }
+        //[JsonProperty("unshelve_countries")]
+        //public object UnshelveCountries { get; set; }
 
-    //    [JsonProperty("user_count")]
-    //    public int UserCount { get; set; }
+        //[JsonProperty("user_count")]
+        //public int UserCount { get; set; }
 
-    //    [JsonProperty("video_duration")]
-    //    public int VideoDuration { get; set; }
-    //}
+        //[JsonProperty("video_duration")]
+        //public int VideoDuration { get; set; }
+    }
 
     //public class SearchImpr
     //{
@@ -1246,6 +1246,32 @@ namespace dy.net.dto
 
         [JsonProperty("width")]
         public int Width { get; set; }
+    }
+
+
+
+    public class ImageItemInfo
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        //public List<string> download_url_list { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        //public int height { get; set; }
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        //public string uri { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public List<string> url_list { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        //public int width { get; set; }
     }
 
 
