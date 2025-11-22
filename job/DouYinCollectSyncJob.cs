@@ -53,7 +53,7 @@ namespace dy.net.job
             return data?.Cursor ?? "0";
         }
 
-        protected override string CreateSaveFolder(DouyinUserCookie cookie, Aweme item, string tag1, string tag2)
+        protected override string CreateSaveFolder(DouyinUserCookie cookie, Aweme item, string tag1, string tag2, AppConfig config)
         {
             var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : TikTokFileNameHelper.SanitizePath(tag1);
             var folder = Path.Combine(cookie.SavePath, safeTag1, $"{TikTokFileNameHelper.SanitizePath(item.Desc)}@{item.AwemeId}");
@@ -61,8 +61,9 @@ namespace dy.net.job
             return folder;
         }
 
-        protected override string GetVideoFileName(DouyinUserCookie cookie, Aweme item, VideoBitRate bitRate)
+        protected override string GetVideoFileName(DouyinUserCookie cookie, Aweme item)
         {
+            var bitRate=item.Video.BitRate.FirstOrDefault();
             return $"{item.AwemeId}.{bitRate.Format}";
         }
 

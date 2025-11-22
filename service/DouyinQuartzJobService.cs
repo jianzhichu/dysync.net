@@ -29,7 +29,7 @@ namespace dy.net.service
                 cron++;
                 expression = cron.ToString();
             }
-            //await StartFavoriteJob(expression);
+            await StartFavoriteJob(expression);
 
             await Task.Delay(delay);
             if (int.TryParse(expression, out int cron2))
@@ -37,7 +37,7 @@ namespace dy.net.service
                 cron2++;
                 expression = cron2.ToString();
             }
-            await StartUperPostJob(expression);
+            //await StartUperPostJob(expression);
         }
 
         private async Task<bool> StartCollectJob(string expression)

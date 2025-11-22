@@ -51,25 +51,63 @@ namespace dy.net.job
             return data?.MaxCursor ?? "0";
         }
 
-        protected override string CreateSaveFolder(DouyinUserCookie cookie, Aweme item, string tag1, string tag2)
+        protected override string CreateSaveFolder(DouyinUserCookie cookie, Aweme item, string tag1, string tag2,AppConfig config)
         {
             // UP主视频通常按作者名创建文件夹
             var authorName = string.IsNullOrWhiteSpace(item.Author?.Nickname) ? "UnknownAuthor" : TikTokFileNameHelper.SanitizePath(item.Author.Nickname);
             var folder = Path.Combine(cookie.UpSavePath, authorName);
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-            return folder;
+            if(config.UperSaveTogether)
+            {
+                return folder;
+            }
+            else
+            {
+                var sampleName = TikTokFileNameHelper.GenerateFileName(item.Desc, item.AwemeId);
+                var (existingName, _) = _douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName).Result;
+               var  fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
+                return Path.Combine(folder, fileNameFolder);
+            }
         }
 
-        protected override string GetVideoFileName(DouyinUserCookie cookie, Aweme item, VideoBitRate bitRate)
+        protected override string GetVideoFileName(DouyinUserCookie cookie, Aweme item)
         {
+            var bitRate = item.Video.BitRate.FirstOrDefault();
             var config = _commonService.GetConfig();
+            var fileName = string.Empty;
             if (config?.UperUseViedoTitle ?? false)
             {
                 var sampleName = TikTokFileNameHelper.GenerateFileName(item.Desc, item.AwemeId);
                 var (existingName, _) = _douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName).Result;
-                return string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{bitRate.Format}" : $"{existingName}.{bitRate.Format}";
+                 fileName= string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{bitRate.Format}" : $"{existingName}.{bitRate.Format}";
             }
-            return $"{item.AwemeId}.{bitRate.Format}";
+            else
+            {
+                fileName = $"{item.AwemeId}.{bitRate.Format}";
+            }
+            return fileName;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cookie"></param>
+        /// <param name="item"></param>
+        /// <param name="config"></param>
+        /// <param name="imageType"></param>
+        /// <returns></returns>
+        protected override string GetNfoFileName(DouyinUserCookie cookie, Aweme item, AppConfig config, string imageType)
+        {
+            if (config.UperSaveTogether)
+            {
+                var videoFileName = GetVideoFileName(cookie, item);
+                return $"{Path.GetFileNameWithoutExtension(videoFileName)}{imageType}";
+            }
+            else
+            {
+                return base.GetNfoFileName(cookie,item,config,imageType);
+            }
         }
 
         protected override string GetAuthorAvatarBasePath(DouyinUserCookie cookie)

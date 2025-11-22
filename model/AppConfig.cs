@@ -22,10 +22,13 @@ namespace dy.net.model
         public int BatchCount { get; set; } = 10;
 
         /// <summary>
-        /// 博主视频是否 直接用标题做文件名，不另外加一层文件夹
+        /// 博主视频是否 直接用标题做文件名
         /// </summary>
         public bool UperUseViedoTitle { get; set; }
-
+        /// <summary>
+        /// 是否博主视频直接放一个根目录，不另外按名字建文件夹
+        /// </summary>
+        public bool UperSaveTogether { get; set; }
         /// <summary>
         /// 是否下载图片视频
         /// </summary>

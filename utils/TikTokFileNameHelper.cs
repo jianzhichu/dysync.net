@@ -71,8 +71,8 @@ namespace dy.net.utils
             //title = Regex.Replace(title, @"#\S+", "", RegexOptions.Compiled);
 
             // 步骤2：移除表情符号（匹配常见表情Unicode区块）
-            string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
-            title = Regex.Replace(title, emojiPattern, "", RegexOptions.Compiled);
+            //string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
+            //title = Regex.Replace(title, emojiPattern, "", RegexOptions.Compiled);
 
             // 步骤3：过滤系统非法字符（Windows/macOS/Linux通用禁止）
             char[] illegalChars = new[] { '/', '\\', ':', '*', '?', '"', '<', '>', '|', '\0', '\t', '\n', '\r' };
