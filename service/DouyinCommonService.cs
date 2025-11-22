@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace dy.net.service
 {
-    public class CommonService
+    public class DouyinCommonService
     {
         private readonly ISqlSugarClient sqlSugarClient;
 
-        public CommonService(ISqlSugarClient sqlSugarClient)
+        public DouyinCommonService(ISqlSugarClient sqlSugarClient)
         {
             this.sqlSugarClient = sqlSugarClient;
         }
@@ -20,21 +20,31 @@ namespace dy.net.service
         {
             return sqlSugarClient.Queryable<AppConfig>().First();
         }
-
-        public AppConfig InitConfig()
+        /// <summary>
+        /// 初始化并返回配置
+        /// </summary>
+        /// <param name="downLoadImage"></param>
+        /// <returns></returns>
+        public AppConfig InitConfig(bool downLoadImage)
         {
             var conf = GetConfig();
             if (conf != null)
+            {
+                conf.DownImageVideo = downLoadImage;
+                sqlSugarClient.Updateable(conf).ExecuteCommand();
                 return conf;
+            }
             else
             {
                 AppConfig config = new AppConfig
                 {
                     Id = IdGener.GetLong().ToString(),
                     Cron = "30",
-                    BatchCount = 10
+                    BatchCount = 10,
+                    DownImageVideo = downLoadImage,
+                    KeepLogDay = 10
                 };
-                sqlSugarClient.Insertable<AppConfig>(config).ExecuteCommand();
+                sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;
             }
 
@@ -66,7 +76,7 @@ namespace dy.net.service
         /// </summary>
         public void UpdateCollectViedoType()
         {
-            var collectViedos = sqlSugarClient.Queryable<DyCollectVideo>().Where(x => string.IsNullOrWhiteSpace(x.ViedoType)).ToList();
+            var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().Where(x => string.IsNullOrWhiteSpace(x.ViedoType)).ToList();
 
             if (collectViedos.Any())
             {
@@ -85,7 +95,7 @@ namespace dy.net.service
         {
             //var sql = "update dy_cookie set CollHasSyncd=0,FavHasSyncd=0,UperSyncd=0";
             // sqlSugarClient.Ado.ExecuteCommand(sql) > 0;
-            var cookies = sqlSugarClient.Queryable<DyUserCookies>().ToList();
+            var cookies = sqlSugarClient.Queryable<DouyinUserCookie>().ToList();
 
             foreach (var cookie in cookies)
             {
@@ -95,7 +105,7 @@ namespace dy.net.service
                 var upers = cookie.UpSecUserIds;
                 if (!string.IsNullOrWhiteSpace(upers))
                 {
-                    var uperList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<DyUpSecUserIdDto>>(upers);
+                    var uperList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<DouyinUpSecUserIdDto>>(upers);
                     if (uperList != null && uperList.Count > 0)
                     {
                         foreach (var uper in uperList)

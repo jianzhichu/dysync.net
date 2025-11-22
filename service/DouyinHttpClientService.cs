@@ -7,12 +7,12 @@ using System.Net.Http;
 
 namespace dy.net.service
 {
-    public class DyHttpClientService
+    public class DouyinHttpClientService
     {
         public static readonly string DouYinApi = "https://www.douyin.com/aweme/v1/web/aweme";
         // 随机数生成器（避免重复实例化，保证随机性）
         private readonly IHttpClientFactory _clientFactory;
-        public DyHttpClientService(IHttpClientFactory clientFactory)
+        public DouyinHttpClientService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
         }
@@ -24,7 +24,7 @@ namespace dy.net.service
         /// <param name="count"></param>
         /// <param name="cookie"></param>
         /// <returns></returns>
-        public async Task<CollectVideoInfo> SyncCollectVideos(string cursor, string count, string cookie)
+        public async Task<DouyinVideoInfo> SyncCollectVideos(string cursor, string count, string cookie)
         {
             if (string.IsNullOrWhiteSpace(cursor))
             {
@@ -50,7 +50,7 @@ namespace dy.net.service
                 }
                 httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
 
-                var dics = DySyncBaseParamDics.CollectParams;
+                var dics = DouyinBaseParamDics.CollectParams;
                 dics["cursor"]=cursor;
                 dics["count"] = count;
                 try
@@ -68,7 +68,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<CollectVideoInfo>(data);
+                    return JsonConvert.DeserializeObject<DouyinVideoInfo>(data);
                 }
                 else
                 {
@@ -92,7 +92,7 @@ namespace dy.net.service
         /// <param name="cookie"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<CollectVideoInfo> SyncFavoriteVideos(string count,string cursor, string secUserId, string cookie)
+        public async Task<DouyinVideoInfo> SyncFavoriteVideos(string count,string cursor, string secUserId, string cookie)
         {
             if (string.IsNullOrWhiteSpace(cursor))
             {
@@ -118,7 +118,7 @@ namespace dy.net.service
                 }
                 httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
 
-                var dics = DySyncBaseParamDics.FavoriteParams;
+                var dics = DouyinBaseParamDics.FavoriteParams;
                 {
                     // 添加动态参数
                     dics["max_cursor"] = cursor;
@@ -133,7 +133,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<CollectVideoInfo>(data);
+                    return JsonConvert.DeserializeObject<DouyinVideoInfo>(data);
                 }
                 else
                 {
@@ -158,7 +158,7 @@ namespace dy.net.service
         /// <param name="cookie"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<CollectVideoInfo> SyncUpderPostVideos(string count, string cursor, string secUserId, string cookie)
+        public async Task<DouyinVideoInfo> SyncUpderPostVideos(string count, string cursor, string secUserId, string cookie)
         {
             if (string.IsNullOrWhiteSpace(cursor))
             {
@@ -184,7 +184,7 @@ namespace dy.net.service
                 }
                 httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
 
-                var parameters = DySyncBaseParamDics.UpderPostParams;
+                var parameters = DouyinBaseParamDics.UpderPostParams;
                 {
                     // 添加动态参数
                     parameters["max_cursor"] = cursor;
@@ -204,7 +204,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<CollectVideoInfo>(data);
+                    return JsonConvert.DeserializeObject<DouyinVideoInfo>(data);
                 }
                 else
                 {

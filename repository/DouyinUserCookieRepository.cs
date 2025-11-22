@@ -3,22 +3,22 @@ using SqlSugar;
 
 namespace dy.net.repository
 {
-    public class DyCookieRepository : BaseRepository<DyUserCookies>
+    public class DouyinUserCookieRepository : BaseRepository<DouyinUserCookie>
     {
         // 注入SQLSugar客户端
-        public DyCookieRepository(ISqlSugarClient db) : base(db)
+        public DouyinUserCookieRepository(ISqlSugarClient db) : base(db)
         {
         }
 
-        public async Task<List<DyUserCookies>> GetAllCookies()
+        public async Task<List<DouyinUserCookie>> GetAllCookies()
         {
             return await this.GetListAsync(x=>x.Status==1);
         }
 
 
-        public async Task<(List<DyUserCookies> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize)
+        public async Task<(List<DouyinUserCookie> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize)
         {
-            var where = this.Db.Queryable<DyUserCookies>();
+            var where = this.Db.Queryable<DouyinUserCookie>();
 
             var totalCount = await where.CountAsync();
             var list = await where.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();

@@ -10,7 +10,7 @@ namespace dy.net.utils
     public class NfoFileGenerator
     {
 
-        public static void GenerateNfoFile(VideoNfo videoInfo, string filePath)
+        public static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath)
         {
             try
             {
@@ -44,6 +44,36 @@ namespace dy.net.utils
                     }
                 }
 
+                // --- 新增：处理演员信息 ---
+                if (videoInfo.Actors != null && videoInfo.Actors.Any())
+                {
+                    var actorsElement = new XElement("actors");
+                    foreach (var actor in videoInfo.Actors)
+                    {
+                        // 至少需要演员姓名
+                        if (!string.IsNullOrWhiteSpace(actor.Name))
+                        {
+                            var actorElement = new XElement("actor");
+                            actorElement.Add(new XElement("name", CleanInvalidXmlChars(actor.Name)));
+
+                            // 可选的角色和头像
+                            if (!string.IsNullOrWhiteSpace(actor.Role))
+                                actorElement.Add(new XElement("role", CleanInvalidXmlChars(actor.Role)));
+
+                            if (!string.IsNullOrWhiteSpace(actor.Thumb))
+                                actorElement.Add(new XElement("thumb", CleanInvalidXmlChars(actor.Thumb)));
+
+                            actorsElement.Add(actorElement);
+                        }
+                    }
+                    // 将整个 <actors> 节点添加到根节点
+                    if (actorsElement.HasElements)
+                    {
+                        root.Add(actorsElement);
+                    }
+                }
+                // --- 演员信息处理结束 ---
+
                 if (!string.IsNullOrWhiteSpace(videoInfo.Thumbnail))
                     root.Add(new XElement("thumb", new XAttribute("aspect", "poster"), CleanInvalidXmlChars(videoInfo.Thumbnail)));
 
@@ -58,11 +88,18 @@ namespace dy.net.utils
                     root
                 );
 
+                // 确保目录存在
+                string directory = Path.GetDirectoryName(filePath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
                 doc.Save(filePath);
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error($"生成 {videoInfo?.Title ?? "未知视频"}, NFO文件时出错: {ex.Message}");
+                Serilog.Log.Error(ex, $"生成 {videoInfo?.Title ?? "未知视频"} 的 NFO 文件时出错。");
             }
         }
 

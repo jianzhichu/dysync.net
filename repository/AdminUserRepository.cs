@@ -6,9 +6,9 @@ using SqlSugar;
 
 namespace dy.net.repository
 {
-    public class UserRepository : BaseRepository<LoginUserInfo>
+    public class AdminUserRepository : BaseRepository<AdminUserInfo>
     {
-        public UserRepository(ISqlSugarClient db) : base(db)
+        public AdminUserRepository(ISqlSugarClient db) : base(db)
         {
         }
 
@@ -50,7 +50,7 @@ namespace dy.net.repository
         }
 
 
-        public async Task<LoginUserInfo> GetUser(string userName=null)
+        public async Task<AdminUserInfo> GetUser(string userName=null)
         {
             if (string.IsNullOrWhiteSpace(userName))
             {
@@ -89,7 +89,7 @@ namespace dy.net.repository
         /// </summary>
         /// <param name="userInfo"></param>
         /// <returns></returns>
-        public  (int code, string erro) InitUser(LoginUserInfo userInfo)
+        public  (int code, string erro) InitUser(AdminUserInfo userInfo)
         {
             var isInit =  this.GetFirst(x=>!string.IsNullOrWhiteSpace(x.Id));
             if (isInit!=null)

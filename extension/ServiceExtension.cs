@@ -156,18 +156,18 @@ namespace dy.net.extension
         /// 
         /// </summary>
         /// <param name="services"></param>
-        public static void AddQuartzService(this IServiceCollection services, IConfiguration configuration)
+        public static void AddQuartzService(this IServiceCollection services)
         {
-            services.AddTransient<DouYinCollectSyncJob>();
-            services.AddTransient<DouYinFavoritSyncJob>();
-            services.AddTransient<DouYinUperPostSyncJob>();
+            //services.AddTransient<DouyinCollectSyncJob>();
+            //services.AddTransient<DouyinFavoritSyncJob>();
+            //services.AddTransient<DouyinUperPostSyncJob>();
 
             // 注册Quartz服务
             services.AddQuartz();
 
             services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
-            services.AddTransient<QuartzJobService>();
+            services.AddTransient<DouyinQuartzJobService>();
         }
 
 
@@ -264,8 +264,12 @@ namespace dy.net.extension
                                ?? ServiceLifetime.Transient;
 
                 // 查找该类实现的接口（优先注册为接口服务）
+                //var interfaces = type.GetInterfaces()
+                //    .Where(i => !i.IsGenericType || !i.GetGenericTypeDefinition().Equals(typeof(IDisposable)))
+                //    .ToList();
+                // 查找该类实现的接口（排除 IDisposable）
                 var interfaces = type.GetInterfaces()
-                    .Where(i => !i.IsGenericType || !i.GetGenericTypeDefinition().Equals(typeof(IDisposable)))
+                    .Where(i => i != typeof(IDisposable)) // <-- 关键修正
                     .ToList();
 
                 if (interfaces.Any())
@@ -366,20 +370,7 @@ namespace dy.net.extension
                 {
                     Version = "v1",
                     Title = "dy.net API Swagger Document",
-                    //Description = "WebApi Swagger Document",
-
-                    //TermsOfService = new Uri("https://ddnsapi.online.com"),
-                    //Contact = new OpenApiContact
-                    //{
-                    //    Name = "剑之初",
-                    //    Email = "xxxx@qq.com",
-                    //    //Url = new Uri("https://ddns.online"),
-                    //},
-                    //License = new OpenApiLicense
-                    //{
-                    //    Name = "许可证",
-                    //    Url = new Uri("https://ddns.online"),
-                    //}
+                
                 });
                 o.OrderActionsBy((apiDesc) => $"{apiDesc.ActionDescriptor.RouteValues["controller"]}_{apiDesc.HttpMethod}");
                 o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()

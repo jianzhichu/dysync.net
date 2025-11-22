@@ -4,7 +4,7 @@ namespace dy.net.model
 {
 
     [SugarTable(TableName = "dy_collect_video")]
-    public class DyCollectVideo
+    public class DouyinVideo
     {
         /// <summary>
         /// 

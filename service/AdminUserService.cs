@@ -4,12 +4,12 @@ using dy.net.repository;
 
 namespace dy.net.service
 {
-    public class UserService
+    public class AdminUserService
     {
 
-        private readonly UserRepository _userRepository;
+        private readonly AdminUserRepository _userRepository;
 
-        public UserService(UserRepository userRepository)
+        public AdminUserService(AdminUserRepository userRepository)
         {
             _userRepository = userRepository;
         }
@@ -20,7 +20,7 @@ namespace dy.net.service
             return await _userRepository.UpdatePwd(loginUser);
         }
 
-        public async Task<LoginUserInfo> GetUser(string userName=null)
+        public async Task<AdminUserInfo> GetUser(string userName=null)
         {
             return await _userRepository.GetUser(userName);
         }
@@ -32,7 +32,7 @@ namespace dy.net.service
 
         public (int code, string erro) InitUser()
         {
-            LoginUserInfo userInfo = new LoginUserInfo
+            AdminUserInfo userInfo = new AdminUserInfo
             {
                 UserName = "douyin",
                 Password = "douyin2025",

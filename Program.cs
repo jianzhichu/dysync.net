@@ -17,38 +17,52 @@ namespace dy.net
     public class Program
     {
         // 常量定义
-        private const string DefaultListenUrl = "http://*:10101";
+        private static string DefaultListenUrl = "http://*:10102";
         private const string SpaRootPath = "app/dist";
         private const string SpaSourcePath = "app/";
         private const string SwaggerDocTitle = "dy.net WebApi Docs";
 
+        /// <summary>
+        /// 打包时注意，如果是false,前端不允许修改开启下载图片和视频的选项
+        /// </summary>
+        private  static bool downImageVideo = false;
         public static void Main(string[] args)
         {
             // 初始化编码提供器
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
             // 构建Web应用
             var builder = WebApplication.CreateBuilder(args);
+            //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
+            DefaultListenUrl = builder.Configuration.GetValue<string>("ASPNETCORE_URLS") ?? DefaultListenUrl;
+            var downImgConfig = builder.Configuration.GetValue<string>("DOWN_IMGVIDEO");
+
+            Console.WriteLine("DOWN_IMGVIDEO=" + downImgConfig);
+            if (!string.IsNullOrEmpty(downImgConfig))
+            {
+                downImgConfig = downImgConfig.ToLower();
+                downImageVideo = downImgConfig == "1" || downImgConfig == "y"||downImgConfig=="t"||downImgConfig=="true";
+            }
             var isDevelopment = builder.Environment.IsDevelopment();
 
             // 配置主机
             ConfigureHost(builder, isDevelopment);
 
             // 配置服务
-            var services = builder.Services;
-            ConfigureServices(services, builder.Configuration, isDevelopment);
+            ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
 
             // 构建应用
             var app = builder.Build();
 
+            Log.Debug("DOWN_IMGVIDEO=" + downImgConfig);
+
             // 配置中间件
-            ConfigureMiddleware(app, isDevelopment);
+            ConfigureMiddleware(app, builder.Environment);
 
             // 初始化应用服务
             InitApplicationServices(app);
 
             // 启动应用
-            Serilog.Log.Debug("dy.net service started successfully");
+            Log.Debug("dysync.net service started successfully");
             app.Run();
         }
 
@@ -78,8 +92,10 @@ namespace dy.net
         /// <summary>
         /// 配置依赖注入服务
         /// </summary>
-        private static void ConfigureServices(IServiceCollection services, IConfiguration config, bool isDevelopment)
+        private static void ConfigureServices(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment)
         {
+
+            services.AddSingleton(new Appsettings (config));
             // 雪花ID生成器
             services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 127));
 
@@ -93,17 +109,23 @@ namespace dy.net
             services.AddSqlsugar(config);
 
             // 定时任务
-            services.AddQuartzService(config);
+            services.AddQuartzService();
 
             // 仓储和服务注册
             services.AddServicesFromNamespace("dy.net.repository")
                     .AddServicesFromNamespace("dy.net.service");
-
+            //下载图片合成视频-需要ffmpeg支持,镜像会很大。
+            if (downImageVideo)
+            {
+                //根据配置动态加载dy.image程序集
+                Assembly assembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "dy.image.dll"));
+                services.AddServicesFromNamespace("dy.image", assembly);
+            }
             // SPA静态文件支持
             services.AddSpaStaticFiles(options => options.RootPath = SpaRootPath);
 
             // 开发环境启用Swagger
-            if (isDevelopment)
+            if (environment.IsDevelopment())
             {
                 services.AddSwagger();
             }
@@ -120,13 +142,13 @@ namespace dy.net
         /// <summary>
         /// 配置中间件
         /// </summary>
-        private static void ConfigureMiddleware(WebApplication app, bool isDevelopment)
+        private static void ConfigureMiddleware(WebApplication app, IWebHostEnvironment environment)
         {
             // 响应压缩
             app.UseResponseCompression();
 
             // 开发环境启用SwaggerUI
-            if (isDevelopment)
+            if (environment.IsDevelopment())
             {
                 app.UseCustomSwaggerUI(options => options.Title = SwaggerDocTitle);
             }
@@ -145,7 +167,7 @@ namespace dy.net
             app.MapControllers();
 
             // 生产环境启用SPA
-            if (!isDevelopment)
+            if (!environment.IsDevelopment())
             {
                 app.UseSpaStaticFiles();
                 app.UseSpa(spa => spa.Options.SourcePath = SpaSourcePath);
@@ -163,23 +185,23 @@ namespace dy.net
             try
             {
                 // 初始化用户
-                var userService = services.GetRequiredService<UserService>();
+                var userService = services.GetRequiredService<AdminUserService>();
                 userService.InitUser();
 
                 // 初始化Cookie
-                var cookieService = services.GetRequiredService<DyCookieService>();
-                cookieService.Init();
+                var cookieService = services.GetRequiredService<DouyinCookieService>();
+                cookieService.InitCookie();
 
                 // 初始化配置
-                var commonService = services.GetRequiredService<CommonService>();
-                var config = commonService.InitConfig();
+                var commonService = services.GetRequiredService<DouyinCommonService>();
+                var config = commonService.InitConfig(downImageVideo);
 
                 // 更新收藏视频类型--兼容老版本-原来的旧数据没有这个类型字段
                 commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
                 // 启动定时任务
-                var quartzJobService = services.GetRequiredService<QuartzJobService>();
+                var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
                 quartzJobService.StartJob(config?.Cron ?? "30");
 
                 Serilog.Log.Debug("系统初始化完成，会默认将-博主作品同步功能-同步全部作品重置为关闭（若要开启，可以到抖音授权页面中修改）");

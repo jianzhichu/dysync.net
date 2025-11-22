@@ -5,7 +5,7 @@ using SqlSugar;
 namespace dy.net.model
 {
     [SugarTable(TableName = "dy_cookie")]
-    public class DyUserCookies
+    public class DouyinUserCookie
     {
 
         [SugarColumn(IsPrimaryKey = true)]
@@ -77,32 +77,39 @@ namespace dy.net.model
         public string UpSavePath { get; set; }
 
 
+        /// <summary>
+        /// 图片视频存储路径
+        /// </summary>
+        [SugarColumn(Length = 500, IsNullable = true)]
+        public string ImgSavePath { get; set; }
+
+
         [SugarColumn(IsIgnore = true)]
-        public List<DyUpSecUserIdDto> UpSecUserIdsJson
+        public List<DouyinUpSecUserIdDto> UpSecUserIdsJson
         {
             get
             {
                 // 反序列化逻辑（保持不变）
                 if (string.IsNullOrWhiteSpace(UpSecUserIds))
                 {
-                    return new List<DyUpSecUserIdDto>();
+                    return new List<DouyinUpSecUserIdDto>();
                 }
 
                 try
                 {
-                    return JsonConvert.DeserializeObject<List<DyUpSecUserIdDto>>(UpSecUserIds);
+                    return JsonConvert.DeserializeObject<List<DouyinUpSecUserIdDto>>(UpSecUserIds);
                 }
                 catch (JsonSerializationException ex)
                 {
                     // 日志记录（按需添加）
                     // Logger.Error($"反序列化失败：{ex.Message}，原始值：{UpSecUserIds}");
-                    return new List<DyUpSecUserIdDto>();
+                    return new List<DouyinUpSecUserIdDto>();
                 }
                 catch (Exception ex)
                 {
                     // 日志记录（按需添加）
                     // Logger.Error($"处理异常：{ex.Message}");
-                    return new List<DyUpSecUserIdDto>();
+                    return new List<DouyinUpSecUserIdDto>();
                 }
             }
             set

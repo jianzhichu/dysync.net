@@ -12,9 +12,9 @@ namespace dy.net.Controllers
     [ApiController]
     public class VideoController : ControllerBase
     {
-        private readonly DyCollectVideoService dyCollectVideoService;
+        private readonly DouyinVideoService dyCollectVideoService;
 
-        public VideoController(DyCollectVideoService dyCollectVideoService)
+        public VideoController(DouyinVideoService dyCollectVideoService)
         {
             this.dyCollectVideoService = dyCollectVideoService;
         }
@@ -23,7 +23,7 @@ namespace dy.net.Controllers
         /// </summary>
         /// <param name="dto"></param>
         [HttpPost("paged")]
-        public async Task<IActionResult> GetPagedAsync(VideoPageRequestDTO dto)
+        public async Task<IActionResult> GetPagedAsync(DouyinVideoPageRequestDto dto)
         {
             var (list, totalCount) = await dyCollectVideoService.GetPagedAsync(dto.PageIndex, dto.PageSize, dto.Tag, dto.Author,dto.ViedoType,dto.Dates);
             return Ok(new

@@ -25,6 +25,15 @@ namespace dy.net.model
         /// 博主视频是否 直接用标题做文件名，不另外加一层文件夹
         /// </summary>
         public bool UperUseViedoTitle { get; set; }
-     
+
+        /// <summary>
+        /// 是否下载图片视频
+        /// </summary>
+        public bool DownImageVideo { get; set; }
+        /// <summary>
+        /// 日志保留天数,防止容器日志太多，默认10天
+        /// </summary>
+        public int KeepLogDay { get; set; } = 10;
+
     }
 }

@@ -17,8 +17,8 @@ namespace dy.net.Controllers
     {
         private readonly IWebHostEnvironment webHostEnvironment;
 
-        private readonly UserService _userService;
-        public AuthController(UserService userService, IWebHostEnvironment webHostEnvironment )
+        private readonly AdminUserService _userService;
+        public AuthController(AdminUserService userService, IWebHostEnvironment webHostEnvironment )
         {
           _userService=userService;
             this.webHostEnvironment = webHostEnvironment;

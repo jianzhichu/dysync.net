@@ -2,7 +2,7 @@
 
 namespace dy.net.dto
 {
-    public class DyUpSecUserIdDto
+    public class DouyinUpSecUserIdDto
     {
 
         /// <summary>

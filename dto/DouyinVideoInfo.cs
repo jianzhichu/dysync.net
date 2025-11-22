@@ -4,7 +4,7 @@ namespace dy.net.dto
 {
    
 
-    public class CollectVideoInfo
+    public class DouyinVideoInfo
     {
         [JsonProperty("aweme_list")]
         public List<Aweme> AwemeList { get; set; }
@@ -1267,7 +1267,8 @@ namespace dy.net.dto
         /// <summary>
         /// 
         /// </summary>
-        public List<string> url_list { get; set; }
+        [JsonProperty("url_list")]
+        public List<string> UrlList { get; set; }
         /// <summary>
         /// 
         /// </summary>

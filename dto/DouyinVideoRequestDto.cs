@@ -1,6 +1,6 @@
 ﻿namespace dy.net.dto
 {
-    public class CollectVideoRequestDto
+    public class DouyinVideoRequestDto
     {
         public int cursor { get; set; }
 

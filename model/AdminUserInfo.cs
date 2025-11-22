@@ -3,7 +3,7 @@
 namespace dy.net.model
 {
     [SqlSugar.SugarTable(TableName = "login_user_info")]
-    public class LoginUserInfo
+    public class AdminUserInfo
     {
         public string UserName { get; set;}
         public string Password { get; set; }

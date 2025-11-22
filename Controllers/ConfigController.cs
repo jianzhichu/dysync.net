@@ -14,12 +14,12 @@ namespace dy.net.Controllers
     [ApiController]
     public class ConfigController : ControllerBase
     {
-        private readonly DyCookieService dyCookieService;
+        private readonly DouyinCookieService dyCookieService;
 
-        private readonly CommonService commonService;
-        private readonly QuartzJobService quartzJobService;
+        private readonly DouyinCommonService commonService;
+        private readonly DouyinQuartzJobService quartzJobService;
 
-        public ConfigController(DyCookieService dyCookieService, CommonService commonService,QuartzJobService quartzJobService)
+        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService,DouyinQuartzJobService quartzJobService)
         {
             this.dyCookieService = dyCookieService;
             this.commonService = commonService;
@@ -55,7 +55,7 @@ namespace dy.net.Controllers
         /// 新增用户Cookie
         /// </summary>
         [HttpPost("add")]
-        public async Task<IActionResult> AddAsync([FromBody] DyUserCookies dyUserCookies)
+        public async Task<IActionResult> AddAsync([FromBody] DouyinUserCookie dyUserCookies)
         {
            if(dyUserCookies.UpSecUserIdsJson!=null)
             {
@@ -74,7 +74,7 @@ namespace dy.net.Controllers
         /// 更新用户Cookie
         /// </summary>
         [HttpPost("update")]
-        public async Task<IActionResult> UpdateAsync([FromBody] DyUserCookies dyUserCookies)
+        public async Task<IActionResult> UpdateAsync([FromBody] DouyinUserCookie dyUserCookies)
         {
 
             if (dyUserCookies.UpSecUserIdsJson != null )

@@ -6,10 +6,10 @@ using System.Linq;
 
 namespace dy.net.repository
 {
-    public class DyCollectVideoRepository : BaseRepository<DyCollectVideo>
+    public class DouyinVideoRepository : BaseRepository<DouyinVideo>
     {
         // 注入SQLSugar客户端
-        public DyCollectVideoRepository(ISqlSugarClient db) : base(db)
+        public DouyinVideoRepository(ISqlSugarClient db) : base(db)
         {
         }
 
@@ -23,7 +23,7 @@ namespace dy.net.repository
         /// <param name="tag">可选标签过滤</param>
         /// <param name="author">可选作者过滤</param>
         /// <returns>分页结果（视频列表和总数）</returns>
-        public async Task<(List<DyCollectVideo> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize, string tag = null, string author = null,string viedoType=null, List<string> dates = null)
+        public async Task<(List<DouyinVideo> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize, string tag = null, string author = null,string viedoType=null, List<string> dates = null)
         {
 
             DateTime? start = null;
@@ -38,7 +38,7 @@ namespace dy.net.repository
                 start = Convert.ToDateTime(dates[0]);
             }
 
-            var where = this.Db.Queryable<DyCollectVideo>()
+            var where = this.Db.Queryable<DouyinVideo>()
                 .WhereIF(!string.IsNullOrWhiteSpace(tag), x => x.Tag1 == tag)
                 .WhereIF(!string.IsNullOrWhiteSpace(author), x => x.Author == author)
                 .WhereIF(start.HasValue, x => x.SyncTime >= start.Value)
@@ -49,7 +49,7 @@ namespace dy.net.repository
             var totalCount = await where.CountAsync();
             var list = await where.OrderByDescending(x=>x.SyncTime).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
             if (list.Any()) { 
-                var users= await this.Db.Queryable<DyUserCookies>().ToListAsync();
+                var users= await this.Db.Queryable<DouyinUserCookie>().ToListAsync();
                 foreach (var item in list)
                 {
                     var user= users.FirstOrDefault(x=>x.Id== item.CookieId);
@@ -72,7 +72,7 @@ namespace dy.net.repository
         public async  Task<(string, string)> GetUperLastViedoFileName(string AuthorId,string ViedoNameSimplify)
         {
 
-           var video=  await this.Db.Queryable<DyCollectVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == "3")
+           var video=  await this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == "3")
                 .Where(x => x.VideoTitleSimplify == ViedoNameSimplify)
                 .OrderByDescending(x => x.CreateTime).FirstAsync();
 

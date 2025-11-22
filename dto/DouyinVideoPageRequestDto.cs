@@ -2,7 +2,7 @@
 
 namespace dy.net.dto
 {
-    public class VideoPageRequestDTO: PageRequestDto
+    public class DouyinVideoPageRequestDto : PageRequestDto
     {
         // 3. 引用类型（string）如果允许为null，显式声明为 string?
         public string? Tag { get; set; }

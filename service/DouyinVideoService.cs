@@ -7,18 +7,18 @@ using System.Threading.Tasks;
 
 namespace dy.net.service
 {
-    public class DyCollectVideoService
+    public class DouyinVideoService
     {
 
-        private readonly DyCollectVideoRepository _dyCollectVideoRepository;
+        private readonly DouyinVideoRepository _dyCollectVideoRepository;
 
-        public DyCollectVideoService(DyCollectVideoRepository dyCollectVideoRepository)
+        public DouyinVideoService(DouyinVideoRepository dyCollectVideoRepository)
         {
             _dyCollectVideoRepository = dyCollectVideoRepository;
         }
 
 
-        public async Task<bool> batchInsert(List<DyCollectVideo> videos)
+        public async Task<bool> batchInsert(List<DouyinVideo> videos)
         {
 
             // 边界处理：如果传入的列表为空，直接返回成功（或根据业务返回false）
@@ -56,7 +56,7 @@ namespace dy.net.service
         public async Task<VideoStaticsDto> GetStatics()
         {
 
-            List<DyCollectVideo> list = await this._dyCollectVideoRepository.GetAllAsync();
+            List<DouyinVideo> list = await this._dyCollectVideoRepository.GetAllAsync();
             if (!list.Any())
                 return new VideoStaticsDto();
             var Categories = list.GroupBy(x => x.Tag1).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount() }).OrderByDescending(p => p.Count).ToList();
@@ -85,7 +85,7 @@ namespace dy.net.service
 
         //分页查询
 
-        public async Task<(List<DyCollectVideo> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize, string tag = null, string author = null, string viedoType = null, List<string>? dates = null)
+        public async Task<(List<DouyinVideo> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize, string tag = null, string author = null, string viedoType = null, List<string>? dates = null)
         {
             return await _dyCollectVideoRepository.GetPagedAsync(pageIndex, pageSize, tag, author, viedoType, dates);
         }

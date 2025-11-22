@@ -1,6 +1,6 @@
 ﻿namespace dy.net.utils
 {
-    public class DySyncBaseParamDics
+    public class DouyinBaseParamDics
     {
         public static Dictionary<string, string> CollectParams { get; } = InitializeUserCollecParams();
         public static Dictionary<string, string> FavoriteParams { get; } = InitializeUserFavoriteParams();

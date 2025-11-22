@@ -23,12 +23,16 @@
 
   <ItemGroup>
     <Compile Remove="app\**" />
+    <Compile Remove="expand\**" />
     <Compile Remove="logs\**" />
     <Content Remove="app\**" />
+    <Content Remove="expand\**" />
     <Content Remove="logs\**" />
     <EmbeddedResource Remove="app\**" />
+    <EmbeddedResource Remove="expand\**" />
     <EmbeddedResource Remove="logs\**" />
     <None Remove="app\**" />
+    <None Remove="expand\**" />
     <None Remove="logs\**" />
   </ItemGroup>
 
@@ -69,13 +73,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="expand\dy.image\dy.image.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="db\dy.sqlite">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Dockerfile">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Dockerfile-arm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Dockerfile">
+    <None Update="Dockerfile-dev">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

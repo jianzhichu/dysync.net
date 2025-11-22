@@ -7,7 +7,7 @@ namespace dy.net.utils
     public static class Md5Util
     {
 
-        public static string JWT_TOKEN_KEY = "dy.net-key-" + IdGener.GetGuid();
+        public static string JWT_TOKEN_KEY = "dysync.net-key-" + IdGener.GetGuid();
         public static string Md5(this string inputString)
         {
 

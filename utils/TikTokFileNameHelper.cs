@@ -22,6 +22,17 @@ namespace dy.net.utils
         /// 非法字符替换后的占位符（也可设为空字符串）
         /// </summary>
         private const string IllegalCharReplacement = "";
+
+
+        // 修正：使用 \U 前缀来表示超过 \uFFFF 的Unicode码点
+        private static readonly Regex _emojiRegex = new Regex(
+            @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\U0001E000-\U0001EFFF\u2600-\u2B55\u200D]",
+            RegexOptions.Compiled);
+
+        private static readonly Regex _hashtagRegex = new Regex(@"\#\S+", RegexOptions.Compiled);
+        private static readonly Regex _invalidCharsRegex;
+        private static readonly Regex _multipleUnderscoresRegex = new Regex(@"_+", RegexOptions.Compiled);
+
         #endregion
 
         #region 处理抖音视频文件名
@@ -42,7 +53,7 @@ namespace dy.net.utils
             // 3. 长度控制：按UTF-8字节数截断（避免超系统限制）
             string truncatedTitle = TruncateByByteLength(purifiedTitle, MaxFileNameBytes);
 
-            return truncatedTitle;
+            return truncatedTitle.Trim();
         }
         #endregion
 
@@ -57,7 +68,7 @@ namespace dy.net.utils
                 title = id;
             }
             // 步骤1：移除话题标签（#xxx 或 #xxx#yyy）
-            title = Regex.Replace(title, @"#\S+", "", RegexOptions.Compiled);
+            //title = Regex.Replace(title, @"#\S+", "", RegexOptions.Compiled);
 
             // 步骤2：移除表情符号（匹配常见表情Unicode区块）
             string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
@@ -81,7 +92,7 @@ namespace dy.net.utils
             title = Regex.Replace(title, $"{Separator}+", Separator.ToString(), RegexOptions.Compiled);
 
             // 步骤6：移除首尾无效字符（分隔符、点号）
-            title = title.Trim(Separator, '.');
+            title = title.Replace(" ","").Trim(Separator, '.');
 
             // 容错：如果净化后为空，返回默认值
             return string.IsNullOrWhiteSpace(title) ? id : title;
@@ -123,28 +134,35 @@ namespace dy.net.utils
         // 清理路径中的特殊字符（避免创建文件夹失败）
         public static string SanitizePath(string path)
         {
-            if (string.IsNullOrWhiteSpace(path))
+            try
             {
-                path = "其他";
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    path = "其他";
+                }
+
+                // 步骤1：移除话题标签（#xxx 或 #xxx#yyy）
+                //path = Regex.Replace(path, @"#\S+", "", RegexOptions.Compiled);
+
+                // 步骤2：移除表情符号（匹配常见表情Unicode区块）
+                //string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
+                //path = Regex.Replace(path, emojiPattern, "", RegexOptions.Compiled);
+
+
+                foreach (var c in Path.GetInvalidFileNameChars())
+                {
+                    path = path.Replace(c, '_');
+                }
+                if (path.Length > 50)
+                {
+                    path = path.Substring(0, 50);
+                }
+                return path.Trim().Replace(" ", "");
             }
-
-            // 步骤1：移除话题标签（#xxx 或 #xxx#yyy）
-            path = Regex.Replace(path, @"#\S+", "", RegexOptions.Compiled);
-
-            // 步骤2：移除表情符号（匹配常见表情Unicode区块）
-            string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
-            path = Regex.Replace(path, emojiPattern, "", RegexOptions.Compiled);
-
-
-            foreach (var c in Path.GetInvalidFileNameChars())
+            catch (Exception ex)
             {
-                path = path.Replace(c, '_');
+                return path;
             }
-            if (path.Length > 50)
-            {
-                path = path.Substring(0, 50);
-            }
-            return path.Trim();
         }
     }
 }

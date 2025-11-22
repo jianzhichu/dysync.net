@@ -5,28 +5,28 @@ using System.Linq.Expressions;
 
 namespace dy.net.service
 {
-    public class DyCookieService
+    public class DouyinCookieService
     {
 
-        private readonly DyCookieRepository _cookieRepository;
+        private readonly DouyinUserCookieRepository _cookieRepository;
 
-        public DyCookieService(DyCookieRepository cookieRepository)
+        public DouyinCookieService(DouyinUserCookieRepository cookieRepository)
         {
             _cookieRepository = cookieRepository;
         }
 
-        public Task<List<DyUserCookies>> GetAllCookies()
+        public Task<List<DouyinUserCookie>> GetAllCookies()
         {
             return _cookieRepository.GetAllCookies();
         }
 
 
-        public async Task<bool> Add(DyUserCookies dyUserCookies)
+        public async Task<bool> Add(DouyinUserCookie dyUserCookies)
         {
             return await _cookieRepository.InsertAsync(dyUserCookies);
         }
 
-        public bool Init()
+        public bool InitCookie()
         {
             var initId= "2026";
             var exist = _cookieRepository.GetFirst(x => x.Id == initId);
@@ -34,7 +34,7 @@ namespace dy.net.service
             {
                 return false;
             }
-            var cookie = new DyUserCookies
+            var cookie = new DouyinUserCookie
             {
                 UserName = "douyin",
                 Cookies = "--",
@@ -46,25 +46,26 @@ namespace dy.net.service
                 UpSavePath = "/app/uper",
                 CollHasSyncd = 0,
                 FavHasSyncd = 0,
-                UperSyncd = 0
+                UperSyncd = 0,
+                ImgSavePath="/app/images",
             };
             return  _cookieRepository.Insert(cookie);
         }
       
         // 查询单个
-        public async Task<DyUserCookies> GetByIdAsync(string id)
+        public async Task<DouyinUserCookie> GetByIdAsync(string id)
         {
             return await _cookieRepository.GetByIdAsync(id);
         }
 
         // 查询列表（可加条件）
-        public async Task<(List<DyUserCookies> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize)
+        public async Task<(List<DouyinUserCookie> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize)
         {
             return await _cookieRepository.GetPagedAsync(pageIndex, pageSize);
         }
 
         // 更新
-        public async Task<bool> UpdateAsync(DyUserCookies dyUserCookies)
+        public async Task<bool> UpdateAsync(DouyinUserCookie dyUserCookies)
         {
             return await _cookieRepository.UpdateAsync(dyUserCookies);
         }

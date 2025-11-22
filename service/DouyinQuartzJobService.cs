@@ -3,11 +3,11 @@ using dy.net.job;
 
 namespace dy.net.service
 {
-    public class QuartzJobService
+    public class DouyinQuartzJobService
     {
         private readonly ISchedulerFactory _schedulerFactory;
 
-        public QuartzJobService(ISchedulerFactory schedulerFactory)
+        public DouyinQuartzJobService(ISchedulerFactory schedulerFactory)
         {
             _schedulerFactory = schedulerFactory;
         }
@@ -20,7 +20,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task StartJob(string expression,int delay=5000)
         {
-            await StartCollectJob(expression);
+            //await StartCollectJob(expression);
 
             await Task.Delay(delay);
             //如果是数字则加1分钟，减少并发
@@ -29,7 +29,7 @@ namespace dy.net.service
                 cron++;
                 expression = cron.ToString();
             }
-            await StartFavoriteJob(expression);
+            //await StartFavoriteJob(expression);
 
             await Task.Delay(delay);
             if (int.TryParse(expression, out int cron2))
@@ -55,7 +55,7 @@ namespace dy.net.service
                     await __scheduler1.DeleteJob(jobKey);//删掉原来的
                 }
 
-                IJobDetail job = JobBuilder.Create<DouYinCollectSyncJob>()
+                IJobDetail job = JobBuilder.Create<DouyinCollectSyncJob>()
                  .WithIdentity(jobKey)
                  .Build();
                 ITrigger trigger;
@@ -108,7 +108,7 @@ namespace dy.net.service
                     await __scheduler1.DeleteJob(jobKey);//删掉原来的
                 }
 
-                IJobDetail job = JobBuilder.Create<DouYinFavoritSyncJob>()
+                IJobDetail job = JobBuilder.Create<DouyinFavoritSyncJob>()
                  .WithIdentity(jobKey)
                  .Build();
                 ITrigger trigger;
@@ -160,7 +160,7 @@ namespace dy.net.service
                     await __scheduler1.DeleteJob(jobKey);//删掉原来的
                 }
 
-                IJobDetail job = JobBuilder.Create<DouYinUperPostSyncJob>()
+                IJobDetail job = JobBuilder.Create<DouyinUperPostSyncJob>()
                  .WithIdentity(jobKey)
                  .Build();
                 ITrigger trigger;
