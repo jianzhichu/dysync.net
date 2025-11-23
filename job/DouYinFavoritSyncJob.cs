@@ -58,7 +58,6 @@ namespace dy.net.job
         {
             var bitRate = item.Video.BitRate.FirstOrDefault();
             return $"{item.AwemeId}.{bitRate.Format}";
-
         }
 
         protected override string GetAuthorAvatarBasePath(DouyinUserCookie cookie)
