@@ -10,12 +10,17 @@ namespace dy.image
 {
     public class FFmpegHelper : IDisposable
     {
-        /// 测试环境windows
-        private readonly string _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg";
-        private readonly string _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe";
-        // Docker环境linux
-        //private readonly string _ffmpegExecutablePath = "ffmpeg";
-        //private readonly string _ffprobeExecutablePath = "ffprobe";
+        #if DEBUG
+                // Debug 环境，通常是 Windows
+                private readonly string _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
+                private readonly string _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
+        #else
+            // Release 环境，通常是 Docker Linux
+            private readonly string _ffmpegExecutablePath = "ffmpeg";
+            private readonly string _ffprobeExecutablePath = "ffprobe";
+        #endif
+
+
         private Process _ffmpegProcess;
         private CancellationTokenSource _cancellationTokenSource;
 
