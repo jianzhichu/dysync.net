@@ -1,4 +1,6 @@
-﻿using SqlSugar;
+﻿using dy.net.dto;
+using dy.net.extension;
+using SqlSugar;
 
 namespace dy.net.model
 {
@@ -132,13 +134,13 @@ namespace dy.net.model
         public string SyncTimeStr => SyncTime.ToString("yyyy-MM-dd HH:mm:ss");
 
         /// <summary>
-        /// 1喜欢的，2收藏的，3关注的
+        /// 1喜欢的，2收藏的，3关注的 ,4 图片视频
         /// </summary>
         [SugarColumn(Length =200,IsNullable =true)]
-        public string ViedoType { get; set; }
+        public VideoTypeEnum ViedoType { get; set; }
 
         [SugarColumn(IsIgnore = true)]
-        public string ViedoTypeStr  => ViedoType == "1" ? "喜欢的" : (ViedoType == "2"? "收藏的":"关注的");
+        public string ViedoTypeStr  => ViedoType.GetDescription();
 
         [SugarColumn(IsIgnore = true)]
         public string ViedoCate =>(string.IsNullOrWhiteSpace(Tag1) ? "" : Tag1) + "/" + (string.IsNullOrWhiteSpace(Tag2) ? "" : Tag2);

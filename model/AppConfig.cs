@@ -36,7 +36,10 @@ namespace dy.net.model
         /// <summary>
         /// 日志保留天数,防止容器日志太多，默认10天
         /// </summary>
-        public int KeepLogDay { get; set; } = 10;
+        public int LogKeepDay { get; set; } = 10;
+
+        [SugarColumn(IsIgnore=true)]
+        public bool DownImageVideoFromEnv { get; set; }
 
     }
 }

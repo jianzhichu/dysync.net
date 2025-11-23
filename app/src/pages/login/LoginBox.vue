@@ -1,7 +1,7 @@
 <template>
   <div class="login-page min-h-screen flex items-center justify-center  p-4 md:p-8">
     <ThemeProvider :color="{ 
-      middle: { 'bg-base': '#f8fafc' },
+      middle: { 'bg-base': '#fff' },
       primary: { DEFAULT: '#4f46e5', hover: '#4338ca' }
     }">
       <!-- 登录卡片 -->
@@ -11,7 +11,7 @@
           <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <img src="/public/logo.png">
           </div>
-          <h2 class="third-title text-2xl font-bold text-gray-800 tracking-tight">抖音同步小帮手</h2>
+          <h2 class="third-title text-2xl font-bold text-gray-800 tracking-tight">抖小云</h2>
         </div>
 
         <a-form :model="form" :wrapperCol="{ span: 24 }" @finish="login" class="login-form w-full text-gray-700">

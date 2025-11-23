@@ -4,7 +4,7 @@ import { ref } from 'vue';
 export type Navigation = 'side' | 'head' | 'mix';
 
 export const useSettingStore = defineStore('setting', () => {
-  const navigation = ref<Navigation>('head');
+  const navigation = ref<Navigation>('side');
   const useTabs = ref<boolean>(true);
   const theme = ref('header-night');
   const contentClass = ref('common');

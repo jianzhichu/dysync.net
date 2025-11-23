@@ -1,6 +1,7 @@
 ﻿using ClockSnowFlake;
 using dy.net.dto;
 using dy.net.model;
+using dy.net.utils;
 using SqlSugar;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -18,7 +19,15 @@ namespace dy.net.service
 
         public AppConfig GetConfig()
         {
-            return sqlSugarClient.Queryable<AppConfig>().First();
+            var config= sqlSugarClient.Queryable<AppConfig>().First();
+
+            var downImgConfig = Appsettings.Get(SystemStaticUtil.DOWN_IMAGE_VIDEO_ENABLE);
+            if (!string.IsNullOrEmpty(downImgConfig))
+            {
+                downImgConfig = downImgConfig.ToLower();
+                config.DownImageVideoFromEnv = downImgConfig == "1";
+            }
+            return config;
         }
         /// <summary>
         /// 初始化并返回配置
@@ -42,7 +51,7 @@ namespace dy.net.service
                     Cron = "30",
                     BatchCount = 10,
                     DownImageVideo = downLoadImage,
-                    KeepLogDay = 10
+                    LogKeepDay = 10
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;
@@ -76,16 +85,28 @@ namespace dy.net.service
         /// </summary>
         public void UpdateCollectViedoType()
         {
-            var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().Where(x => string.IsNullOrWhiteSpace(x.ViedoType)).ToList();
 
-            if (collectViedos.Any())
-            {
-                collectViedos.ForEach(x =>
-                {
-                    x.ViedoType = "2";
-                });
-                sqlSugarClient.Updateable(collectViedos).ExecuteCommand();
-            }
+            string sql= @"UPDATE dy_collect_video 
+                        SET ViedoType = CASE 
+                        WHEN ViedoType = '0' THEN 0 
+                        WHEN ViedoType = '1' THEN 1  
+                        WHEN ViedoType = '2' THEN 2 
+                        WHEN ViedoType = '3' THEN 3
+                        WHEN ViedoType = '4' THEN 4  
+                        ELSE NULL 
+                    END;";
+
+            sqlSugarClient.Ado.ExecuteCommand(sql);
+            //var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().ToList();
+
+            //if (collectViedos.Any())
+            //{
+            //    collectViedos.ForEach(x =>
+            //    {
+            //        x.ViedoType = x.;
+            //    });
+            //    sqlSugarClient.Updateable(collectViedos).ExecuteCommand();
+            //}
         }
         /// <summary>
         /// 重置所有Cookie的同步状态为0

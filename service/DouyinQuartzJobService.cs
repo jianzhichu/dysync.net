@@ -20,7 +20,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task StartJob(string expression,int delay=5000)
         {
-            //await StartCollectJob(expression);
+            await StartCollectJob(expression);
 
             await Task.Delay(delay);
             //如果是数字则加1分钟，减少并发
@@ -37,7 +37,7 @@ namespace dy.net.service
                 cron2++;
                 expression = cron2.ToString();
             }
-            //await StartUperPostJob(expression);
+            await StartUperPostJob(expression);
         }
 
         private async Task<bool> StartCollectJob(string expression)

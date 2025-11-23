@@ -1,6 +1,6 @@
 <template>
   <ThemeProvider is-root v-bind="themeConfig" :apply-style="false">
-    <stepin-view system-name="抖音小帮手" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo.png">
+    <stepin-view system-name="抖小云" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo.png">
       <template #headerActions>
         <HeaderActions @showSetting="showSetting = true" />
       </template>
@@ -16,7 +16,7 @@
     </stepin-view>
   </ThemeProvider>
   <my-personal ref="personalRef" />
-  <email-set ref="emailRef" />
+  <!-- <email-set ref="emailRef" /> -->
   <!-- <login-modal :unless="['/login']" /> -->
 </template>
 
@@ -28,7 +28,7 @@ import avatar from '@/assets/avatar.png';
 import { PageFooter, HeaderActions } from '@/components/layout';
 import Setting from './components/setting';
 import { LoginModal } from '@/pages/login';
-import { MyPersonal, EmailSet } from '@/pages/personal';
+import { MyPersonal } from '@/pages/personal';
 import { configTheme, themeList } from '@/theme';
 import { ThemeProvider } from 'stepin';
 // logout,profile
@@ -124,7 +124,8 @@ onMounted(() => {
     background: theme('backgroundColor.layout');
   }
   .system-name {
-    // color: #16213e !important;
+    color: #722ed1 !important;
+    margin-left: 0em !important;
   }
 }
 

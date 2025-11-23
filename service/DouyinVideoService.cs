@@ -67,17 +67,26 @@ namespace dy.net.service
                 CategoryCount = list.Select(x => x.Tag1).Distinct().Count(),
                 VideoCount = list.Count,
                 Categories = Categories,
-                FavoriteCount = list.Count(x => x.ViedoType == "1"),
-                CollectCount = list.Count(x => x.ViedoType == "2"),
-                FollowCount = list.Count(x => x.ViedoType == "3"),
+                FavoriteCount = list.Count(x => x.ViedoType == VideoTypeEnum.Favorite),
+                CollectCount = list.Count(x => x.ViedoType == VideoTypeEnum.Collect),
+                FollowCount = list.Count(x => x.ViedoType == VideoTypeEnum.UperPost),
+                GraphicVideoCount = list.Count(x => x.ViedoType == VideoTypeEnum.ImageVideo),
 
                 VideoSizeTotal = ByteToGbConverter.ConvertBytesToGb(list.Sum(x => x.FileSize)),
-                VideoFavoriteSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "1").Sum(x => x.FileSize)),
-                VideoCollectSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "2").Sum(x => x.FileSize)),
-                VideoFollowSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == "3").Sum(x => x.FileSize)),
+                VideoFavoriteSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.Favorite).Sum(x => x.FileSize)),
+                VideoCollectSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.Collect).Sum(x => x.FileSize)),
+                VideoFollowSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.UperPost).Sum(x => x.FileSize)),
+                GraphicVideoSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.ImageVideo).Sum(x => x.FileSize)),
 
                 //TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
             };
+            if (data.GraphicVideoSize == "0.00")
+            {
+                if(list.Where(x => x.ViedoType == VideoTypeEnum.ImageVideo).Sum(x => x.FileSize) > 0)
+                {
+                    data.GraphicVideoSize = "<0.01";//避免显示0.00误导用户
+                }
+            }
             data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount(), Icon = x.FirstOrDefault().AuthorAvatarUrl }).OrderByDescending(d => d.Count).ToList();
             return data;
         }

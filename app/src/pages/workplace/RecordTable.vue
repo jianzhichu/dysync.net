@@ -13,12 +13,13 @@
           <a-radio-button value="1">喜欢的</a-radio-button>
           <a-radio-button value="2">收藏的</a-radio-button>
           <a-radio-button value="3">关注的</a-radio-button>
+          <a-radio-button value="4">图文视频</a-radio-button>
         </a-radio-group>
       </a-form-item>
       <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
         <a-space>
           <a-button type="primary" @click="GetRecords">查询</a-button>
-          <a-button type="danger" @click="StartNow">立即重新同步</a-button>
+          <a-button type="danger" @click="StartNow">立即同步</a-button>
         </a-space>
       </a-form-item>
     </a-form>
@@ -52,28 +53,29 @@ const columns = ref([
     width: 100,
   },
   {
-    title: '视频类型',
-    dataIndex: 'viedoCate',
-    // sorter: true,
-    width: 300,
-    align: 'center',
-  },
-  {
-    title: '作者',
+    title: '博主',
     dataIndex: 'author',
     // sorter: true,
     align: 'center',
     width: 150,
   },
   {
-    title: '视频名称',
+    title: '视频类型',
+    dataIndex: 'viedoCate',
+    // sorter: true,
+    width: 300,
+    align: 'center',
+  },
+
+  {
+    title: '视频标题',
     dataIndex: 'videoTitle',
     // sorter: true,
     align: 'left',
   },
 
   {
-    title: '用户',
+    title: 'Cookie',
     dataIndex: 'dyUser',
     // sorter: true,
     align: 'center',

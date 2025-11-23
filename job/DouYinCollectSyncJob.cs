@@ -2,6 +2,7 @@
 using dy.net.model;
 using dy.net.service;
 using dy.net.utils;
+using System;
 
 namespace dy.net.job
 {
@@ -22,6 +23,8 @@ namespace dy.net.job
             if (now.Hour == 1 && now.Minute < 30)
             {
                  _commonService.UpdateAllCookieSyncedToZero();
+                //顺手清理下日志文件
+                LogFileCleaner.CleanOldLogFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"), 1);
                 await Task.Delay(200); 
             }
         }

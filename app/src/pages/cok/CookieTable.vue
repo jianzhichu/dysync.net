@@ -11,17 +11,18 @@ import type { UnwrapRef } from 'vue';
 import { StarOutlined, StarFilled, StarTwoTone } from '@ant-design/icons-vue';
 const columns = [
   {
-    title: 'Cookie名',
+    title: 'Cookie名称',
     dataIndex: 'userName',
-    width: 100,
+    width: 180,
   },
-  { title: '状态', dataIndex: 'status', width: 80 },
-  { title: '收藏路径', dataIndex: 'savePath', width: 100 },
-  { title: '喜欢路径', dataIndex: 'favSavePath', width: 100 },
-  { title: 'Up主路径', dataIndex: 'upSavePath', width: 100 },
-  // { title: 'Cookie', dataIndex: 'cookies' },
-  { title: 'Up主secUserId', dataIndex: 'upSecUserIds' },
-  { title: '用户secUserId', dataIndex: 'secUserId' },
+  { title: '状态', dataIndex: 'status', width: 180 },
+  { title: '收藏路径', dataIndex: 'savePath' },
+  { title: '喜欢路径', dataIndex: 'favSavePath' },
+  { title: '博主路径', dataIndex: 'upSavePath' },
+  { title: '图片视频', dataIndex: 'imgSavePath' },
+  { title: 'Cookie', dataIndex: 'cookies' },
+  // { title: '博主信息', dataIndex: 'upSecUserIds' },
+  // { title: '自己', dataIndex: 'secUserId' },
   { title: '操作', dataIndex: 'edit', width: 200 },
   // { title: 'id', dataIndex: 'id', width: 200, hiden: false },
 ];
@@ -45,6 +46,7 @@ type DataItem = {
   upSecUserIdsJson?: UpSecUserIdItem[];
   upSecUserIds?: string;
   upSavePath?: string;
+  imgSavePath?: string;
 };
 
 // const dataSource = reactive<DataItem[]>([
@@ -103,20 +105,21 @@ function addNew() {
 
 const showModal = ref(false);
 
-const newAuthor = (author?: DataItem) => {
-  if (!author) {
-    author = { _isNew: true };
+const newCookie = (cookie?: DataItem) => {
+  if (!cookie) {
+    cookie = { _isNew: true };
   }
-  author.userName = undefined;
-  author.cookies = undefined;
-  author.savePath = undefined;
-  author.favSavePath = undefined;
-  author.secUserId = undefined;
-  author.status = 0;
-  author.id = '0';
-  author.upSecUserIdsJson = undefined;
-  author.upSavePath = undefined;
-  return author;
+  cookie.userName = undefined;
+  cookie.cookies = undefined;
+  cookie.savePath = undefined;
+  cookie.favSavePath = undefined;
+  cookie.secUserId = undefined;
+  cookie.status = 0;
+  cookie.id = '0';
+  cookie.upSecUserIdsJson = undefined;
+  cookie.upSavePath = undefined;
+  cookie.imgSavePath = undefined;
+  return cookie;
 };
 
 const copyObject = (target: any, source?: any) => {
@@ -126,10 +129,10 @@ const copyObject = (target: any, source?: any) => {
   Object.keys(target).forEach((key) => (target[key] = source[key]));
 };
 
-const form = reactive<DataItem>(newAuthor());
+const form = reactive<DataItem>(newCookie());
 
 function reset() {
-  return newAuthor(form);
+  return newCookie(form);
 }
 
 function cancel() {
@@ -218,8 +221,8 @@ function edit(record: DataItem) {
 type Status = 0 | 1;
 
 const StatusDict = {
-  0: '关闭',
-  1: '开启',
+  0: '同步已关闭',
+  1: '同步已开启',
 };
 
 const dataSource = ref(datas);
@@ -246,9 +249,9 @@ const removeRow = (index) => {
 const rowCount = 4;
 </script>
 <template>
-  <a-modal :title="form._isNew ? '新增Cookie' : '编辑Cookie'" v-model:visible="showModal" @ok="submit" @cancel="cancel" width="1000px">
+  <a-modal :title="form._isNew ? '新增' : '编辑'" v-model:visible="showModal" @ok="submit" @cancel="cancel" width="1000px">
     <a-form ref="formModel" :model="form" :labelCol="{ span: 3 }" :wrapperCol="{ span: 20 }">
-      <a-form-item label="Cookie别名" required name="userName">
+      <a-form-item label="Cookie名称" required name="userName">
         <a-input v-model:value="form.userName" />
       </a-form-item>
       <a-form-item label="id" required name="id" v-show="false">
@@ -258,10 +261,10 @@ const rowCount = 4;
         <a-input v-model:value="form.savePath" />
       </a-form-item>
 
-      <a-form-item label="Cookie" name="cookies">
+      <a-form-item label="Cookie值" name="cookies">
         <a-textarea v-model:value="form.cookies" :rows='rowCount' />
       </a-form-item>
-      <a-form-item label="喜欢的存储路径" name="favSavePath">
+      <a-form-item label="喜欢视频存储路径" name="favSavePath">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.favSavePath" style="flex: 1;" />
           <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
@@ -269,7 +272,7 @@ const rowCount = 4;
           </a-tooltip>
         </div>
       </a-form-item>
-      <a-form-item label="SecUserId" name="secUserId">
+      <a-form-item label="我的secUserId" name="secUserId">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.secUserId" style="flex: 1;" />
           <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
@@ -286,11 +289,11 @@ const rowCount = 4;
         </div>
       </a-form-item>
 
-      <a-form-item label="博主信息" name="upSecUserIdsJson">
+      <a-form-item label="博主配置" name="upSecUserIdsJson">
         <a-form-item-rest> <!-- 用这个包裹所有辅助元素 -->
           <!-- 添加行按钮 -->
           <a-button type="primary" @click="addRow" style="margin-bottom: 12px">
-            添加抖音Up主
+            添加
             <template #icon>
               <PlusOutlined />
             </template>
@@ -321,10 +324,19 @@ const rowCount = 4;
           </div>
         </a-form-item-rest>
       </a-form-item>
-      <a-form-item label="状态" name="status">
-        <a-select style="width: 90px" v-model:value="form.status" :options="[
-            { label: '关闭', value: 0 },
-            { label: '开启', value: 1 },
+      <a-form-item label="图文视频路径" name="imgSavePath">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <a-input v-model:value="form.imgSavePath" style="flex: 1;" />
+          <a-tooltip title="同步图文视频必填！！！">
+            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
+          </a-tooltip>
+        </div>
+      </a-form-item>
+
+      <a-form-item label="是否启用" name="status">
+        <a-select style="width: 110px;" v-model:value="form.status" :options="[
+            { label: '停止同步', value: 0 },
+            { label: '开启同步', value: 1 },
           ]" />
       </a-form-item>
     </a-form>
@@ -397,7 +409,7 @@ const rowCount = 4;
   </a-modal>
 
   <!-- Modal弹窗 -->
-  <a-modal title="要同步的Up主信息" :visible="showUpersModal" style="width:1200px;" @cancel="showUpersModal = false" @ok="showUpersModal = false">
+  <a-modal title="要同步的博主信息" :visible="showUpersModal" style="width:1200px;" @cancel="showUpersModal = false" @ok="showUpersModal = false">
     <!-- 弹窗内容 -->
     <div class="cookie-content">
       {{ showUpersData || '未设置' }}

@@ -30,7 +30,7 @@ onMounted(() => {
     <div class="front-view flex flex-col" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)">
       <!-- <div class="text-xxl text-text hover:text-text" style="margin-left:20px;color:#722ed1;"> -->
       <!-- <img src="/logo.png" /> -->
-      <!-- 抖音同步小帮手 -->
+      <!-- 抖小云 -->
       <!-- </div> -->
       <div class="front-content ">
         <router-view />

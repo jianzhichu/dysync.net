@@ -17,7 +17,7 @@ namespace dy.net
     public class Program
     {
         // 常量定义
-        private static string DefaultListenUrl = "http://*:10102";
+        private static string DefaultListenUrl = "http://*:10101";
         private const string SpaRootPath = "app/dist";
         private const string SpaSourcePath = "app/";
         private const string SwaggerDocTitle = "dy.net WebApi Docs";
@@ -33,14 +33,13 @@ namespace dy.net
             // 构建Web应用
             var builder = WebApplication.CreateBuilder(args);
             //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
-            DefaultListenUrl = builder.Configuration.GetValue<string>("ASPNETCORE_URLS") ?? DefaultListenUrl;
-            var downImgConfig = builder.Configuration.GetValue<string>("DOWN_IMGVIDEO");
+            DefaultListenUrl = builder.Configuration.GetValue<string>(SystemStaticUtil.ASPNETCORE_URLS) ?? DefaultListenUrl;
+            var downImgConfig = builder.Configuration.GetValue<string>(SystemStaticUtil.DOWN_IMAGE_VIDEO_ENABLE);
 
-            Console.WriteLine("DOWN_IMGVIDEO=" + downImgConfig);
+            //Console.WriteLine("DOWN_IMGVIDEO=" + downImgConfig);
             if (!string.IsNullOrEmpty(downImgConfig))
             {
-                downImgConfig = downImgConfig.ToLower();
-                downImageVideo = downImgConfig == "1" || downImgConfig == "y"||downImgConfig=="t"||downImgConfig=="true";
+                downImageVideo = downImgConfig.ToLower() == "1" ;
             }
             var isDevelopment = builder.Environment.IsDevelopment();
 
@@ -196,7 +195,7 @@ namespace dy.net
                 var commonService = services.GetRequiredService<DouyinCommonService>();
                 var config = commonService.InitConfig(downImageVideo);
 
-                // 更新收藏视频类型--兼容老版本-原来的旧数据没有这个类型字段
+                // 更新视频类型--兼容老版本
                 commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
@@ -204,13 +203,12 @@ namespace dy.net
                 var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
                 quartzJobService.StartJob(config?.Cron ?? "30");
 
-                Serilog.Log.Debug("系统初始化完成，会默认将-博主作品同步功能-同步全部作品重置为关闭（若要开启，可以到抖音授权页面中修改）");
-                Serilog.Log.Debug($"默认设置的每次读取行数为:{config.BatchCount}，可前往系统配置页修改");
+                Serilog.Log.Debug("系统初始化，默认将-博主作品-同步全部-配置为关闭，可到授权页面中调整（不建议开启全量同步）");
+                Serilog.Log.Debug($"默认每次读取行数为:{config.BatchCount}，可前往系统配置修改");
             }
             catch (Exception ex)
             {
-                var logger = services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "Failed to initialize services on startup");
+                Serilog.Log.Error(ex, "Failed to initialize services on startup");
             }
         }
 

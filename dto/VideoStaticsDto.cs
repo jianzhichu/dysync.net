@@ -35,6 +35,10 @@
         public long FollowCount { get; set; }
 
 
+        public long GraphicVideoCount { get; set; }
+        public string GraphicVideoSize { get; set; }
+
+
         public string TotalDiskSize { get; set; }
         public List<VideoStaticsItemDto> Authors { get; set; } = new List<VideoStaticsItemDto>();
         public List<VideoStaticsItemDto> Categories { get; set; } = new List<VideoStaticsItemDto>();

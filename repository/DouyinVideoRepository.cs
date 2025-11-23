@@ -1,4 +1,5 @@
 ﻿using dy.net.dto;
+using dy.net.extension;
 using dy.net.model;
 using Quartz.Util;
 using SqlSugar;
@@ -37,13 +38,17 @@ namespace dy.net.repository
             {
                 start = Convert.ToDateTime(dates[0]);
             }
-
+                VideoTypeEnum? enumviedoType = null;
+                if (!string.IsNullOrEmpty(viedoType)&&viedoType!="*")
+                {
+                    enumviedoType = viedoType.ToVideoTypeEnum();
+                }
             var where = this.Db.Queryable<DouyinVideo>()
                 .WhereIF(!string.IsNullOrWhiteSpace(tag), x => x.Tag1 == tag)
                 .WhereIF(!string.IsNullOrWhiteSpace(author), x => x.Author == author)
                 .WhereIF(start.HasValue, x => x.SyncTime >= start.Value)
                 .WhereIF(end.HasValue, x => x.SyncTime <= end.Value)
-                .WhereIF(!string.IsNullOrWhiteSpace(viedoType) && viedoType != "*", x => x.ViedoType == viedoType);
+                .WhereIF(enumviedoType.HasValue, x => x.ViedoType == enumviedoType);
 
 
             var totalCount = await where.CountAsync();
@@ -72,7 +77,7 @@ namespace dy.net.repository
         public async  Task<(string, string)> GetUperLastViedoFileName(string AuthorId,string ViedoNameSimplify)
         {
 
-           var video=  await this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == "3")
+           var video=  await this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == VideoTypeEnum.UperPost)
                 .Where(x => x.VideoTitleSimplify == ViedoNameSimplify)
                 .OrderByDescending(x => x.CreateTime).FirstAsync();
 

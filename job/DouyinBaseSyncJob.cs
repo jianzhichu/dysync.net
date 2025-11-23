@@ -533,7 +533,7 @@ namespace dy.net.job
                 // 特殊处理合成视频的字段
                 videoEntity.FileHash = string.Empty; // 合成视频没有原始文件哈希
                 videoEntity.VideoUrl = "/"; // 合成视频没有原始URL
-                videoEntity.ViedoType = VideoTypeEnum.ImageVideo.ToString(); // 标记为图片合成视频
+                videoEntity.ViedoType = VideoTypeEnum.ImageVideo; // 标记为图片合成视频
 
                 return videoEntity;
             }
@@ -586,6 +586,7 @@ namespace dy.net.job
             {
                 (string tag1, string tag2, string tag3) = GetVideoTags(item);
                 var nfoFileName = GetNfoFileName(cookie, item, config, ".nfo");
+                var poster = GetNfoFileName(cookie, item, config, "poster.jpg");
                 var nfoPath = Path.Combine(saveFolder, nfoFileName);
                 NfoFileGenerator.GenerateNfoFile(new DouyinVideoNfo
                 {
@@ -598,9 +599,9 @@ namespace dy.net.job
                         }
                     },
                     Author = item.Author?.Nickname,
-                    Poster = GetNfoFileName(cookie, item, config, "poster.jpg"),
+                    Poster = poster,
                     Title = item.Desc,
-                    Thumbnail = GetNfoFileName(cookie, item, config, "fanart.jpg"),
+                    Thumbnail = poster,// 使用poster作为缩略图
                     ReleaseDate = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
                     Genres = new List<string> { tag1, tag2, tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
                 }, nfoPath);
@@ -748,13 +749,13 @@ namespace dy.net.job
             if (!File.Exists(coverSavePath))
             {
                 var downRes = await _douyinService.DownloadAsync(coverUrl, coverSavePath, cookie.Cookies);
-                if (downRes)
-                {
-                    // 复制封面图片为fanart.jpg
-                    var fanartImgName = GetNfoFileName(cookie, item, config, "fanart.jpg");
-                    var copyPath = Path.Combine(saveFolder, fanartImgName);
-                    File.Copy(coverSavePath, copyPath, true);
-                }
+                //if (downRes)
+                //{
+                //    // 复制封面图片为fanart.jpg
+                //    var fanartImgName = GetNfoFileName(cookie, item, config, "fanart.jpg");
+                //    var copyPath = Path.Combine(saveFolder, fanartImgName);
+                //    File.Copy(coverSavePath, copyPath, true);
+                //}
             }
         }
 
@@ -782,7 +783,7 @@ namespace dy.net.job
 
             return new DouyinVideo
             {
-                ViedoType = diffs.VideoType.GetHashCode().ToString(),
+                ViedoType = diffs.VideoType,
                 AwemeId = item.AwemeId,
                 Author = item.Author?.Nickname,
                 AuthorId = item.Author?.Uid,

@@ -21,13 +21,13 @@ export function configTheme(key: string) {
       setBgSeriesColors({ 'bg-base': '#1a1a2e' });
       break;
     case 'header-dark':
-      setNavigation('head');
+      // setNavigation('head');
       break;
     default:
-      setNavigation('side');
+    // setNavigation('side');
   }
   if (key.indexOf('header') !== -1) {
-    setNavigation('head');
+    // setNavigation('head');
     setTheme(key.split('-')[1])
   }
 }

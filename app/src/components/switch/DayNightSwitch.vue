@@ -9,7 +9,6 @@ export type Type = 'day' | 'night';
 
 const props = defineProps({
   value: { type: String as PropType<Type> },
-  // nightColor: { type: String, default: '#1D1D1D' },
   nightColor: { type: String, default: '#1a1a2e' },
 });
 
@@ -17,37 +16,34 @@ const emit = defineEmits<{
   (e: 'update:value', value: Type): void;
 }>();
 
+const STORAGE_KEY = 'theme-mode';
+
+const getInitialValue = () => {
+  if (typeof window !== 'undefined') {
+    const cachedValue = localStorage.getItem(STORAGE_KEY);
+    if (cachedValue === 'day' || cachedValue === 'night') {
+      return cachedValue;
+    }
+  }
+  return props.value || 'day';
+};
+
 const { value: _value } = useModelValue(
   () => props.value,
   (val) => emit('update:value', val),
-  'day'
+  getInitialValue()
 );
+
 const switcher: { [key in Type]: Type } = {
   day: 'night',
   night: 'day',
 };
 
 const { theme } = storeToRefs(useThemeStore());
+let cachedMiddleColors = {};
 
-// 监听主题色变换，更新缓存
-let cachedMiddleColors = cloneDeep(theme.value.color.middle);
-watch(
-  theme,
-  (val) => {
-    if (val.color.middle['bg-base'] !== props.nightColor) {
-      cachedMiddleColors = cloneDeep(val.color.middle);
-      _value.value = 'day';
-    } else {
-      _value.value = 'night';
-    }
-    console.log('theme', _value.value);
-    updateHtmlClass(_value.value);
-  },
-  { deep: true }
-);
-
-// 在你的主题store中添加切换逻辑
-const updateHtmlClass = (mode) => {
+// --- 修正点 1: 函数定义移到 watch 之前 ---
+const updateHtmlClass = (mode: Type) => {
   const html = document.documentElement;
   if (mode === 'night') {
     html.classList.add('dark-mode');
@@ -55,14 +51,46 @@ const updateHtmlClass = (mode) => {
     html.classList.remove('dark-mode');
   }
 };
-// 主题颜色配置
+
+// 监听 theme bg-base 变化，用于同步外部修改
+watch(
+  () => theme.value?.color?.middle?.['bg-base'],
+  (newBgColor) => {
+    if (newBgColor) {
+      if (newBgColor === props.nightColor) {
+        _value.value = 'night';
+      } else {
+        _value.value = 'day';
+      }
+    }
+  }
+);
+
+// --- 修正点 2: watch 现在可以安全地调用 updateHtmlClass ---
+watch(
+  _value,
+  (newMode) => {
+    console.log('mode switched to:', newMode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, newMode);
+    }
+    updateHtmlClass(newMode);
+  },
+  { immediate: true }
+);
+
+// --- 修正点 3: 惰性缓存白天模式颜色 ---
 const colorCfg = computed(() => {
   if (_value.value === 'day') {
+    if (Object.keys(cachedMiddleColors).length === 0) {
+      cachedMiddleColors = cloneDeep(theme.value?.color?.middle || {});
+    }
     return { middle: cachedMiddleColors };
   }
   return { middle: { 'bg-base': props.nightColor } };
 });
 </script>
+
 <template>
   <ThemeProvider is-root :color="colorCfg">
     <div @click="() => (_value = switcher[_value])" class="bg-fill-2 day-night-switch hover:border-border relative border-border-2 text-lg rounded-full border border-solid flex items-center">
@@ -72,6 +100,7 @@ const colorCfg = computed(() => {
     </div>
   </ThemeProvider>
 </template>
+
 <style scoped lang="less">
 .day-night-switch {
   .spot {
