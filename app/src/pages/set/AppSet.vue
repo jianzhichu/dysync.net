@@ -22,11 +22,11 @@
       <div class="form-section">
         <h3 class="section-title">博主视频保存配置</h3>
 
-        <a-form-item has-feedback label="视频用标题做文件名" name="UperUseViedoTitle" :wrapper-col="{ span: 6 }">
+        <a-form-item has-feedback label="用标题做文件名" name="UperUseViedoTitle" :wrapper-col="{ span: 6 }">
           <a-switch v-model:checked="formState.UperUseViedoTitle" />
         </a-form-item>
 
-        <a-form-item has-feedback label="视频不创建子文件夹" name="UperSaveTogether" :wrapper-col="{ span: 6 }">
+        <a-form-item has-feedback label="不创建子文件夹" name="UperSaveTogether" :wrapper-col="{ span: 6 }">
           <a-switch v-model:checked="formState.UperSaveTogether" />
         </a-form-item>
 
