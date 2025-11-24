@@ -70,6 +70,81 @@ namespace dy.image
                 Directory.CreateDirectory(outputDirectory);
             }
 
+            //// 关键步骤 1: 创建临时目录并生成有序图片序列
+            //string tempImageDir = Path.Combine(AppContext.BaseDirectory, "temp", Guid.NewGuid().ToString());
+            //Directory.CreateDirectory(tempImageDir);
+
+            //var imageList = imageFilePaths.ToList();
+            //try
+            //{
+            //    for (int i = 0; i < imageList.Count; i++)
+            //    {
+            //        string sourcePath = imageList[i];
+            //        // 重命名为有规律的文件名，如 temp_001.jpg, temp_002.png
+            //        string extension = Path.GetExtension(sourcePath);
+            //        string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
+            //        string destPath = Path.Combine(tempImageDir, destFileName);
+            //        File.Copy(sourcePath, destPath);
+            //    }
+
+            //    // 关键步骤 2: 构建符合你成功经验的 FFmpeg 命令
+            //    string imageSequencePattern = Path.Combine(tempImageDir, "temp_%03d" + Path.GetExtension(imageList[0]));
+            //    double imageFps = Math.Round(1.0 / ImageDisplayDurationSeconds, 2); ; // 例如 1/3 = 0.333... fps
+
+            //    // 音频滤镜：如果音频比图片长则截断，比图片短则循环
+            //    string audioFilter = await GetAudioFilterAsync(audioFilePath, imageList.Count * ImageDisplayDurationSeconds);
+
+
+            //    // 构建 FFmpeg 参数列表
+            //    var arguments = new List<string>
+            //    {
+            //        "-y", // 覆盖输出文件
+            //        // --- 输入图片序列的配置 ---
+            //        "-f", "image2",              // 明确指定输入为图片序列
+            //        "-vcodec", "webp",           // 强制使用 WebP 解码器
+            //        "-r", imageFps.ToString(CultureInfo.InvariantCulture), // 设置图片播放速度
+            //        $"-i", $"\"{imageSequencePattern}\"", // 图片序列的路径模式
+            //        // --- 输入音频的配置 ---
+            //        audioFilter,                 // 应用音频滤镜（可能为空）
+            //        $"-i", $"\"{audioFilePath}\"", // 音频文件路径
+            //        // --- 视频编码配置 ---
+            //        "-c:v", VideoCodec,          // 视频编码器 (如 libx264)
+            //        "-preset", VideoPreset,      // 编码预设 (如 medium)
+            //        $"-crf", $"{VideoCrf}",      // 视频质量因子
+            //        $"-s", $"{VideoWidth}x{VideoHeight}", // 输出视频分辨率
+            //        "-pix_fmt", "yuv420p",       // 像素格式，确保兼容性
+            //        // --- 音频编码配置 ---
+            //        "-c:a", AudioCodec,          // 音频编码器 (如 aac)
+            //        $"-b:a", $"{AudioBitrate}",  // 音频比特率 (如 192k)
+            //        // --- 输出文件 ---
+            //        $"\"{outputVideoPath}\""     // 最终输出视频路径
+            //    };
+
+            //    string args = string.Join(" ", arguments);
+            //    Console.WriteLine($"执行FFmpeg命令: {_ffmpegExecutablePath} {args}");
+
+            //    // 执行命令
+            //    await ExecuteFFmpegAsync(args, progress, cancellationToken);
+
+            //    if (File.Exists(outputVideoPath))
+            //    {
+            //        return outputVideoPath;
+            //    }
+            //    else
+            //    {
+            //        throw new InvalidOperationException("视频合成失败，未生成输出文件。");
+            //    }
+            //}
+            //finally
+            //{
+            //    // 关键步骤 3: 清理临时文件
+            //    if (Directory.Exists(tempImageDir))
+            //    {
+            //        Directory.Delete(tempImageDir, recursive: true);
+            //    }
+            //}
+
+
             // 关键步骤 1: 创建临时目录并生成有序图片序列
             string tempImageDir = Path.Combine(AppContext.BaseDirectory, "temp", Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempImageDir);
@@ -80,51 +155,108 @@ namespace dy.image
                 for (int i = 0; i < imageList.Count; i++)
                 {
                     string sourcePath = imageList[i];
-                    // 重命名为有规律的文件名，如 temp_001.jpg, temp_002.png
                     string extension = Path.GetExtension(sourcePath);
-                    string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
+                    string destFileName = $"temp_{i + 1:D3}{extension}";
                     string destPath = Path.Combine(tempImageDir, destFileName);
                     File.Copy(sourcePath, destPath);
                 }
 
-                // 关键步骤 2: 构建符合你成功经验的 FFmpeg 命令
                 string imageSequencePattern = Path.Combine(tempImageDir, "temp_%03d" + Path.GetExtension(imageList[0]));
-                double imageFps = Math.Round(1.0 / ImageDisplayDurationSeconds, 2); ; // 例如 1/3 = 0.333... fps
+                double imageFps = Math.Round(1.0 / ImageDisplayDurationSeconds, 2);
 
-                // 音频滤镜：如果音频比图片长则截断，比图片短则循环
-                string audioFilter = await GetAudioFilterAsync(audioFilePath, imageList.Count * ImageDisplayDurationSeconds);
-
-                // 构建 FFmpeg 参数列表
-                var arguments = new List<string>
+                // --- 修正点 1: 整合音频时长获取逻辑 ---
+                // 我们不再需要 GetAudioFilterAsync，而是直接获取时长用于计算视频循环
+                double audioDurationSeconds = imageList.Count * ImageDisplayDurationSeconds; // 默认值为图片总时长
+                try
                 {
-                    "-y", // 覆盖输出文件
-                    // --- 输入图片序列的配置 ---
-                    "-f", "image2",              // 明确指定输入为图片序列
-                    "-vcodec", "webp",           // 强制使用 WebP 解码器
-                    "-r", imageFps.ToString(CultureInfo.InvariantCulture), // 设置图片播放速度
-                    $"-i", $"\"{imageSequencePattern}\"", // 图片序列的路径模式
-                    // --- 输入音频的配置 ---
-                    audioFilter,                 // 应用音频滤镜（可能为空）
-                    $"-i", $"\"{audioFilePath}\"", // 音频文件路径
-                    // --- 视频编码配置 ---
-                    "-c:v", VideoCodec,          // 视频编码器 (如 libx264)
-                    "-preset", VideoPreset,      // 编码预设 (如 medium)
-                    $"-crf", $"{VideoCrf}",      // 视频质量因子
-                    $"-s", $"{VideoWidth}x{VideoHeight}", // 输出视频分辨率
-                    "-pix_fmt", "yuv420p",       // 像素格式，确保兼容性
-                    // --- 音频编码配置 ---
-                    "-c:a", AudioCodec,          // 音频编码器 (如 aac)
-                    $"-b:a", $"{AudioBitrate}",  // 音频比特率 (如 192k)
-                    // --- 输出文件 ---
-                    $"\"{outputVideoPath}\""     // 最终输出视频路径
-                };
+                    // 使用 ffprobe 获取音频时长
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = _ffprobeExecutablePath,
+                        Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{audioFilePath}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+
+                    using (var process = new Process { StartInfo = startInfo })
+                    {
+                        process.Start();
+                        string output = await process.StandardOutput.ReadToEndAsync();
+                        await process.WaitForExitAsync();
+
+                        if (double.TryParse(output, out double duration))
+                        {
+                            audioDurationSeconds = duration;
+                            Console.WriteLine($"成功获取音频时长: {audioDurationSeconds:F2}s");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"获取音频时长失败，将使用图片总时长 ({audioDurationSeconds:F2}s) 作为视频时长: {ex.Message}");
+                }
+
+                // 计算图片序列需要循环的次数
+                int loopCount = 1;
+                double singleLoopDuration = imageList.Count * ImageDisplayDurationSeconds;
+                if (audioDurationSeconds > singleLoopDuration)
+                {
+                    loopCount = (int)Math.Ceiling(audioDurationSeconds / singleLoopDuration);
+                    Console.WriteLine($"图片序列将循环 {loopCount} 次以匹配音频时长");
+                }
+
+                // --- 修正点 2: 重新构建 FFmpeg 参数列表 ---
+                var arguments = new List<string>
+    {
+        "-y", // 覆盖输出文件
+
+        // --- 所有输入文件放在最前面 ---
+        // 图片序列输入
+        "-f", "image2",
+        "-r", imageFps.ToString(CultureInfo.InvariantCulture),
+        "-i", $"\"{imageSequencePattern}\"",
+
+        // 音频输入
+        "-i", $"\"{audioFilePath}\"",
+
+        // --- 修正点 3: 使用 filter_complex 对视频流进行循环 ---
+        // [0:v] 表示第一个输入（图片序列）的视频流
+        // loop={loopCount-1} 表示循环 (次数-1) 次
+        // [v] 是处理后的视频流的别名
+        "-filter_complex", $"\"[0:v]loop={loopCount - 1}[v]\"",
+
+        // --- 修正点 4: 明确映射输出流 ---
+        // 将处理后的视频流 [v] 映射到输出
+        "-map", "\"[v]\"",
+        // 将第二个输入（音频文件）的音频流映射到输出
+        "-map", "\"1:a\"",
+
+        // --- 视频编码配置 ---
+        "-c:v", VideoCodec,
+        "-preset", VideoPreset,
+        "-crf", $"{VideoCrf}",
+        "-s", $"{VideoWidth}x{VideoHeight}",
+        "-pix_fmt", "yuv420p",
+
+        // --- 音频编码配置 ---
+        "-c:a", AudioCodec,
+        "-b:a", $"{AudioBitrate}",
+
+        // --- 修正点 5: 使用 -shortest 参数 ---
+        // 确保视频和音频同时结束，即使循环次数计算得不完全精确
+        "-shortest",
+
+        // --- 输出文件 ---
+        $"\"{outputVideoPath}\""
+    };
 
                 string args = string.Join(" ", arguments);
                 Console.WriteLine($"执行FFmpeg命令: {_ffmpegExecutablePath} {args}");
 
                 // 执行命令
                 await ExecuteFFmpegAsync(args, progress, cancellationToken);
-
                 if (File.Exists(outputVideoPath))
                 {
                     return outputVideoPath;
@@ -133,10 +265,11 @@ namespace dy.image
                 {
                     throw new InvalidOperationException("视频合成失败，未生成输出文件。");
                 }
+
             }
             finally
             {
-                // 关键步骤 3: 清理临时文件
+                // 清理临时目录
                 if (Directory.Exists(tempImageDir))
                 {
                     Directory.Delete(tempImageDir, recursive: true);

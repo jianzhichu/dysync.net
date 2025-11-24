@@ -50,8 +50,12 @@ namespace dy.net.service
                     Id = IdGener.GetLong().ToString(),
                     Cron = "30",
                     BatchCount = 10,
+                    LogKeepDay = 10,
+                    UperSaveTogether = false,//博主视频：true-->每个视频单独一个文件夹 false-->所有视频放在同一个文件夹
+                    UperUseViedoTitle = false,//博主视频：true-->使用视频标题作为文件名 false-->使用视频id作为文件名
                     DownImageVideo = downLoadImage,
-                    LogKeepDay = 10
+                    DownMp3 = false,
+                    DownImage = false
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;
@@ -77,6 +81,8 @@ namespace dy.net.service
                 cc.UperSaveTogether = config.UperSaveTogether;
                 cc.UperUseViedoTitle = config.UperUseViedoTitle;
                 cc.LogKeepDay = config.LogKeepDay;
+                cc.DownMp3= config.DownMp3;
+                cc.DownImage= config.DownImage;
             }
 
             var update = await sqlSugarClient.Updateable<AppConfig>(cc).ExecuteCommandAsync();

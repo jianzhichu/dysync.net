@@ -34,12 +34,22 @@ namespace dy.net.model
         /// </summary>
         public bool DownImageVideo { get; set; }
         /// <summary>
+        /// 图文视频 是否额外下载图片
+        /// </summary>
+        public bool DownImage { get; set; }
+        /// <summary>
+        /// 图文视频 是否额外下载mp3
+        /// </summary>
+        public bool DownMp3 { get; set; }
+
+        /// <summary>
         /// 日志保留天数,防止容器日志太多，默认10天
         /// </summary>
         public int LogKeepDay { get; set; } = 10;
 
         [SugarColumn(IsIgnore=true)]
         public bool DownImageVideoFromEnv { get; set; }
+     
 
     }
 }

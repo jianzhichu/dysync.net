@@ -1,4 +1,6 @@
-﻿namespace dy.net.utils
+﻿using System.Threading.Channels;
+
+namespace dy.net.utils
 {
     public class DouyinBaseParamDics
     {
@@ -67,14 +69,14 @@
             { "browser_online", "true" },
             { "browser_platform", "Win32" },
             { "browser_version", "5.0%20%28Windows%29" },
-            { "channel", "tiktok_web" },
             { "cookie_enabled", "true" },
             { "count", "18" },
             { "coverFormat", "2" },
             { "cursor", "0" },
             { "data_collection_enabled", "true" },
             { "device_id", "7380187414842836523" },
-            { "device_platform", "web_pc" },
+            { "device_platform", "webapp" },
+            { "channel", "channel_pc_web" },
             { "focus_state", "true" },
             { "from_page", "user" },
             { "history_len", "3" },
@@ -99,6 +101,92 @@
             { "_signature", "_02B4Z6wo000017oyWOQAAIDD9xNhTSnfaDu6MFxAAIlj23" },
             {"sec_user_id",""}
         };
+            return parameters;
+        }
+
+
+        /// <summary>
+        /// 初始化抖音网页端用户作品列表请求参数（参数来源于目标URL）
+        /// 适配接口：https://www.douyin.com/aweme/v1/web/aweme/post/
+        /// </summary>
+        /// <returns>抖音作品列表请求参数字典</returns>
+        public static Dictionary<string, string> InitializeDouyinPostParams()
+        {
+            var parameters = new Dictionary<string, string>
+        {
+            // 基础设备与渠道参数
+            { "device_platform", "webapp" },
+            { "aid", "6383" },
+            { "channel", "channel_pc_web" },
+            
+            // 用户标识参数
+            { "sec_user_id", "" },
+            
+            // 分页与内容定位参数
+            { "max_cursor", "0" },
+            { "locate_item_id", "7576282367263807451" },
+            { "locate_query", "false" },
+            { "count", "18" },
+            
+            // 视频相关配置参数
+            { "show_live_replay_strategy", "1" },
+            { "need_time_list", "1" },
+            { "time_list_query", "0" },
+            { "publish_video_strategy_type", "2" },
+            { "support_h265", "1" },
+            { "support_dash", "1" },
+            
+            // 版本与更新参数
+            { "from_user_page", "1" },
+            { "update_version_code", "170400" },
+            { "version_code", "290100" },
+            { "version_name", "29.1.0" },
+            
+            // PC端特有参数
+            { "pc_client_type", "1" },
+            { "pc_libra_divert", "Windows" },
+            { "cpu_core_num", "32" },
+            
+            // 浏览器环境参数
+            { "browser_language", "zh-CN" },
+            { "browser_platform", "Win32" },
+            { "browser_name", "Chrome" },
+            { "browser_version", "142.0.0.0" },
+            { "browser_online", "true" },
+            { "engine_name", "Blink" },
+            { "engine_version", "142.0.0.0" },
+            
+            // 系统环境参数
+            { "os_name", "Windows" },
+            { "os_version", "10" },
+            { "device_memory", "8" },
+            { "platform", "PC" },
+            { "cookie_enabled", "true" },
+            
+            // 屏幕与网络参数
+            { "screen_width", "1707" },
+            { "screen_height", "1067" },
+            { "downlink", "10" },
+            { "effective_type", "4g" },
+            { "round_trip_time", "0" },
+            
+            // 用户唯一标识参数
+            { "webid", "7574080345697584675" },
+            { "uifid", "" },
+            
+            // 安全验证与签名参数
+            { "msToken", "" },
+            { "a_bogus", "" },
+            { "verifyFp", "" },
+            { "fp", "" },
+            { "x-secsdk-web-expire", "" },
+            { "x-secsdk-web-signature", "" },
+            
+            // 其他辅助参数
+            { "whale_cut_token", "" },
+            { "cut_version", "1" }
+        };
+
             return parameters;
         }
 

@@ -45,6 +45,13 @@
           <a-switch v-model:checked="formState.DownImageVideo" />
         </a-form-item>
 
+        <a-form-item v-if="downImgVideo" has-feedback label="单独下载图文-音频" name="DownMp3" :wrapper-col="{ span: 6 }">
+          <a-switch v-model:checked="formState.DownMp3" />
+        </a-form-item>
+
+        <a-form-item v-if="downImgVideo" has-feedback label="单独下载图文-图片" name="DownImage" :wrapper-col="{ span: 6 }">
+          <a-switch v-model:checked="formState.DownImage" />
+        </a-form-item>
       </div>
 
       <!-- 操作按钮 -->
@@ -85,6 +92,8 @@ interface FormState {
   UperSaveTogether: boolean;
   UperUseViedoTitle: boolean;
   LogKeepDay: number;
+  DownImage: boolean;
+  DownMp3: boolean;
 }
 
 // 表单初始数据
@@ -97,6 +106,8 @@ const formState: UnwrapRef<FormState> = reactive({
   UperSaveTogether: false,
   DownImageVideo: false,
   DownImageVideoFromEnv: false,
+  DownMp3: false,
+  DownImage: false,
 });
 
 // 表单校验规则
@@ -144,6 +155,8 @@ const getConfig = () => {
           UperUseViedoTitle: res.data.uperUseViedoTitle,
           UperSaveTogether: res.data.uperSaveTogether,
           LogKeepDay: res.data.logKeepDay,
+          DownImage: res.data.downImage,
+          DownMp3: res.data.downMp3,
         });
 
         // 监听环境变量配置，控制是否显示图片视频下载选项

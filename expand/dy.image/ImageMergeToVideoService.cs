@@ -13,7 +13,18 @@
             _downloadHelper = downloadHelper;
             _fFmpegHelper = fFmpegHelper;
         }
-        public async Task<bool> MergeToVideo(string rootPath, MediaMergeRequest request,string outputVideoPath,string fileNamefolder)
+        /// <summary>
+        /// 视频合成
+        /// </summary>
+        /// <param name="rootPath"></param>
+        /// <param name="request"></param>
+        /// <param name="outputVideoPath"></param>
+        /// <param name="fileNamefolder"></param>
+        /// <param name="mergeImg2Viedo"></param>
+        /// <param name="downImage"></param>
+        /// <param name="downMp3"></param>
+        /// <returns></returns>
+        public async Task<bool> MergeToVideo(string rootPath, MediaMergeRequest request,string outputVideoPath,string fileNamefolder,bool mergeImg2Viedo,bool downImage=false,bool downMp3=false)
         {
 
             try
@@ -31,17 +42,19 @@
                     }
                     else
                     {
-                        for (int i = 0; i < rawImages.Count(); i++)
+                        if(downImage)
                         {
-                            string sourcePath = rawImages[i];
-                            // 重命名为有规律的文件名，如 temp_001.jpg, temp_002.png
-                            string extension = Path.GetExtension(sourcePath);
-                            string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
-                            string destPath = Path.Combine(fileNamefolder, destFileName);
-                            File.Copy(sourcePath, destPath);
+                            for (int i = 0; i < rawImages.Count(); i++)
+                            {
+                                string sourcePath = rawImages[i];
+                                // 重命名为有规律的文件名，如 temp_001.jpg, temp_002.png
+                                string extension = Path.GetExtension(sourcePath);
+                                string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
+                                string destPath = Path.Combine(fileNamefolder, destFileName);
+                                File.Copy(sourcePath, destPath);
+                            }
                         }
                     }
-
                         // 2. 下载音频
                         var (rawAudios, audioError) = await DownloadMediaAsync(request.AudioUrls, Path.Combine(tempDir, "raw-audios"), "audio_", "mp3");
                     if (!string.IsNullOrEmpty(audioError))
@@ -51,17 +64,25 @@
                     }
                     else
                     {
-                        for (int i = 0; i < rawAudios.Count(); i++)
+                        if(downMp3)
                         {
-                            string sourcePath = rawAudios[i];
-                            // 重命名为有规律的文件名，如 temp_001.mp3, temp_002.mp3
-                            string extension = Path.GetExtension(sourcePath);
-                            string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
-                            string destPath = Path.Combine(fileNamefolder, destFileName);
-                            File.Copy(sourcePath, destPath);
+                            for (int i = 0; i < rawAudios.Count(); i++)
+                            {
+                                string sourcePath = rawAudios[i];
+                                // 重命名为有规律的文件名，如 temp_001.mp3, temp_002.mp3
+                                string extension = Path.GetExtension(sourcePath);
+                                string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
+                                string destPath = Path.Combine(fileNamefolder, destFileName);
+                                File.Copy(sourcePath, destPath);
+                            }
                         }
                     }
-
+                    if (!mergeImg2Viedo)
+                    {
+                        // 不合成视频，直接返回成功
+                        Serilog.Log.Debug($"不合成视频，直接返回");
+                        return true;
+                    }
 
                     // 4. 合成视频
                     //var outputVideoPath = Path.Combine(tempDir, "output", $"merged-video.{request.OutputFormat.ToLower()}");
@@ -72,7 +93,7 @@
                     // 根据图片数量调整每张图片显示时长
                     if (request.ImageUrls.Count <= 3)
                     {
-                        request.ImageDurationPerSecond = 5;
+                        request.ImageDurationPerSecond = 3;
                     }
                     if (request.ImageUrls.Count > 20)
                     {

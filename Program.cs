@@ -52,7 +52,7 @@ namespace dy.net
             // 构建应用
             var app = builder.Build();
 
-            Log.Debug("DOWN_IMGVIDEO=" + downImgConfig);
+            Log.Debug("ffmpeg=" + downImgConfig);
 
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);

@@ -184,7 +184,7 @@ namespace dy.net.service
                 }
                 httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
 
-                var parameters = DouyinBaseParamDics.UpderPostParams;
+                var parameters = DouyinBaseParamDics.InitializeDouyinPostParams();//修复关注的不下载图文视频
                 {
                     // 添加动态参数
                     parameters["max_cursor"] = cursor;
@@ -195,7 +195,6 @@ namespace dy.net.service
                 // 构建请求URL
                 var queryString = new FormUrlEncodedContent(parameters);
                 string fullUrl = $"{DouYinApi}/post?{await queryString.ReadAsStringAsync()}";
-
                 var ablog = new ABogus();//计算X-Bogus
                 var a_bogus = ablog.GetValue(parameters);
 

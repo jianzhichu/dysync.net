@@ -188,7 +188,7 @@ namespace dy.net.extension
 
             services.AddHttpClient("dy_uper", client =>
             {
-                //client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
+                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/MS4wLjABAAAA1zFIBhWG-3qS8MiggDMhyCpqDnvfGYf_mtsdgtBzV7A?from_tab_name=main&showTab=post&vid=7576282367263807451");
             });
             // 配置HttpClient（Startup.cs或Program.cs）
             services.AddHttpClient("dy_download")

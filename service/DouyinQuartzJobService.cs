@@ -20,23 +20,23 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task StartJob(string expression,int delay=5000)
         {
-            await StartCollectJob(expression);
+            //await StartCollectJob(expression);
 
-            await Task.Delay(delay);
-            //如果是数字则加1分钟，减少并发
-            if (int.TryParse(expression, out int cron))
-            {
-                cron++;
-                expression = cron.ToString();
-            }
-            await StartFavoriteJob(expression);
+            //await Task.Delay(delay);
+            ////如果是数字则加1分钟，减少并发
+            //if (int.TryParse(expression, out int cron))
+            //{
+            //    cron++;
+            //    expression = cron.ToString();
+            //}
+            //await StartFavoriteJob(expression);
 
-            await Task.Delay(delay);
-            if (int.TryParse(expression, out int cron2))
-            {
-                cron2++;
-                expression = cron2.ToString();
-            }
+            //await Task.Delay(delay);
+            //if (int.TryParse(expression, out int cron2))
+            //{
+            //    cron2++;
+            //    expression = cron2.ToString();
+            //}
             await StartUperPostJob(expression);
         }
 
