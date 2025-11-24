@@ -69,6 +69,27 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 ## 🚀 4. 运行方式（推荐 Docker Compose，更易维护）
 
 
+# Dysync.net Docker 镜像版本说明
+
+本文档详细描述了 `jianzhichu/dysync.net` Docker 镜像的各个版本、其功能特性、适用架构以及镜像大小。
+
+## 镜像版本总览
+
+| 镜像标签                          | 架构           | 功能描述                                                                 | 镜像大小  | 适用场景                     |
+|-----------------------------------|----------------|--------------------------------------------------------------------------|-----------|------------------------------|
+| `jianzhichu/dysync.net:latest`    | x86_64 (amd64) | **标准版**<br>- 包含核心功能<br>- **不含 FFmpeg**<br>- 不能下载图文视频   | ~200M     | 仅需基础功能，追求轻量部署   |
+| `jianzhichu/dysync.net:full_latest` | x86_64 (amd64) | **完整版**<br>- 包含全部核心功能<br>- **内置 FFmpeg**<br>- 支持图文视频下载与合成 | ~700M     | 需要完整媒体处理能力的场景   |
+| `jianzhichu/dysync.net:arm_latest` | ARM64          | **ARM 标准版**<br>- 核心功能（与 `latest` 一致）<br>- **适配 ARM 架构**   | ~200M     | ARM 设备（如树莓派）的轻量部署 |
+| `jianzhichu/dysync.net:full_arm_latest` | ARM64      | **ARM 完整版**<br>- 完整功能（与 `full_latest` 一致）<br>- **适配 ARM 架构** | ~700M     | ARM 设备的完整功能部署       |
+| `jianzhichu/dysync.net:beta_1.0`  | x86_64 (amd64) | **测试版 v1.0**<br>- 包含最新开发特性<br>- 功能可能不稳定<br>- 不含 FFmpeg | ~200M     | 开发测试、尝鲜新功能         |
+
+## 构建命令示例
+
+以下是构建上述各版本镜像的 Docker 命令参考：
+
+```bash
+
+
 将下方命令中的「本地路径」替换为你的实际路径，终端执行即可：
 ```bash
 

@@ -5,6 +5,9 @@ WORKDIR /app
 EXPOSE 10101
 
 COPY . .
-ENV ASPNETCORE_URLS http://*:10101
-ENTRYPOINT ["dotnet", "dy.net.dll"]
+
+ENV ASPNETCORE_URLS=http://*:10101
 ENV TZ=Asia/Shanghai
+ENV DOWN_IMGVIDEO=0
+ENTRYPOINT ["dotnet", "dy.net.dll"]
+

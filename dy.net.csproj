@@ -86,6 +86,9 @@
     <None Update="Dockerfile-arm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Dockerfile-arm-img">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Dockerfile-dev">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

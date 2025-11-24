@@ -135,8 +135,8 @@ namespace dy.net.job
             }
 
             //将配置项打印日志
-            Log.Debug($"最新：{JsonConvert.SerializeObject(config)}");
-
+            Console.WriteLine("当前配置如下：");
+            config.PrintAsTable();
 
             // 2. 从配置中获取每页请求数量
             if (config.BatchCount > 0)
