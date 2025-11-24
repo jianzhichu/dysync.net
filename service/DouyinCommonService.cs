@@ -73,6 +73,10 @@ namespace dy.net.service
             {
                 cc.Cron = config.Cron;
                 cc.BatchCount = config.BatchCount;
+                cc.DownImageVideo = config.DownImageVideo;
+                cc.UperSaveTogether = config.UperSaveTogether;
+                cc.UperUseViedoTitle = config.UperUseViedoTitle;
+                cc.LogKeepDay = config.LogKeepDay;
             }
 
             var update = await sqlSugarClient.Updateable<AppConfig>(cc).ExecuteCommandAsync();
