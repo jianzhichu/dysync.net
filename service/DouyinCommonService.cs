@@ -19,10 +19,10 @@ namespace dy.net.service
 
         public AppConfig GetConfig()
         {
-            var config= sqlSugarClient.Queryable<AppConfig>().First();
+            var config = sqlSugarClient.Queryable<AppConfig>().First();
 
             var downImgConfig = Appsettings.Get(SystemStaticUtil.DOWN_IMAGE_VIDEO_ENABLE);
-            if (!string.IsNullOrEmpty(downImgConfig))
+            if (config != null && !string.IsNullOrEmpty(downImgConfig))
             {
                 downImgConfig = downImgConfig.ToLower();
                 config.DownImageVideoFromEnv = downImgConfig == "1";
