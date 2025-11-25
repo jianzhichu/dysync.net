@@ -107,7 +107,7 @@ docker run -d --restart=always \
   -p 10103:10101 \
   --name dysync2025 \
   registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:latest
-# 注意：-p 后面的容器端口,可以用环境变量：ASPNETCORE_URLS = http://+:10108 指定
+# 注意：-p 后面的容器端口,可以用环境变量类似：ASPNETCORE_URLS = http://+:10108 指定
 ```
 
 
@@ -124,7 +124,7 @@ services:
     container_name: dysync2025  # 容器名称
     restart: always  # 总是重启
     ports:
-      - "10101:10101"  # 端口映射（主机端口:容器端口，容器端口固定为10101）
+      - "10101:10101"  # 端口映射（主机端口:容器端口，容器端口可以用环境变量类似：ASPNETCORE_URLS = http://+:10108 指定）
     volumes:
       # 基础路径映射
       - /opt/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
