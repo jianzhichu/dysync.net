@@ -66,21 +66,19 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 ---
 
-## 🚀 4. 运行方式（推荐 Docker Compose，更易维护）
+## 🚀 4. 运行方式（推荐 Docker Compose）
 
 
 # Dysync.net Docker 镜像版本说明
 
-本文档详细描述了 `jianzhichu/dysync.net` Docker 镜像的各个版本、其功能特性、适用架构以及镜像大小。
-
-## 镜像版本总览
+## 镜像版本
 
 | 镜像标签                          | 架构           | 功能描述                                                                 | 镜像大小  | 适用场景                     |
 |-----------------------------------|----------------|--------------------------------------------------------------------------|-----------|------------------------------|
 | `jianzhichu/dysync.net:latest`    | x86_64 (amd64) | **标准版**<br>- 包含核心功能<br>- **不含 FFmpeg**<br>- 不能下载图文视频   | ~200M     | 仅需基础功能，追求轻量部署   |
 | `jianzhichu/dysync.net:full_latest` | x86_64 (amd64) | **完整版**<br>- 包含全部核心功能<br>- **内置 FFmpeg**<br>- 支持图文视频下载与合成 | ~700M     | 需要完整媒体处理能力的场景   |
 | `jianzhichu/dysync.net:arm_latest` | ARM64          | **ARM 标准版**<br>- 核心功能（与 `latest` 一致）<br>- **适配 ARM 架构**   | ~200M     | ARM 设备（如树莓派）的轻量部署 |
-| `jianzhichu/dysync.net:full_arm_latest` | ARM64      | **ARM 完整版**<br>- 完整功能（与 `full_latest` 一致）<br>- **适配 ARM 架构** | ~700M     | ARM 设备的完整功能部署       |
+| `jianzhichu/dysync.net:full_arm_latest` | ARM64      | **ARM 完整版**<br>- 完整功能（与 `full_latest` 一致）<br>- **适配 ARM 架构** | ~500M     | ARM 设备的完整功能部署       |
 | `jianzhichu/dysync.net:beta_1.0`  | x86_64 (amd64) | **测试版 v1.0**<br>- 包含最新开发特性<br>- 功能可能不稳定<br>- 不含 FFmpeg | ~200M     | 开发测试、尝鲜新功能         |
 
 ## 构建命令示例
@@ -93,43 +91,43 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 将下方命令中的「本地路径」替换为你的实际路径，终端执行即可：
 ```bash
 
-### Arm设备请使用 registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:arm_1.0 版本镜像
 ### 方式一：Docker 命令行
 docker run -d --restart=always \
-  -v /你的/本地/收藏视频路径:/app/collect \
-  -v /你的/本地/喜欢视频路径:/app/favorite \
-  -v /你的/本地/数据库路径:/app/db \
-  -v /你的/本地/博主视频路径:/app/uper \
-  -p 10101:10101 \
-  --name dysync2025 \
-  registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net
+  -v /opt/dysync/coll:/app/collect \
+  -v /opt/dysync/favorite \
+  -v /opt/dysync/db:/app/db \
+  -v /opt/dysync/imgs:/app/images \
+  -v /opt/dysync/uper:/app/uper \
+  -p 10103:10101 \
+  --name dysync_arm_full \
+  registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:latest
 # 注意：-p 后面的容器端口必须为 10101（源码固定）
 
 
 ### 方式二：Docker Compose 运行（推荐）
-### Arm设备请使用 registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:arm_1.0 版本镜像
 创建 docker-compose.yml 文件，复制以下内容，替换「本地路径」后执行 docker-compose up -d：
 
 version: '3.8'
 
 services:
   dysync:
-    image: registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net
-    container_name: dysync2025
-    restart: always
+    image: registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:latest
+    container_name: dysync_arm_full  # 容器名称
+    restart: always  # 总是重启
     ports:
-      - "10101:10101"
+      - "10101:10101"  # 端口映射
     volumes:
-      - /volume1/docker/dysync/db:/app/db
-
-      - /volume2/mediay/dysync:/app/collect
-      - /volume2/mediay/dysync_fav:/app/favorite
-      - /volume2/mediay/dysync_up:/app/uper
+      - /opt/dysync/db:/app/db  # 数据库目录
+      - /opt/dysync/coll:/app/collect  # 收集目录
+      - /opt/dysync/favorite:/app/favorite  # 收藏目录（补充了容器内路径）
+      - /opt/dysync/imgs:/app/images  # 图片目录
+      - /opt/dysync/uper:/app/uper  # 上传目录
       # 下面是多账号路径映射示例（可选）
-      - /volume2/mediay/dysync2:/app/yeyeye  
-      - /volume2/mediay/dysync2_fav:/app/yeyeye_fav  
-      - /volume2/mediay/dysync2_up:/app/yeyeye_up
-    # 配置DNS服务器（解决域名解析失败导致的无法访问外网）
+      - /opt/dysync/coll2:/app/collect  # 收集目录
+      - /opt/dysync/favorite2:/app/favorite  # 收藏目录（补充了容器内路径）
+      - /opt/dysync/imgs2:/app/images  # 图片目录
+      - /opt/dysync/uper2:/app/uper  # 上传目录
+    # 配置DNS服务器（可选）
     network_mode: bridge
     dns:
       - 8.8.8.8  # Google DNS

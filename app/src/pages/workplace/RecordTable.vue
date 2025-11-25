@@ -19,7 +19,14 @@
       <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
         <a-space>
           <a-button type="primary" @click="GetRecords">查询</a-button>
-          <a-button type="danger" @click="StartNow">立即同步</a-button>
+          <!-- 核心修改点：绑定 disabled 属性 -->
+          <a-button type="danger" @click="StartNow" :disabled="isSyncing">
+            <!-- 可选：添加加载状态提示 -->
+            <template #icon>
+              <a-spin v-if="isSyncing" size="small" />
+            </template>
+            立即同步
+          </a-button>
         </a-space>
       </a-form-item>
     </a-form>
@@ -27,6 +34,7 @@
     </a-table>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { defineComponent, reactive, ref } from 'vue';
 import { useApiStore } from '@/store';
@@ -34,50 +42,45 @@ import type { UnwrapRef } from 'vue';
 import { onMounted } from 'vue';
 import dayjs, { Dayjs } from 'dayjs';
 import locale from 'ant-design-vue/es/date-picker/locale/zh_CN';
+import { message, Spin } from 'ant-design-vue'; // 引入 Spin 用于显示加载图标
 type RangeValue = [Dayjs, Dayjs];
 import 'dayjs/locale/zh-cn';
 dayjs.locale('zh-cn');
+
+// ... (columns, loading, DataItem, datas, showImageViedo, QuaryParam, value1, ranges, quaryData 的定义保持不变)
 const columns = ref([
   {
     title: '同步时间',
     dataIndex: 'syncTimeStr',
-    // sorter: true,
     align: 'center',
     width: 180,
   },
   {
     title: '同步类型',
     dataIndex: 'viedoTypeStr',
-    // sorter: true,
     align: 'center',
     width: 100,
   },
   {
     title: '博主',
     dataIndex: 'author',
-    // sorter: true,
     align: 'center',
     width: 150,
   },
   {
     title: '视频类型',
     dataIndex: 'viedoCate',
-    // sorter: true,
     width: 300,
     align: 'center',
   },
-
   {
     title: '视频标题',
     dataIndex: 'videoTitle',
-    // sorter: true,
     align: 'left',
   },
-
   {
-    title: 'Cookie',
+    title: 'CK名称',
     dataIndex: 'dyUser',
-    // sorter: true,
     align: 'center',
     width: 200,
   },
@@ -108,6 +111,7 @@ const quaryData: UnwrapRef<QuaryParam> = reactive({
   tag: '',
   viedoType: '*',
 });
+
 const GetRecords = () => {
   loading.value = true;
   quaryData.pageIndex = pagination.value.current;
@@ -125,9 +129,12 @@ const GetRecords = () => {
       }
     });
 };
+
 onMounted(() => {
   GetRecords();
+  getConfig(); // 在 onMounted 中调用 getConfig
 });
+
 const pagination = ref({
   current: 1,
   defaultPageSize: 10,
@@ -140,9 +147,9 @@ const getConfig = () => {
     .apiGetConfig()
     .then((res) => {
       if (res.code === 0) {
-        // 监听环境变量配置，控制是否显示图片视频下载选项
         showImageViedo.value = res.data.downImageVideoFromEnv;
       } else {
+        // 可以在这里添加配置获取失败的处理
       }
     })
     .catch((error) => {
@@ -151,31 +158,58 @@ const getConfig = () => {
 };
 
 const handleTableChange = (e) => {
-  console.log(e);
   pagination.value.current = e.current;
   pagination.value.defaultPageSize = e.defaultPageSize;
-  pagination.value.total = e.total;
-  pagination.value.showTotal = () => `共 ${e.total} 条`;
+  // 通常 total 是由后端返回的，这里不需要手动设置
   GetRecords();
 };
 
+// 核心修改点：添加一个 ref 来控制按钮状态
+const isSyncing = ref(false);
+
 const StartNow = () => {
+  // 如果正在同步中，则直接返回，防止重复点击
+  if (isSyncing.value) {
+    return;
+  }
+
+  message.success('请耐心等待，同步任务正在启动...');
+  isSyncing.value = true; // 开始同步，禁用按钮
+
   useApiStore()
     .StartJobNow()
-    .then((res) => {});
+    .then((res) => {
+      // 根据后端返回的状态码判断是否真正成功
+      if (res.code === 0) {
+        message.success('同步任务启动成功！');
+      } else {
+        message.error(`同步任务启动失败: ${res.message || '未知错误'}`);
+      }
+    })
+    .catch((error) => {
+      console.error('同步任务API调用失败:', error);
+      message.error('同步任务启动失败，请检查网络或联系管理员。');
+    })
+    .finally(() => {
+      isSyncing.value = false; // 无论成功失败，都恢复按钮状态
+    });
 };
+
 const datePicked = (ref, dateArry) => {
+  // 注意：dateArry 是 Dayjs 对象数组，如果后端需要字符串，需要格式化
+  // quaryData.dates = dateArry.map(date => date.format('YYYY-MM-DD'));
   quaryData.dates = dateArry;
   console.log(dateArry);
 };
+
 const dataSource = ref(datas);
 
 const onViedoTypeChanged = (e) => {
-  // console.log(e.target.value);
   quaryData.viedoType = e.target.value;
-  pagination.value.current = 1;
+  pagination.value.current = 1; // 切换类型后，重置页码到第一页
   GetRecords();
 };
 </script>
+
 <style scoped>
 </style>

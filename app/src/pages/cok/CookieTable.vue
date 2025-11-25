@@ -148,6 +148,7 @@ function submit() {
           loading.value = false;
           if (res.code === 0) {
             showModal.value = false;
+            message.success('修改成功，同步任务将在5-10秒按新配置运行...');
             reset();
             GetRecords();
           }

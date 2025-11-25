@@ -190,7 +190,7 @@ const onSubmit = () => {
         .apiUpdateConfig(toRaw(formState))
         .then((res) => {
           if (res.code === 0) {
-            message.success('配置修改生效，同步任务将按照新的规则执行');
+            message.success('修改成功，同步任务将在5-10秒按新配置运行...');
             componentDisabled.value = true;
           } else {
             message.error(res.erro || '更新配置失败', 8);
@@ -198,7 +198,7 @@ const onSubmit = () => {
         })
         .catch((error) => {
           console.error('更新配置失败:', error);
-          message.error('更新配置失败，请稍后重试', 8);
+          message.error('修改失败，请稍后重试', 8);
         });
     })
     .catch((error) => {
