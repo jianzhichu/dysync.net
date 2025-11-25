@@ -13,7 +13,7 @@
           <a-radio-button value="1">喜欢的</a-radio-button>
           <a-radio-button value="2">收藏的</a-radio-button>
           <a-radio-button value="3">关注的</a-radio-button>
-          <a-radio-button value="4">图文视频</a-radio-button>
+          <a-radio-button value="4" v-if="showImageViedo">图文视频</a-radio-button>
         </a-radio-group>
       </a-form-item>
       <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
@@ -85,7 +85,7 @@ const columns = ref([
 const loading = ref(false);
 interface DataItem {}
 const datas: UnwrapRef<DataItem[]> = reactive([]);
-
+const showImageViedo = ref(false);
 interface QuaryParam {
   dates?: string[];
   pageIndex: number;
@@ -134,6 +134,21 @@ const pagination = ref({
   total: 0,
   showTotal: () => `共 ${0} 条`,
 });
+
+const getConfig = () => {
+  useApiStore()
+    .apiGetConfig()
+    .then((res) => {
+      if (res.code === 0) {
+        // 监听环境变量配置，控制是否显示图片视频下载选项
+        showImageViedo.value = res.data.downImageVideoFromEnv;
+      } else {
+      }
+    })
+    .catch((error) => {
+      console.error('获取配置失败:', error);
+    });
+};
 
 const handleTableChange = (e) => {
   console.log(e);

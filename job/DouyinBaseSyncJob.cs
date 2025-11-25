@@ -130,13 +130,12 @@ namespace dy.net.job
             var config = _commonService.GetConfig();
             if (config == null)
             {
-                Log.Debug($"{JobType}-请先在设置中初始化配置，再执行同步任务");
+                Log.Debug($"{JobType}-未获取到系统配置，任务终止!!!");
                 return;
             }
 
             //将配置项打印日志
-            Console.WriteLine("当前配置如下：");
-            config.PrintAsTable();
+            //config.PrintAsTable();
 
             // 2. 从配置中获取每页请求数量
             if (config.BatchCount > 0)
@@ -152,11 +151,11 @@ namespace dy.net.job
             var cookies = await GetValidCookies();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug($"{JobType}-无可用Cookie，任务终止");
+                Log.Debug($"{JobType}-无有效Cookie，任务终止!!!");
                 return;
             }
 
-            Log.Debug($"{JobType}-当前有{cookies.Count}个cookie开启了同步，即将开始同步");
+            Log.Debug($"{JobType}-共发现{cookies.Count}个Cookie，同步任务即将开始...");
 
             // 6. 遍历每个有效的Cookie，执行同步操作
             foreach (var cookie in cookies)
@@ -292,11 +291,11 @@ namespace dy.net.job
                 // 检查Cookie是否有效
                 if (!IsCookieValid(cookie))
                 {
-                    Log.Debug($"{JobType}-Cookie[{cookie.UserName}]无效，跳过");
+                    Log.Debug($"{JobType}-Cookie[{cookie.UserName}]无效，任务终止!!!");
                     return;
                 }
 
-                Log.Debug($"{JobType}-开始同步 Cookie-[{cookie.UserName}]");
+                Log.Debug($"{JobType}- Cookie-[{cookie.UserName}]开始同步...");
 
                 int syncCount = 0; // 本次同步成功的视频数量
                 string cursor = "0"; // 初始游标
@@ -309,7 +308,7 @@ namespace dy.net.job
                     var data = await FetchVideoData(cookie, cursor);
                     if (data == null)
                     {
-                        Log.Debug($"{JobType}-Cookie[{cookie.UserName}]获取数据失败");
+                        Log.Debug($"{JobType}-Cookie[{cookie.UserName}]读取数据失败!!!");
                         break;
                     }
 
@@ -336,7 +335,7 @@ namespace dy.net.job
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{JobType}-处理Cookie[{cookie.Id}]时出错");
+                Log.Error(ex, $"{JobType}-Cookie[{cookie.Id}]同步出错!!!");
             }
         }
 
@@ -361,7 +360,7 @@ namespace dy.net.job
                 // 如果配置了下载图片视频，则处理图片集并合成视频
                 if (_downImageVideo)
                 {
-                    if(config.DownImage||config.DownMp3||config.DownImage)
+                    if(config.DownImageVideo||config.DownMp3||config.DownImage)
                     {
                         var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config);
                         if (mergevideo != null)
@@ -406,18 +405,18 @@ namespace dy.net.job
             // 如果文件已存在，跳过
             if (File.Exists(savePath)) return null;
 
-            Log.Debug($"{JobType}-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]开始下载");
+            Log.Debug($"{JobType}-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]开始下载...");
             // 随机延迟，模拟人类操作
             await Task.Delay(_random.Next(1, 4) * 1000);
             // 下载视频
             if (!await _douyinService.DownloadAsync(videoUrl, savePath, cookie.Cookies))
             {
-                Log.Error($"{JobType}-{item?.Author?.Nickname??""}-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载失败");
+                Log.Error($"{JobType}-{item?.Author?.Nickname??""}-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载失败!!!");
                 return null;
             }
             else
             {
-                Log.Debug($"{JobType}-{item?.Author?.Nickname ?? ""}-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载完成");
+                Log.Debug($"{JobType}-{item?.Author?.Nickname ?? ""}-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]下载完成.");
             }
 
             // 下载视频封面
@@ -459,7 +458,7 @@ namespace dy.net.job
                 // 检查图片保存路径是否配置
                 if (string.IsNullOrWhiteSpace(cookie.ImgSavePath))
                 {
-                    Log.Error($"{JobType}-图片视频同步-没有配置图片存储路径");
+                    Log.Error($"{JobType}-图文视频同步-没有配置图片存储路径，任务终止!!!");
                     return null;
                 }
 
@@ -467,7 +466,7 @@ namespace dy.net.job
                 var imageService = _serviceProvider.GetService<ImageMergeToVideoService>();
                 if (imageService == null)
                 {
-                    Log.Error($"{JobType} -图片视频同步-无法实例化 ImageMergeToVideoService。");
+                    Log.Error($"{JobType} -图文视频同步异常，请联系作者!!!");
                     return null;
                 }
 
@@ -499,7 +498,7 @@ namespace dy.net.job
                 var mergeResult = await imageService.MergeToVideo(AppContext.BaseDirectory, reqParams, savePath, fileNamefolder,config.DownImageVideo,config.DownImage,config.DownMp3);
                 if (!mergeResult)
                 {
-                    Log.Error($"{JobType}-图片视频同步-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]合成失败");
+                    Log.Error($"{JobType}-图文视频-[{TikTokFileNameHelper.SanitizePath(item.Desc)}]合成失败!!!");
                     return null;
                 }
 
@@ -508,13 +507,13 @@ namespace dy.net.job
                     // 检查合成后的视频文件是否有效
                     if (!File.Exists(savePath) || new FileInfo(savePath).Length <= 0)
                     {
-                        Log.Error($"{JobType}-图片视频同步-视频[{TikTokFileNameHelper.SanitizePath(item.Desc)}]合成失败");
+                        Log.Error($"{JobType}-图文视频-[{TikTokFileNameHelper.SanitizePath(item.Desc)}]合成失败!!!");
                         // 清理无效的文件和文件夹
                         if (Directory.Exists(fileNamefolder))
                         {
                             File.Delete(savePath);
                             Directory.Delete(fileNamefolder, true);
-                            Log.Error($"{JobType}-图片视频同步-已删除合成失败的视频文件和目录");
+                            Log.Error($"{JobType}-图文视频-删除合成失败的视频文件和目录...");
                         }
                         return null;
                     }
@@ -720,6 +719,8 @@ namespace dy.net.job
         /// <returns>一个表示异步操作的任务</returns>
         private async Task CleanupFailedVideos(List<DouyinVideo> videos)
         {
+            Log.Debug($"{JobType}-数据库保存失败，开始清理本次下载的视频目录...");
+
             foreach (var video in videos)
             {
                 // 异步删除文件和文件夹，避免阻塞主线程
@@ -736,14 +737,15 @@ namespace dy.net.job
                         {
                             Directory.Delete(directory);
                         }
+                        Log.Debug($"{JobType}-清理失败视频文件成功: {video.VideoSavePath}!!!");
+
                     }
                     catch (Exception ex)
                     {
-                        Log.Warning(ex, $"{JobType}-清理失败视频文件时出错: {video.VideoSavePath}");
+                        Log.Warning(ex, $"{JobType}-清理失败视频文件出错: {video.VideoSavePath}!!!");
                     }
                 });
             }
-            Log.Debug($"{JobType}-因数据库保存失败，已清理本次下载的视频目录");
         }
 
         /// <summary>

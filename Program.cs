@@ -28,6 +28,8 @@ namespace dy.net
         private  static bool downImageVideo = false;
         public static void Main(string[] args)
         {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+
             // 初始化编码提供器
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             // 构建Web应用
@@ -60,8 +62,18 @@ namespace dy.net
             // 初始化应用服务
             InitApplicationServices(app);
 
-            // 启动应用
-            Log.Debug("dysync.net service started successfully");
+            Serilog.Log.Debug("dy.sync service is starting...");
+        
+            Log.Debug("默认设置-博主作品-同步全部-配置为关闭，（可到授权界面开启，不建议全量同步）");
+            Log.Debug("dy.sync service is started successfully");
+            Console.WriteLine("------------------------------------------------------------------------");
+            Console.WriteLine(@" __ \\ \   /  ___|\ \   /  \  |  ___| 
+ |   |\   / \___ \ \   /    \ | |     
+ |   |   |        |   |   |\  | |     
+____/   _|_)_____/   _|  _| \_|\____| 
+                                      
+");
+            Console.ResetColor();
             app.Run();
         }
 
@@ -96,7 +108,7 @@ namespace dy.net
 
             services.AddSingleton(new Appsettings (config));
             // 雪花ID生成器
-            services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 127));
+            services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 100));
 
             // MVC控制器
             services.AddControllers();
@@ -203,8 +215,6 @@ namespace dy.net
                 var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
                 quartzJobService.StartJob(config?.Cron ?? "30");
 
-                Serilog.Log.Debug("系统初始化，默认将-博主作品-同步全部-配置为关闭，可到授权页面中调整（不建议开启全量同步）");
-                Serilog.Log.Debug($"默认每次读取行数为:{config.BatchCount}，可前往系统配置修改");
             }
             catch (Exception ex)
             {
