@@ -105,7 +105,7 @@ docker run -d --restart=always \
   -v /opt/dysync/imgs:/app/images \
   -v /opt/dysync/uper:/app/uper \
   -p 10103:10101 \
-  --name dysync_arm_full \
+  --name dysync2025 \
   registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:latest
 # 注意：-p 后面的容器端口,可以用环境变量：ASPNETCORE_URLS = http://+:10108 指定
 ```
@@ -121,7 +121,7 @@ version: '3.8'
 services:
   dysync:
     image: registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:latest
-    container_name: dysync_arm_full  # 容器名称
+    container_name: dysync2025  # 容器名称
     restart: always  # 总是重启
     ports:
       - "10101:10101"  # 端口映射（主机端口:容器端口，容器端口固定为10101）
