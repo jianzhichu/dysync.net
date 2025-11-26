@@ -177,6 +177,7 @@ ____/   _|_)_____/   _|  _| \_|\____|
             // API路由映射
             app.MapControllers();
 
+            app.UseStaticFiles();
             // 生产环境启用SPA
             if (!environment.IsDevelopment())
             {

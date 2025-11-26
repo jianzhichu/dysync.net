@@ -112,6 +112,16 @@ namespace dy.net.service
             return await _dyCollectVideoRepository.GetUperLastViedoFileName(AuthorId, ViedoNameSimplify);
         }
 
+        /// <summary>
+        /// 根据ID获取视频信息
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<DouyinVideo> GetById(string id)
+        {
+            return await _dyCollectVideoRepository.GetByIdAsync(id);
+        }
+
     }
 
 

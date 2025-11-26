@@ -162,8 +162,16 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  // async function playViedo(id: string) {
+  //   return http.request<any, Response<any>>('/api/video/play/' + id, 'get').then(r => {
+  //     return r.data;
+  //   }).finally(() => {
+
+  //   });
+  // }
 
   return {
+    // playViedo,
     deleteCookie,
     UpdateConfig,
     apiCheckInitStatus,

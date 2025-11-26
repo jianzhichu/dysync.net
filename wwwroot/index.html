@@ -1,0 +1,106 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 视频播放器（对接非 wwwroot 视频）</title>
+    <style>
+        body {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .video-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        video {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .video-list {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #42b983;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background: #359469;
+            }
+
+        .error-message {
+            margin-top: 15px;
+            color: #dc3545;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video id="videoPlayer" controls preload="metadata" autoplay muted>
+            <source id="videoSource" type="video/mp4">
+            您的浏览器不支持 HTML5 视频播放，请升级浏览器。
+        </video>
+        <div id="errorMsg" class="error-message"></div>
+        <div class="video-list">
+            <button onclick="changeVideo()">播放视频 1</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. 后端 API 基础地址（与 Program.cs 中 app.Run() 一致）
+        const BASE_URL = 'http://localhost:5025';
+
+        // 2. 视频接口 URL（对应后端 VideoController 的 StreamVideo 方法）
+        const getVideoUrl = () => `${BASE_URL}/api/Video/play/1993346988078411776`;
+
+        // 3. DOM 元素
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoSource = document.getElementById('videoSource');
+        const errorMsg = document.getElementById('errorMsg');
+
+        // 4. 初始加载视频
+        window.onload = () => changeVideo();
+
+        // 5. 切换视频
+        function changeVideo() {
+            errorMsg.style.display = 'none';
+            const videoUrl = getVideoUrl();
+            videoSource.src = videoUrl;
+            videoPlayer.load(); // 重新加载视频
+        }
+
+        // 6. 错误处理（文件不存在、权限不足、跨域等）
+        videoPlayer.onerror = (e) => {
+            const errorMap = {
+                1: '视频加载中断',
+                2: '网络错误（跨域未配置或后端服务未启动）',
+                3: '视频解码失败（格式不支持）',
+                4: '视频格式不支持',
+                5: '视频文件不存在或后端权限不足'
+            };
+            const errorText = errorMap[e.target.error.code] || '未知错误';
+            errorMsg.textContent = `加载失败：${errorText}（文件：${videoSource.src.split('/').pop()}）`;
+            errorMsg.style.display = 'block';
+            console.error('错误详情：', e.target.error);
+        };
+    </script>
+</body>
+</html>

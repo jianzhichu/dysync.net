@@ -65,6 +65,7 @@
 
   <ItemGroup>
     <Folder Include="db\" />
+    <Folder Include="wwwroot\" />
 	  
   </ItemGroup>
 
