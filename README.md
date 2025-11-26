@@ -166,6 +166,8 @@ services:
 
 ![输入图片说明](docs/set.png)
 
+![输入图片说明](docs/player.png)
+
 
 ## 🚀 5. 已有功能与计划
 
@@ -188,5 +190,5 @@ services:
 
 9. ⭕️ <span style="color: #999;">重复视频去重（一个视频同时属于收藏视频、喜欢的视频或指定的博主作品）</span>
 
-10. ⭕️ <span style="color: #999;">在同步记录页面中直接播放视频</span>
+10.✅ <span style="color: #999;">在同步记录页面中直接播放视频</span>
 
