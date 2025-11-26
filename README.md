@@ -122,22 +122,23 @@ services:
   dysync:
     image: registry.cn-hangzhou.aliyuncs.com/jianzhichu/dysync.net:latest
     container_name: dysync2025  # 容器名称
-    restart: always  # 总是重启
+    restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
-      - "10101:10101"  # 端口映射（主机端口:容器端口，容器端口可以用环境变量类似：ASPNETCORE_URLS = http://+:10108 指定）
+      - "10101:10101" 
     volumes:
       # 基础路径映射
-      - /opt/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
-      - /opt/dysync/coll:/app/collect   # 个人收藏视频目录
-      - /opt/dysync/favorite:/app/favorite  # 个人喜欢视频目录
-      - /opt/dysync/imgs:/app/images    # 图文视频目录
-      - /opt/dysync/uper:/app/uper      # 指定博主视频目录
+      - /vol2/1000/media/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
+      - /vol2/1000/media/dysync/dy1/coll:/app/collect   # 个人收藏视频目录
+      - /vol2/1000/media/dysync/dy1/fav:/app/favorite  # 个人喜欢视频目录
+      - /vol2/1000/media/dysync/dy1/imgv:/app/images    # 图文视频目录
+      - /vol2/1000/media/dysync/dy1/up:/app/uper      # 指定博主视频目录
       
       # 多账号路径映射示例（可选，需在后台对应账号配置中指定存储路径）
-      # - /opt/dysync/account1/collect:/app/user1/collect
-      # - /opt/dysync/account1/favorite:/app/user1/favorite
-      # - /opt/dysync/account2/collect:/app/user2/collect
-      # - /opt/dysync/account2/favorite:/app/user2/favorite
+      - /vol2/1000/media/dysync/dy2/collect:/app/collect2 
+      - /vol2/1000/media/dysync/dy2/fav:/app/favorite2  
+      - /vol2/1000/media/dysync/dy2/imgv:/app/images2
+	  - /vol2/1000/media/dysync/dy2/up:/app/uper
+
     network_mode: bridge
     dns:
       - 8.8.8.8  # Google DNS（提升海外访问稳定性）
