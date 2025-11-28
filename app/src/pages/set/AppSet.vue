@@ -7,10 +7,10 @@
 
         <a-form-item has-feedback label="同步周期（分钟）" name="Cron" :wrapper-col="{ span: 6}" style="margin-left:30px">
           <!-- <a-input v-model:value="formState.Cron" placeholder="请输入数字" /> -->
-          <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="1" :max="120" />
+          <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="1" />
         </a-form-item>
         <a-form-item has-feedback label="每次同步（条数）" name="BatchCount" :wrapper-col="{ span:6}" style="margin-left:30px">
-          <a-input-number v-model:value="formState.BatchCount" placeholder="请输入查询条数" :min="1" :max="100" />
+          <a-input-number v-model:value="formState.BatchCount" placeholder="请输入查询条数(最大30)" :min="10" :max="30" />
         </a-form-item>
       </div>
 
@@ -81,7 +81,7 @@ const downImgVideo = ref(false);
 
 // 表单数据结构
 interface FormState {
-  Cron: string;
+  Cron: number;
   Id: string;
   BatchCount: number;
   DownImageVideoFromEnv: boolean;
@@ -95,7 +95,7 @@ interface FormState {
 
 // 表单初始数据
 const formState: UnwrapRef<FormState> = reactive({
-  Cron: '30',
+  Cron: 30,
   Id: '0',
   BatchCount: 10,
   LogKeepDay: 10,
