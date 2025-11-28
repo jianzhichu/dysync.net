@@ -366,7 +366,7 @@ const loadVideo = () => {
   hasError.value = false;
   isVideoLoading.value = true; // 开始加载，显示加载动画
 
-  // 拼接后端视频接口地址（对应 VideoController 的 StreamVideo 方法）
+  // 拼接后端视频接口地址
   videoUrl.value = `${import.meta.env.VITE_API_URL}api/Video/play/${videoId.value}`;
 
   // 重新加载视频（解决切换视频不刷新的问题）
