@@ -67,6 +67,9 @@ namespace dy.net.utils
             {
                 title = id;
             }
+
+
+            title = Regex.Replace(title, @"[^a-zA-Z0-9\u4e00-\u9fa5]", "-");
             // 步骤1：移除话题标签（#xxx 或 #xxx#yyy）
             //title = Regex.Replace(title, @"#\S+", "", RegexOptions.Compiled);
 
@@ -147,7 +150,7 @@ namespace dy.net.utils
                 // 步骤2：移除表情符号（匹配常见表情Unicode区块）
                 //string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
                 //path = Regex.Replace(path, emojiPattern, "", RegexOptions.Compiled);
-
+                path = Regex.Replace(path, @"[^a-zA-Z0-9\u4e00-\u9fa5]", "-");
 
                 foreach (var c in Path.GetInvalidFileNameChars())
                 {

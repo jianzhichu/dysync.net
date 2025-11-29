@@ -114,7 +114,7 @@
             <span>系统运行日志的保留天数，范围1-90天，过期自动清理</span>
           </div>
         </a-form-item>
-        <a-form-item has-feedback label="是否统一存储" name="AutoDistinct" :wrapper-col="{ span: 10 }">
+        <a-form-item has-feedback label="是否自动去重" name="AutoDistinct" :wrapper-col="{ span: 10 }">
           <a-switch v-model:checked="formState.AutoDistinct" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -132,7 +132,9 @@
           <a-button type="primary" @click="onUpdate" v-if="componentDisabled">
             <SaveOutlined />修改配置
           </a-button>
-          <a-button type="primary" danger @click="onSubmit" v-if="!componentDisabled">确认保存</a-button>
+          <a-button type="primary" danger @click="onSubmit" v-if="!componentDisabled">
+            <CheckOutlined />确认保存
+          </a-button>
           <a-button type="default" @click="onCancel" v-if="!componentDisabled">取消</a-button>
         </a-space>
       </a-form-item>

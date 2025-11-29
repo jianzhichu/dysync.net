@@ -129,7 +129,7 @@ namespace dy.net.model
         /// 作者发布视频日期
         /// </summary>
         [SugarColumn(IsIgnore = true)]
-        public string createTimeStr => SyncTime.ToString("yyyy-MM-dd HH:mm:ss");
+        public string createTimeStr => CreateTime.ToString("yyyy-MM-dd HH:mm:ss");
         [SugarColumn(IsIgnore = true)]
         public string SyncTimeStr => SyncTime.ToString("yyyy-MM-dd HH:mm:ss");
 

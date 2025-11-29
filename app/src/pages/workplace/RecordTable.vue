@@ -36,7 +36,10 @@
             </a-radio-group>
           </a-form-item>
 
-          <a-form-item class="form-item batch-operation-item">
+          <a-button type="primary" @click="GetRecords" class="query-button">
+            <SearchOutlined />查询
+          </a-button>
+          <a-form-item class="form-item batch-operation-item" style="margin-left:20px;">
             <a-switch v-model:checked="isBatchMode" checked-children="批量操作" un-checked-children="批量操作" class="batch-switch" />
           </a-form-item>
 
@@ -47,20 +50,16 @@
                 分享选中
               </a-button>
               <a-button type="danger" @click="handleBatchDelete" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
-                <DeleteOutlined />
-                删除选中
+                <SyncOutlined />
+                重新同步
               </a-button>
-
-              <a-button type="primary" @click="GetRecords" class="query-button">
-                <SearchOutlined />查询
-              </a-button>
-              <a-button type="danger" @click="StartNow" :disabled="isSyncing" class="sync-button">
+              <!-- <a-button type="danger" @click="StartNow" :disabled="isSyncing" class="sync-button">
                 <template #icon>
                   <a-spin v-if="isSyncing" size="small" />
                 </template>
                 <SyncOutlined />
                 立即同步
-              </a-button>
+              </a-button> -->
             </a-space>
           </a-form-item>
         </div>
@@ -113,7 +112,7 @@
         <template v-if="column.key === 'operation'">
           <a-space size="small">
             <a-button type="link" @click="handleReDownload(record)" :disabled="isSyncing">
-              <DownloadOutlined />
+              <SyncOutlined />
               重新同步
             </a-button>
             <a-button type="link" @click="handleShare(record)" :disabled="!record.id">
@@ -207,6 +206,12 @@ const columns = ref([
     width: 180,
   },
   {
+    title: '发布时间',
+    dataIndex: 'createTimeStr',
+    align: 'center',
+    width: 180,
+  },
+  {
     title: '同步类型',
     dataIndex: 'viedoTypeStr',
     align: 'center',
@@ -234,7 +239,7 @@ const columns = ref([
     title: 'CK名称',
     dataIndex: 'dyUser',
     align: 'center',
-    width: 200,
+    width: 120,
   },
   {
     title: '操作',
@@ -644,33 +649,61 @@ const handleBatchShare = () => {
   try {
     // console.log('执行分享操作，视频ID：', record.id, '视频标题：', record.videoTitle);
     // 生成分享链接
+    const currentDomain = window.location.origin;
     let shareUrl = '';
     matchedItems.forEach((record) => {
       let k = CryptoJS.MD5(record.fileHash + record.authorId).toString();
-      shareUrl += `${import.meta.env.VITE_API_URL}share/${record.id}/${k}
+      shareUrl += `${currentDomain}/share/${record.id}/${k}
       `;
     });
-
-    // 复制链接到剪贴板
-    navigator.clipboard
-      .writeText(shareUrl)
-      .then(() => {
-        message.success('分享链接已复制到剪贴板！');
-      })
-      .catch(() => {
-        // 降级方案：显示链接让用户手动复制
-        Modal.info({
-          title: '视频分享',
-          content: `
-          <p>分享链接：<a href="${shareUrl}" target="_blank" rel="noopener noreferrer">${shareUrl}</a></p>
-          <p style="margin-top: 8px;">复制链接后可分享给他人</p>
-        `,
-          okText: '已复制',
-        });
-      });
+    copyToClipboard(shareUrl);
   } catch (error) {
     console.error('分享失败：', error);
     message.error('分享功能异常，请稍后重试');
+  }
+};
+
+// 复制链接到剪贴板（兼容生产环境）
+const copyToClipboard = async (shareUrl) => {
+  try {
+    // 方案1：优先使用 navigator.clipboard（现代浏览器+HTTPS环境）
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(shareUrl);
+      message.success('分享链接已复制到剪贴板！');
+    } else {
+      // 方案2：降级使用 document.execCommand（兼容HTTP/旧浏览器）
+      const textarea = document.createElement('textarea');
+      // 隐藏文本域（避免影响页面布局）
+      textarea.style.position = 'absolute';
+      textarea.style.top = '-9999px';
+      textarea.style.left = '-9999px';
+      // 设置要复制的内容
+      textarea.value = shareUrl;
+      document.body.appendChild(textarea);
+      // 选中并复制
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea); // 清理DOM
+
+      if (success) {
+        message.success('分享链接已复制到剪贴板！');
+      } else {
+        // 方案3：最终降级 - 显示链接让用户手动复制
+        throw new Error('自动复制失败');
+      }
+    }
+  } catch (error) {
+    console.warn('复制失败，触发手动复制方案：', error);
+    // 最终降级：显示链接弹窗
+    Modal.info({
+      title: '视频分享',
+      content: `
+        <p>分享链接：<a href="${shareUrl}" target="_blank" rel="noopener noreferrer">${shareUrl}</a></p>
+        <p style="margin-top: 8px; color: #666;">请手动复制链接后分享给他人</p>
+      `,
+      okText: '已复制',
+      onOk: () => {},
+    });
   }
 };
 /** 分享事件 */
@@ -681,27 +714,12 @@ const handleShare = (record: DataItem) => {
   }
 
   try {
+    const currentDomain = window.location.origin;
     // console.log('执行分享操作，视频ID：', record.id, '视频标题：', record.videoTitle);
     // 生成分享链接
     let k = CryptoJS.MD5(record.fileHash + record.authorId).toString();
-    const shareUrl = `${import.meta.env.VITE_API_URL}share/${record.id}/${k}`;
-    // 复制链接到剪贴板
-    navigator.clipboard
-      .writeText(shareUrl)
-      .then(() => {
-        message.success('分享链接已复制到剪贴板！');
-      })
-      .catch(() => {
-        // 降级方案：显示链接让用户手动复制
-        Modal.info({
-          title: '视频分享',
-          content: `
-          <p>分享链接：<a href="${shareUrl}" target="_blank" rel="noopener noreferrer">${shareUrl}</a></p>
-          <p style="margin-top: 8px;">复制链接后可分享给他人</p>
-        `,
-          okText: '已复制',
-        });
-      });
+    const shareUrl = `${currentDomain}/share/${record.id}/${k}`;
+    copyToClipboard(shareUrl);
   } catch (error) {
     console.error('分享失败：', error);
     message.error('分享功能异常，请稍后重试');
@@ -759,7 +777,8 @@ onMounted(() => {
 
 /* 新增：批量操作开关样式 */
 .batch-operation-item {
-  margin-right: 16px !important;
+  margin-left: 20 !important;
+  /* margin-right: 16px !important; */
 }
 
 .batch-switch {
@@ -826,7 +845,7 @@ onMounted(() => {
     align-items: flex-start !important;
   }
   .batch-operation-item {
-    margin-left: 0 !important;
+    margin-left: 20 !important;
     margin-top: 8px !important;
   }
   .button-group-item {
