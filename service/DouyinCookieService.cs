@@ -37,17 +37,17 @@ namespace dy.net.service
             var cookie = new DouyinCookie
             {
                 UserName = "douyin",
-                Cookies = "--",
+                Cookies = "-",
+                SecUserId = "-",
                 Id = initId,
-                SavePath = "/app/collect",
                 Status = 0,
-                SecUserId = "--",
+                SavePath = "/app/collect",
                 FavSavePath = "/app/favorite",
                 UpSavePath = "/app/uper",
+                ImgSavePath="/app/images",
                 CollHasSyncd = 0,
                 FavHasSyncd = 0,
                 UperSyncd = 0,
-                ImgSavePath="/app/images",
             };
             return  _cookieRepository.Insert(cookie);
         }

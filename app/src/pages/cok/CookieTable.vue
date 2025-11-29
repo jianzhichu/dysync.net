@@ -308,7 +308,7 @@ const getConfig = () => {
       <a-form-item label="Cookie值" name="cookies">
         <a-textarea v-model:value="form.cookies" :rows='rowCount' />
       </a-form-item>
-      <a-form-item label="喜欢视频存储路径" name="favSavePath">
+      <a-form-item label="喜欢的存储路径" name="favSavePath">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.favSavePath" style="flex: 1;" />
           <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
@@ -324,7 +324,7 @@ const getConfig = () => {
           </a-tooltip>
         </div>
       </a-form-item>
-      <a-form-item label="博主视频存储路径" name="upSavePath">
+      <a-form-item label="关注的存储路径" name="upSavePath">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.upSavePath" style="flex: 1;" />
           <a-tooltip title="同步指定博主视频时必填！！！">
@@ -333,9 +333,8 @@ const getConfig = () => {
         </div>
       </a-form-item>
 
-      <a-form-item label="博主配置" name="upSecUserIdsJson">
-        <a-form-item-rest> <!-- 用这个包裹所有辅助元素 -->
-          <!-- 添加行按钮 -->
+      <!-- <a-form-item label="博主配置" name="upSecUserIdsJson">
+        <a-form-item-rest> 
           <a-button type="primary" @click="addRow" style="margin-bottom: 12px">
             添加
             <template #icon>
@@ -343,15 +342,11 @@ const getConfig = () => {
             </template>
           </a-button>
 
-          <!-- 动态渲染所有行 -->
           <div v-for="(row, index) in form.upSecUserIdsJson" :key="index" style="display: flex; gap: 12px; margin-bottom: 8px; align-items: center">
-            <!-- uper输入框 -->
             <a-input v-model:value="row.uper" placeholder="博主别名，可自定义" style="flex: 1" />
 
-            <!-- uid输入框 -->
             <a-input v-model:value="row.uid" placeholder="博主secUserId" style="flex: 3" />
 
-            <!-- syncAll 开关字段 -->
             <div style="flex: 1; display: flex; align-items: center;">
               <a-tooltip title="默认关闭，仅同步 UP 主最新一页数据；开启将同步全部作品（量大不建议开启）">
                 <span style="margin-right: 8px; cursor: default;color:#faad14">同步全部作品</span>
@@ -359,7 +354,6 @@ const getConfig = () => {
               <a-switch v-model:checked="row.syncAll" />
             </div>
 
-            <!-- 删除当前行按钮 -->
             <a-button type="text" danger @click="removeRow(index)">
               <template #icon>
                 <DeleteOutlined />
@@ -367,8 +361,8 @@ const getConfig = () => {
             </a-button>
           </div>
         </a-form-item-rest>
-      </a-form-item>
-      <a-form-item label="图文视频路径" name="imgSavePath" v-if="downImgVideo">
+      </a-form-item> -->
+      <a-form-item label="图文的存储路径" name="imgSavePath" v-if="downImgVideo">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.imgSavePath" style="flex: 1;" />
           <a-tooltip title="同步图文视频必填！！！">
