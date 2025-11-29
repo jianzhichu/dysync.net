@@ -42,6 +42,8 @@ namespace dy.net.service
             // 按顺序启动任务，避免并发
             var jobTasks = new List<Task<bool>>
             {
+                   //关注列表
+                StartJobAsync("follow_user", expression),
                 //我收藏的作品
                 StartJobAsync("collect", expression),
                 //我喜欢的作品

@@ -129,7 +129,9 @@
       <!-- 操作按钮 -->
       <a-form-item :wrapper-col="{ span: 12, offset: 5 }" class="form-actions">
         <a-space size="middle">
-          <a-button type="primary" @click="onUpdate" v-if="componentDisabled">修改配置</a-button>
+          <a-button type="primary" @click="onUpdate" v-if="componentDisabled">
+            <SaveOutlined />修改配置
+          </a-button>
           <a-button type="primary" danger @click="onSubmit" v-if="!componentDisabled">确认保存</a-button>
           <a-button type="default" @click="onCancel" v-if="!componentDisabled">取消</a-button>
         </a-space>
