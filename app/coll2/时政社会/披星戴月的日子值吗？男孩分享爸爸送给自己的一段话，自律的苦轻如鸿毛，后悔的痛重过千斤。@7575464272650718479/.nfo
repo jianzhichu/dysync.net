@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<movie>
+  <title>披星戴月的日子值吗？男孩分享爸爸送给自己的一段话，自律的苦轻如鸿毛，后悔的痛重过千斤。</title>
+  <author>新华社</author>
+  <releasedate>2025-11-22</releasedate>
+  <genre>时政社会</genre>
+  <genre>社会新闻</genre>
+  <genre>民生</genre>
+  <actors>
+    <actor>
+      <name>新华社</name>
+      <role>主演</role>
+      <thumb>app/coll2\author\93288642596.jpg</thumb>
+    </actor>
+  </actors>
+  <thumb aspect="poster">poster.jpg</thumb>
+  <fanart>
+    <thumb>poster.jpg</thumb>
+  </fanart>
+</movie>

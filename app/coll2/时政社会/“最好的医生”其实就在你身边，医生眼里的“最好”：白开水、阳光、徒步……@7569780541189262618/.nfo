@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<movie>
+  <title>“最好的医生”其实就在你身边，医生眼里的“最好”：白开水、阳光、徒步……</title>
+  <author>新华社</author>
+  <releasedate>2025-11-07</releasedate>
+  <genre>时政社会</genre>
+  <genre>社会新闻</genre>
+  <genre>民生</genre>
+  <actors>
+    <actor>
+      <name>新华社</name>
+      <role>主演</role>
+      <thumb>app/coll2\author\93288642596.jpg</thumb>
+    </actor>
+  </actors>
+  <thumb aspect="poster">poster.jpg</thumb>
+  <fanart>
+    <thumb>poster.jpg</thumb>
+  </fanart>
+</movie>

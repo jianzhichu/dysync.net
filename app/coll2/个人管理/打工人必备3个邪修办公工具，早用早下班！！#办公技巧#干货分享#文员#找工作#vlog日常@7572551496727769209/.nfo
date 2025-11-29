@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<movie>
+  <title>打工人必备3个邪修办公工具，早用早下班！！#办公技巧 #干货分享 #文员 #找工作 #vlog日常</title>
+  <author>丸子不是圆子</author>
+  <releasedate>2025-11-14</releasedate>
+  <genre>个人管理</genre>
+  <genre>职场技能</genre>
+  <genre>办公效率</genre>
+  <actors>
+    <actor>
+      <name>丸子不是圆子</name>
+      <role>主演</role>
+      <thumb>app/coll2\author\3833318009221843.jpg</thumb>
+    </actor>
+  </actors>
+  <thumb aspect="poster">poster.jpg</thumb>
+  <fanart>
+    <thumb>poster.jpg</thumb>
+  </fanart>
+</movie>

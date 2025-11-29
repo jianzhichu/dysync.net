@@ -180,6 +180,10 @@ namespace dy.net.extension
                 client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
             });
 
+            services.AddHttpClient("dy_follow", client =>
+            {
+                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
+            });
 
             services.AddHttpClient("dy_favorite", client =>
             {
@@ -201,6 +205,10 @@ namespace dy.net.extension
                     // 连接超时（建立连接的超时时间）
                     ConnectTimeout = TimeSpan.FromSeconds(60)
                 })
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+                })
                 // 配置客户端默认请求头
                 .ConfigureHttpClient(client =>
                 {
@@ -208,26 +216,6 @@ namespace dy.net.extension
                     client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
                     client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
                 }); 
-            //services.AddHttpClient("dy_down_fav")
-            //  .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-            //  {
-            //      // 控制并发连接数（根据服务器承受能力调整，建议5-20）
-            //      MaxConnectionsPerServer = 5,
-            //      // 禁用代理自动检测（减少不必要的延迟）
-            //      UseProxy = false,
-            //      // 连接超时（建立连接的超时时间）
-            //      ConnectTimeout = TimeSpan.FromSeconds(60)
-            //  });
-            //services.AddHttpClient("dy_down_uper")
-            //  .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-            //  {
-            //      // 控制并发连接数（根据服务器承受能力调整，建议5-20）
-            //      MaxConnectionsPerServer = 5,
-            //      // 禁用代理自动检测（减少不必要的延迟）
-            //      UseProxy = false,
-            //      // 连接超时（建立连接的超时时间）
-            //      ConnectTimeout = TimeSpan.FromSeconds(60)
-            //  });
         }
 
         /// <summary>

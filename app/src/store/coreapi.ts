@@ -146,6 +146,14 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  async function CookieList() {
+    return http.request<any, Response<any>>('/api/config/list', 'get').then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
+
 
   async function UpdateConfig(param: object) {
     return http.request<any, Response<any>>('/api/config/update', 'post_json', param).then(r => {
@@ -162,16 +170,47 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
-  // async function playViedo(id: string) {
-  //   return http.request<any, Response<any>>('/api/video/play/' + id, 'get').then(r => {
-  //     return r.data;
-  //   }).finally(() => {
+  //follows
+  async function FollowList(param: object) {
+    return http.request<any, Response<any>>('/api/follow/paged', 'post_json', param).then(r => {
+      return r.data;
+    }).finally(() => {
 
-  //   });
-  // }
+    });
+  }
+  //同步关注列表
+  async function SyncFollow() {
+    return http.request<any, Response<any>>('/api/follow/sync', 'get').then(r => {
+      return r.data;
+    }).finally(() => {
 
+    });
+  }
+  //更新同步关注者状态
+  async function OpenOrCloseSync(param: object) {
+    return http.request<any, Response<any>>('/api/follow/openOrCloseSync', 'post_json', param).then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
+  //更新同步关注者状态
+  async function OpenOrCloseFullSync(param: object) {
+    return http.request<any, Response<any>>('/api/follow/openOrCloseFullSync', 'post_json', param).then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
+  //重新下载
+  async function ReDownViedos(param: object) {
+    return http.request<any, Response<any>>('/api/video/redown', 'post_json', param).then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
   return {
-    // playViedo,
     deleteCookie,
     UpdateConfig,
     apiCheckInitStatus,
@@ -184,6 +223,12 @@ export const useApiStore = defineStore('coreapi', () => {
     StartJobNow,
     VideoStatics,
     VideoPageList,
-    CookiePageList
+    CookiePageList,
+    CookieList,
+    FollowList,
+    SyncFollow,
+    OpenOrCloseSync,
+    OpenOrCloseFullSync,
+    ReDownViedos
   };
 });

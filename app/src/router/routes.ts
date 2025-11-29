@@ -108,6 +108,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/workplace/Workplace.vue'),
   },
   {
+    path: '/follow',
+    name: '关注列表',
+    meta: {
+      icon: 'HeartOutlined',
+      view: 'self',
+      target: '_self',
+      renderMenu: true,
+      cacheable: false,
+    },
+    component: () => import('@/pages/followd/index.vue'),
+  },
+  {
     path: '/cok',
     name: '抖音授权',
     meta: {
@@ -119,6 +131,7 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@/pages/cok/Table.vue'),
   },
+
   {
     path: '/set',
     name: '系统配置',

@@ -205,7 +205,7 @@ namespace dy.net.utils
             return Sm3ToArray(Sm3ToArray(method + _endString));
         }
 
-        // ... 其他成员和初始化代码 ...
+       
 
         public int[] Sm3ToArray(string data)
         {

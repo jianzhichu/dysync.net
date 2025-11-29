@@ -8,20 +8,20 @@ namespace dy.net.service
     public class DouyinCookieService
     {
 
-        private readonly DouyinUserCookieRepository _cookieRepository;
+        private readonly DouyinCookieRepository _cookieRepository;
 
-        public DouyinCookieService(DouyinUserCookieRepository cookieRepository)
+        public DouyinCookieService(DouyinCookieRepository cookieRepository)
         {
             _cookieRepository = cookieRepository;
         }
 
-        public Task<List<DouyinUserCookie>> GetAllCookies()
+        public Task<List<DouyinCookie>> GetAllOpendAsync(Expression<Func<DouyinCookie, bool>> whereExpression = null)
         {
-            return _cookieRepository.GetAllCookies();
+            return _cookieRepository.GetAllCookies(whereExpression);
         }
 
 
-        public async Task<bool> Add(DouyinUserCookie dyUserCookies)
+        public async Task<bool> Add(DouyinCookie dyUserCookies)
         {
             return await _cookieRepository.InsertAsync(dyUserCookies);
         }
@@ -34,7 +34,7 @@ namespace dy.net.service
             {
                 return false;
             }
-            var cookie = new DouyinUserCookie
+            var cookie = new DouyinCookie
             {
                 UserName = "douyin",
                 Cookies = "--",
@@ -53,19 +53,19 @@ namespace dy.net.service
         }
       
         // 查询单个
-        public async Task<DouyinUserCookie> GetByIdAsync(string id)
+        public async Task<DouyinCookie> GetByIdAsync(string id)
         {
             return await _cookieRepository.GetByIdAsync(id);
         }
 
         // 查询列表（可加条件）
-        public async Task<(List<DouyinUserCookie> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize)
+        public async Task<(List<DouyinCookie> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize)
         {
             return await _cookieRepository.GetPagedAsync(pageIndex, pageSize);
         }
 
         // 更新
-        public async Task<bool> UpdateAsync(DouyinUserCookie dyUserCookies)
+        public async Task<bool> UpdateAsync(DouyinCookie dyUserCookies)
         {
             return await _cookieRepository.UpdateAsync(dyUserCookies);
         }

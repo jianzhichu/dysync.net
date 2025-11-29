@@ -6,47 +6,45 @@ using System;
 
 namespace dy.net.job
 {
-    public class DouyinCollectSyncJob : DouyinBaseSyncJob
+    public class DouyinCollectSyncJob : DouyinBasicSyncJob
     {
         public DouyinCollectSyncJob(
-            DouyinCookieService dyCookieService,
-            DouyinHttpClientService dyHttpClientService,
-            DouyinVideoService dyCollectVideoService,
-            DouyinCommonService commonService,IServiceProvider serviceProvider,IWebHostEnvironment webHostEnvironment)
-            : base(dyCookieService, dyHttpClientService, dyCollectVideoService, commonService, serviceProvider,webHostEnvironment) { }
+            DouyinCookieService douyinCookieService,
+            DouyinHttpClientService douyinHttpClientService,
+            DouyinVideoService douyinVideoService,
+            DouyinCommonService douyinCommonService,DouyinFollowService douyinFollowService,DouyinMergeVideoService douyinMergeVideoService)
+            : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService,douyinFollowService, douyinMergeVideoService) { }
 
-        protected override string JobType => "collect";
+        protected override string JobType => SystemStaticUtil.DY_COLLECTS;
 
         protected override async Task BeforeProcessCookies()
         {
             var now = DateTime.Now;
             if (now.Hour == 1 && now.Minute < 30)
             {
-                 _commonService.UpdateAllCookieSyncedToZero();
+                 douyinCommonService.UpdateAllCookieSyncedToZero();
                 //顺手清理下日志文件
                 LogFileCleaner.CleanOldLogFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"), 1);
                 await Task.Delay(200); 
             }
         }
 
-        protected override async Task<List<DouyinUserCookie>> GetValidCookies()
+        protected override async Task<List<DouyinCookie>> GetValidCookies()
         {
-            var cookies = await _dyCookieService.GetAllCookies();
-            return cookies.Where(c => !string.IsNullOrWhiteSpace(c.SavePath)).ToList();
+            return await douyinCookieService.GetAllOpendAsync(x => !string.IsNullOrWhiteSpace(x.SavePath));
         }
 
-        protected override bool IsCookieValid(DouyinUserCookie cookie)
+        protected override bool IsCookieValid(DouyinCookie cookie)
         {
-            return !string.IsNullOrWhiteSpace(cookie.Cookies) && cookie.Cookies.Length >= 1000 &&
-                   !string.IsNullOrWhiteSpace(cookie.SavePath);
+            return !string.IsNullOrWhiteSpace(cookie.Cookies)&& !string.IsNullOrWhiteSpace(cookie.SavePath);
         }
 
-        protected override async Task<DouyinVideoInfo> FetchVideoData(DouyinUserCookie cookie, string cursor)
+        protected override async Task<DouyinVideoInfo> FetchVideoData(DouyinCookie cookie, string cursor,string uperUid)
         {
-            return await _douyinService.SyncCollectVideos(cursor, count, cookie.Cookies);
+            return await douyinHttpClientService.SyncCollectVideos(cursor, count, cookie.Cookies);
         }
 
-        protected override bool ShouldContinueSync(DouyinUserCookie cookie, DouyinVideoInfo data)
+        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfo data, DouyinFollowed followed = null)
         {
             return data != null && data.HasMore == 1 && cookie.CollHasSyncd == 0;
         }
@@ -56,32 +54,18 @@ namespace dy.net.job
             return data?.Cursor ?? "0";
         }
 
-        protected override string CreateSaveFolder(DouyinUserCookie cookie, Aweme item, string tag1, string tag2, AppConfig config)
-        {
-            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : TikTokFileNameHelper.SanitizePath(tag1);
-            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{TikTokFileNameHelper.SanitizePath(item.Desc)}@{item.AwemeId}");
-            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-            return folder;
-        }
-
-        protected override string GetVideoFileName(DouyinUserCookie cookie, Aweme item)
-        {
-            var bitRate=item.Video.BitRate.FirstOrDefault();
-            return $"{item.AwemeId}.{bitRate.Format}";
-        }
-
-        protected override string GetAuthorAvatarBasePath(DouyinUserCookie cookie)
+        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
         {
             return Path.Combine(cookie.SavePath, "author");
         }
 
-        protected override async Task HandleSyncCompletion(DouyinUserCookie cookie, int syncCount)
+        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount)
         {
             if (syncCount > 0)
             {
                 Serilog.Log.Debug($"{JobType}-Cookie-[{cookie.UserName}],本次同步成功{syncCount}条视频");
                 cookie.CollHasSyncd = 1;
-                await _dyCookieService.UpdateAsync(cookie);
+                await douyinCookieService.UpdateAsync(cookie);
             }
             else
             {
@@ -90,12 +74,21 @@ namespace dy.net.job
         }
 
 
-        protected override VideoEntityDifferences GetVideoEntityDifferences(DouyinUserCookie cookie, Aweme item)
+        protected override VideoEntityDifferences GetVideoEntityDifferences(DouyinCookie cookie, Aweme item)
         {
             return new VideoEntityDifferences
             {
                 VideoType = VideoTypeEnum.Collect,
             };
+        }
+
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
+        {
+            var (tag1, _, _) = GetVideoTags(item);
+            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizePath(tag1);
+            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizePath(item.Desc)}@{item.AwemeId}");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            return folder;
         }
     }
 }

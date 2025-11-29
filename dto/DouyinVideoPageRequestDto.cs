@@ -4,15 +4,19 @@ namespace dy.net.dto
 {
     public class DouyinVideoPageRequestDto : PageRequestDto
     {
-        // 3. 引用类型（string）如果允许为null，显式声明为 string?
-        public string? Tag { get; set; }
+        /// <summary>
+        /// 标题查询。
+        /// </summary>
+        public string? Title { get; set; }
 
         public string? Author { get; set; }
+        //public string? Name { get; set; }
 
         public string? ViedoType { get; set; }
 
-        // 4. 泛型集合（List<string>）允许为null，声明为 List<string>?
         public List<string>? Dates { get; set; }
+        public List<string>? Dates2 { get; set; }
+
     }
 
 
@@ -22,5 +26,26 @@ namespace dy.net.dto
         public int PageIndex { get; set; }
 
         public int PageSize { get; set; } = 10;
+    }
+
+
+    public class FollowRequestDto: PageRequestDto
+    {
+        public string FollowUserName { get; set; }
+
+        public string MySelfId { get; set; }
+    }
+
+    public class FollowUpdateDto
+    {
+
+        public string Id { get; set; }
+
+        public bool OpenSync { get; set; }
+
+        public bool FullSync { get; set; }
+
+        public string SavePath { get; set; }
+
     }
 }

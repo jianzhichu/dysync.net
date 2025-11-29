@@ -98,6 +98,21 @@ namespace dy.net.repository
         {
             return Db.Deleteable<T>().In(id).ExecuteCommand() > 0;
         }
+        /// <summary>
+        /// 事务执行
+        /// </summary>
+        /// <param name="action"></param>
+        /// <param name="errorCallBack"></param>
+        /// <returns></returns>
+        public async Task<bool> UseTranAsync(Func<Task> action, Action<Exception> errorCallBack)
+        {
+            var res = Db.Ado.UseTranAsync(async () =>
+              {
+                  await action();
+              }, errorCallBack: errorCallBack);
+
+            return res.IsCompletedSuccessfully;
+        }
 
         /// <summary>
         /// 根据主键删除（异步）

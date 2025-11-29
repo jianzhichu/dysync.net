@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dy.net", "dy.net.csproj", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dy.expand", "dy.expand", "{1503FF41-A045-48DF-B92C-DB81BAAAFE5B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dy.image", "expand\dy.image\dy.image.csproj", "{38404DA7-A852-4960-9E95-8F70459AEB60}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,16 +17,9 @@ Global
 		{680660EF-ACAE-43A9-AB6C-B75532E758AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{680660EF-ACAE-43A9-AB6C-B75532E758AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{680660EF-ACAE-43A9-AB6C-B75532E758AD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{38404DA7-A852-4960-9E95-8F70459AEB60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{38404DA7-A852-4960-9E95-8F70459AEB60}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{38404DA7-A852-4960-9E95-8F70459AEB60}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{38404DA7-A852-4960-9E95-8F70459AEB60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{38404DA7-A852-4960-9E95-8F70459AEB60} = {1503FF41-A045-48DF-B92C-DB81BAAAFE5B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8238199F-0C28-42F2-ACFD-E8CBCCB2AB80}

@@ -44,7 +44,7 @@
                     {
                         if(downImage)
                         {
-                            for (int i = 0; i < rawImages.Count(); i++)
+                            for (int i = 0; i < rawImages.Length; i++)
                             {
                                 string sourcePath = rawImages[i];
                                 // 重命名为有规律的文件名，如 temp_001.jpg, temp_002.png
@@ -66,7 +66,7 @@
                     {
                         if(downMp3)
                         {
-                            for (int i = 0; i < rawAudios.Count(); i++)
+                            for (int i = 0; i < rawAudios.Length; i++)
                             {
                                 string sourcePath = rawAudios[i];
                                 // 重命名为有规律的文件名，如 temp_001.mp3, temp_002.mp3

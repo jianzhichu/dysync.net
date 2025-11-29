@@ -1,12 +1,11 @@
 <script lang="ts" setup>
 import { getBase64 } from '@/utils/file';
 import { FormInstance } from 'ant-design-vue';
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, UnwrapRef } from 'vue';
 import dayjs from 'dayjs';
 import { Dayjs } from 'dayjs';
 import { EditFilled } from '@ant-design/icons-vue';
 import { useApiStore } from '@/store';
-import type { UnwrapRef } from 'vue';
 import { message } from 'ant-design-vue';
 
 import { StarOutlined, StarFilled, StarTwoTone } from '@ant-design/icons-vue';

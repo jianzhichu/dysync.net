@@ -13,4 +13,15 @@ namespace dy.net.dto
         [Description("图片视频")]
         ImageVideo = 4
     }
+
+
+    public enum QuartzJobTypeEnum
+    {
+        [Description("[Favorite]")]
+        Favorite = 1,
+        [Description("[Collect]")]
+        Collect = 2,
+        [Description("[Followed]")]
+        Followed = 3
+    }
 }

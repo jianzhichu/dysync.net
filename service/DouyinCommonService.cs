@@ -48,14 +48,18 @@ namespace dy.net.service
                 AppConfig config = new AppConfig
                 {
                     Id = IdGener.GetLong().ToString(),
-                    Cron = "30",
-                    BatchCount = 10,
+                    Cron = 30,
+                    BatchCount = 18,
                     LogKeepDay = 10,
                     UperSaveTogether = false,//博主视频：true-->每个视频单独一个文件夹 false-->所有视频放在同一个文件夹
                     UperUseViedoTitle = false,//博主视频：true-->使用视频标题作为文件名 false-->使用视频id作为文件名
                     DownImageVideo = downLoadImage,
                     DownMp3 = false,
-                    DownImage = false
+                    DownImage = false,
+                    ImageViedoSaveAlone = true,
+                    FollowedTitleTemplate ="",
+                    FullFollowedTitleTemplate="",
+                    FollowedTitleSeparator=""
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;
@@ -81,11 +85,16 @@ namespace dy.net.service
                 cc.UperSaveTogether = config.UperSaveTogether;
                 cc.UperUseViedoTitle = config.UperUseViedoTitle;
                 cc.LogKeepDay = config.LogKeepDay;
-                cc.DownMp3= config.DownMp3;
-                cc.DownImage= config.DownImage;
+                cc.DownMp3 = config.DownMp3;
+                cc.DownImage = config.DownImage;
+                cc.FollowedTitleTemplate = config.FollowedTitleTemplate;
+                cc.FullFollowedTitleTemplate= config.FullFollowedTitleTemplate;
+                cc.ImageViedoSaveAlone = config.ImageViedoSaveAlone;
+                cc.FollowedTitleSeparator = config.FollowedTitleSeparator;
+                cc.AutoDistinct = config.AutoDistinct;
             }
 
-            var update = await sqlSugarClient.Updateable<AppConfig>(cc).ExecuteCommandAsync();
+            int update = await sqlSugarClient.Updateable(cc).ExecuteCommandAsync();
 
             return update > 0;
         }
@@ -96,7 +105,7 @@ namespace dy.net.service
         public void UpdateCollectViedoType()
         {
 
-            string sql= @"UPDATE dy_collect_video 
+            string sql = @"UPDATE dy_collect_video 
                         SET ViedoType = CASE 
                         WHEN ViedoType = '0' THEN 0 
                         WHEN ViedoType = '1' THEN 1  
@@ -124,33 +133,30 @@ namespace dy.net.service
         /// <returns></returns>
         public bool UpdateAllCookieSyncedToZero()
         {
-            //var sql = "update dy_cookie set CollHasSyncd=0,FavHasSyncd=0,UperSyncd=0";
-            // sqlSugarClient.Ado.ExecuteCommand(sql) > 0;
-            var cookies = sqlSugarClient.Queryable<DouyinUserCookie>().ToList();
 
+            var cookies = sqlSugarClient.Queryable<DouyinCookie>().ToList();
             foreach (var cookie in cookies)
             {
                 cookie.CollHasSyncd = 0;
                 cookie.FavHasSyncd = 0;
                 cookie.UperSyncd = 0;
-                var upers = cookie.UpSecUserIds;
-                if (!string.IsNullOrWhiteSpace(upers))
-                {
-                    var uperList = Newtonsoft.Json.JsonConvert.DeserializeObject<List<DouyinUpSecUserIdDto>>(upers);
-                    if (uperList != null && uperList.Count > 0)
-                    {
-                        foreach (var uper in uperList)
-                        {
-                            uper.syncAll = false;
-                        }
-                    }
-                    var newUpers = Newtonsoft.Json.JsonConvert.SerializeObject(uperList);
-                    cookie.UpSecUserIds = newUpers;
-                }
             }
             return sqlSugarClient.Updateable(cookies).ExecuteCommand() > 0;
         }
 
+        /// <summary>
+        /// 查询需要下载的所有重下载视频记录
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<ViedoReDown>> GetAllRedown()
+        {
+            return await sqlSugarClient.Queryable<ViedoReDown>().Where(x => x.Status == 0 || x.Status == 2).ToListAsync();
+        }
+
+        public async Task<bool> UpdateRedownStatus(List<ViedoReDown> list)
+        {
+            return await sqlSugarClient.Updateable(list).ExecuteCommandAsync() > 0;
+        }
         #region 测试创建数据库
 
         ///// <summary>

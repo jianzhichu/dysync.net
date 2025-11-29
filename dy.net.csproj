@@ -74,10 +74,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="expand\dy.image\dy.image.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="db\dy.sqlite">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -93,7 +89,7 @@
     <None Update="Dockerfile-dev">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Dockerfile-img">
+    <None Update="Dockerfile">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

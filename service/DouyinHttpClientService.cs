@@ -1,9 +1,12 @@
 ﻿using dy.net.dto;
 using dy.net.utils;
+using NetTaste;
 using Newtonsoft.Json;
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection.PortableExecutable;
 
 namespace dy.net.service
 {
@@ -195,10 +198,10 @@ namespace dy.net.service
                 // 构建请求URL
                 var queryString = new FormUrlEncodedContent(parameters);
                 string fullUrl = $"{DouYinApi}/post?{await queryString.ReadAsStringAsync()}";
-                var ablog = new ABogus();//计算X-Bogus
-                var a_bogus = ablog.GetValue(parameters);
+                //var ablog = new ABogus();//计算X-Bogus
+                //var a_bogus = ablog.GetValue(parameters);
 
-                fullUrl += $"&X-Bogus={a_bogus}";
+                //fullUrl += $"&X-Bogus={a_bogus}";
                 var respose = await httpClient.GetAsync(fullUrl);
                 if (respose.IsSuccessStatusCode)
                 {
@@ -218,6 +221,61 @@ namespace dy.net.service
             }
         }
 
+
+        /// <summary>
+        /// 查询我的关注用户列表
+        /// </summary>
+        /// <param name="count"></param>
+        /// <param name="offset"></param>
+        /// <param name="secUserId"></param>
+        /// <param name="cookie"></param>
+        /// <returns></returns>
+        public async Task<DouyinFollowInfo> SyncMyFollows(string count,string offset,string secUserId,string cookie)
+        {
+
+            try
+            {
+                using var httpClient = _clientFactory.CreateClient("dy_follow");
+                if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
+                {
+                    httpClient.DefaultRequestHeaders.Remove("Cookie");
+                }
+                httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
+                var dics = DouyinBaseParamDics.MyFollowParams;
+                {
+                    // 添加动态参数
+                    dics["sec_user_id"] = secUserId;
+                    dics["count"] = count;
+                    dics["offset"] = offset;
+                }
+                // 构建请求URL
+                var queryString = new FormUrlEncodedContent(dics);
+                string fullUrl = $"https://www.douyin.com/aweme/v1/web/user/following/list/?{await queryString.ReadAsStringAsync()}";
+                var respose = await httpClient.GetAsync(fullUrl);
+                if (respose.IsSuccessStatusCode)
+                {
+                    var data = await respose.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<DouyinFollowInfo>(data);
+                }
+                else
+                {
+                    Serilog.Log.Error($"SyncMyFollows fail: {respose.StatusCode}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"SyncMyFollows error: {ex.Message}");
+                return null;
+            }
+        }
+
+
+        public async Task<bool> SyncReDown(string awemeId,string cookie)
+        {
+            return false;
+            //有空再研究把.a_bogus算法有问题
+        }
 
         //AI优化2
         /// <summary>
@@ -370,6 +428,28 @@ namespace dy.net.service
             return true;
         }
 
+
+        ///// <summary>下载网络文件到指定路径</summary>
+        //public async Task DownloadFileAsync(string url, string savePath)
+        //{
+        //    if (string.IsNullOrEmpty(url)) throw new ArgumentNullException(nameof(url));
+        //    if (string.IsNullOrEmpty(savePath)) throw new ArgumentNullException(nameof(savePath));
+
+        //    // 创建目录（如果不存在）
+        //    var directory = Path.GetDirectoryName(savePath)!;
+        //    if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
+
+        //    // 下载文件
+        //    using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        //    response.EnsureSuccessStatusCode(); // 非2xx状态码抛出异常
+
+        //    using var stream = await response.Content.ReadAsStreamAsync();
+        //    using var fileStream = new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+        //    await stream.CopyToAsync(fileStream);
+        //}
+
+
+
         /// <summary>
         /// 判断异常是否可重试
         /// </summary>
@@ -385,7 +465,7 @@ namespace dy.net.service
         /// <summary>
         /// 清理不完整的文件
         /// </summary>
-        private void CleanupIncompleteFile(string savePath)
+        private static void CleanupIncompleteFile(string savePath)
         {
             if (File.Exists(savePath))
             {
@@ -399,213 +479,6 @@ namespace dy.net.service
                 }
             }
         }
-
-        //--AI优化后的-1
-
-        ///// <summary>
-        ///// 下载文件并保存到本地（优化批量下载假死问题）
-        ///// </summary>
-        ///// <param name="videoUrl">文件地址</param>
-        ///// <param name="savePath">保存路径</param>
-        ///// <param name="cookie">请求Cookie</param>
-        ///// <param name="cancellationToken">取消令牌（用于终止卡住的任务）</param>
-        ///// <param name="streamTimeout">流读取超时时间（默认30秒）</param>
-        ///// <returns>是否下载成功</returns>
-        //public async Task<bool> DownloadAsync(
-        //    string videoUrl,
-        //    string savePath,
-        //    string cookie, string httpclientName=null,
-        //    CancellationToken cancellationToken = default,
-        //    TimeSpan? streamTimeout = null)
-        //{
-        //    // 流读取超时默认60秒（避免长时间无数据导致假死）
-        //    var streamTimeoutValue = streamTimeout ?? TimeSpan.FromSeconds(60);
-        //    // 记录上次流活动时间（用于超时判断）
-        //    DateTime lastStreamActivity = DateTime.UtcNow;
-
-        //    try
-        //    {
-        //        // 确保目录存在
-        //        var directory = Path.GetDirectoryName(savePath);
-        //        if (!Directory.Exists(directory))
-        //        {
-        //            Directory.CreateDirectory(directory);
-        //        }
-
-        //        // 先删除已存在文件（处理文件占用问题）
-        //        if (File.Exists(savePath))
-        //        {
-        //            // 重试删除（防止文件刚被释放）
-        //            for (int i = 0; i < 3; i++)
-        //            {
-        //                try
-        //                {
-        //                    File.Delete(savePath);
-        //                    break;
-        //                }
-        //                catch (IOException) when (i < 2)
-        //                {
-        //                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
-        //                }
-        //            }
-        //        }
-        //        httpclientName??="dy_down1";
-        //        // 使用客户端工厂创建HttpClient（复用连接池）
-        //        using (var httpClient = _clientFactory.CreateClient(httpclientName))
-        //        {
-        //            // 清理并添加Cookie
-        //            httpClient.DefaultRequestHeaders.Remove("Cookie");
-        //            httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
-        //            // 总请求超时（包括连接和初始响应）
-        //            httpClient.Timeout = TimeSpan.FromMinutes(5);
-
-        //            // 发起请求（响应头就绪后返回，不等待完整内容）
-        //            using (var response = await httpClient.GetAsync(
-        //                videoUrl,
-        //                HttpCompletionOption.ResponseHeadersRead,
-        //                cancellationToken).ConfigureAwait(false))
-        //            {
-        //                response.EnsureSuccessStatusCode(); // 验证HTTP状态码
-
-        //                // 获取文件总大小（用于进度计算）
-        //                long? totalBytes = response.Content.Headers.ContentLength;
-
-        //                // 读取响应流并写入文件
-        //                using (var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken)
-        //                    .ConfigureAwait(false))
-        //                // 优化FileStream：异步模式+顺序扫描（提升大文件写入效率）
-        //                using (var fileStream = new FileStream(
-        //                    savePath,
-        //                    FileMode.CreateNew,
-        //                    FileAccess.Write,
-        //                    FileShare.None,
-        //                    bufferSize: 8192,
-        //                    options: FileOptions.Asynchronous | FileOptions.SequentialScan))
-        //                {
-        //                    byte[] buffer = new byte[8192];
-        //                    int bytesRead;
-        //                    long totalRead = 0;
-
-        //                    // 循环读取流（带超时和取消检查）
-        //                    while ((bytesRead = await responseStream.ReadAsync(
-        //                        buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
-        //                    {
-        //                        // 检查流读取超时（长时间无数据）
-        //                        if (DateTime.UtcNow - lastStreamActivity > streamTimeoutValue)
-        //                        {
-        //                            throw new TimeoutException($"流读取超时（{streamTimeoutValue.TotalSeconds}秒无数据）");
-        //                        }
-
-        //                        // 写入文件
-        //                        await fileStream.WriteAsync(
-        //                            buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
-
-        //                        // 更新进度和活动时间
-        //                        totalRead += bytesRead;
-        //                        lastStreamActivity = DateTime.UtcNow;
-
-        //                        // （可选）进度上报逻辑
-        //                        if (totalBytes.HasValue)
-        //                        {
-        //                            double progress = (double)totalRead / totalBytes.Value * 100;
-        //                            // 可通过事件或委托上报进度：OnProgressChanged(progress);
-        //                        }
-        //                    }
-
-        //                    // 确保数据刷入磁盘
-        //                    await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
-        //                }
-        //            }
-        //        }
-
-        //        return true;
-        //    }
-        //    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        //    {
-        //        // 正常取消操作（非错误）
-        //        Serilog.Log.Information($"下载被取消：{videoUrl}");
-        //        return false;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // 记录错误并清理可能的不完整文件
-        //        Serilog.Log.Error(ex, $"下载失败：{videoUrl}");
-        //        if (File.Exists(savePath))
-        //        {
-        //            try { File.Delete(savePath); } catch { /* 忽略删除失败 */ }
-        //        }
-        //        return false;
-        //    }
-        //}
-
-        ///// <summary>
-        ///// 下载文件并保存到本地
-        ///// </summary>
-        ///// <param name="videoUrl">文件地址</param>
-        ///// <param name="savePath">保存路径</param>
-        ///// <param name="cookie"></param>
-        //public async Task<bool> DownloadAsync(string videoUrl, string savePath, string cookie)
-        //{
-        //    try
-        //    {
-        //        // 防止文件被占用，先删除已存在的文件
-        //        if (File.Exists(savePath))
-        //        {
-        //            File.Delete(savePath);
-        //        }
-        //        // 创建HTTP客户端（设置超时时间和请求头）
-        //        using (var httpClient = _clientFactory.CreateClient("dy_down"))
-        //        {
-        //            if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
-        //            {
-        //                httpClient.DefaultRequestHeaders.Remove("Cookie");
-        //            }
-        //            httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
-        //            httpClient.Timeout = TimeSpan.FromMinutes(5); // 设置5分钟超时
-
-        //            // 获取视频流
-        //            using (var response = await httpClient.GetAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead))
-        //            {
-        //                response.EnsureSuccessStatusCode(); // 确保请求成功
-
-        //                // 获取文件总大小（用于进度显示）
-        //                long? totalBytes = response.Content.Headers.ContentLength;
-
-        //                // 读取流并写入文件
-        //                using (var stream = await response.Content.ReadAsStreamAsync())
-        //                using (var fileStream = new FileStream(savePath, FileMode.CreateNew))
-        //                {
-        //                    byte[] buffer = new byte[8192];
-        //                    int bytesRead;
-        //                    long totalRead = 0;
-
-        //                    // 循环读取并写入
-        //                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-        //                    {
-        //                        await fileStream.WriteAsync(buffer, 0, bytesRead);
-        //                        totalRead += bytesRead;
-
-        //                        // 显示下载进度
-        //                        if (totalBytes.HasValue)
-        //                        {
-        //                            double progress = (double)totalRead / totalBytes.Value * 100;
-        //                            //Console.Write($"\r下载进度：{progress:F2}% ({totalRead}/{totalBytes.Value} bytes)");
-        //                        }
-        //                    }
-        //                    //Console.WriteLine(); // 进度显示结束后换行
-        //                }
-        //            }
-        //        }
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Serilog.Log.Error($"DownloadVideoAsync fail: {ex.Message}");
-        //        Serilog.Log.Error($"DownloadVideoAsync fail: {ex.StackTrace}");
-        //        return false;
-        //    }
-        //}
-
 
     }
 }

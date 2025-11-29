@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<movie>
+  <title>放假领她去帮我哥打包，体验生活的不容易。#生产车间现场 #拼命努力的挣钱 #工作实拍</title>
+  <author>郭小胖</author>
+  <releasedate>2024-07-20</releasedate>
+  <genre>随拍</genre>
+  <genre>生活记录</genre>
+  <genre>日常vlog</genre>
+  <actors>
+    <actor>
+      <name>郭小胖</name>
+      <role>主演</role>
+      <thumb>app/fav2\author\66899755406.jpg</thumb>
+    </actor>
+  </actors>
+  <thumb aspect="poster">poster.jpg</thumb>
+  <fanart>
+    <thumb>poster.jpg</thumb>
+  </fanart>
+</movie>

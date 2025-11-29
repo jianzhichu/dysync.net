@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<movie>
+  <title>万万没想到，文件传输助手竟如此全能 #文件传输助手 #冷知识</title>
+  <author>主持人阿喆</author>
+  <releasedate>2025-08-01</releasedate>
+  <genre>科普</genre>
+  <genre>冷知识</genre>
+  <actors>
+    <actor>
+      <name>主持人阿喆</name>
+      <role>主演</role>
+      <thumb>app/fav2\author\75856936333.jpg</thumb>
+    </actor>
+  </actors>
+  <thumb aspect="poster">poster.jpg</thumb>
+  <fanart>
+    <thumb>poster.jpg</thumb>
+  </fanart>
+</movie>

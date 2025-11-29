@@ -28,7 +28,7 @@ namespace dy.net
         private  static bool downImageVideo = false;
         public static void Main(string[] args)
         {
-            Console.ForegroundColor = ConsoleColor.Yellow;
+            //Console.ForegroundColor = ConsoleColor.Yellow;
 
             // 初始化编码提供器
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -53,18 +53,16 @@ namespace dy.net
 
             // 构建应用
             var app = builder.Build();
-
-            Log.Debug("ffmpeg=" + downImgConfig);
+            if (downImageVideo)
+                Log.Debug("ffmpeg is on");
 
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);
 
             // 初始化应用服务
-            InitApplicationServices(app);
+            InitApplicationServices(app, isDevelopment);
 
             Serilog.Log.Debug("dy.sync service is starting...");
-        
-            Log.Debug("默认设置-博主作品-同步全部-配置为关闭，（可到授权界面开启，不建议全量同步）");
             Log.Debug("dy.sync service is started successfully");
             Console.WriteLine("------------------------------------------------------------------------");
             Console.WriteLine(@" __ \\ \   /  ___|\ \   /  \  |  ___| 
@@ -73,7 +71,7 @@ namespace dy.net
 ____/   _|_)_____/   _|  _| \_|\____| 
                                       
 ");
-            Console.ResetColor();
+            //Console.ResetColor();
             app.Run();
         }
 
@@ -125,13 +123,15 @@ ____/   _|_)_____/   _|  _| \_|\____|
             // 仓储和服务注册
             services.AddServicesFromNamespace("dy.net.repository")
                     .AddServicesFromNamespace("dy.net.service");
-            //下载图片合成视频-需要ffmpeg支持,镜像会很大。
-            if (downImageVideo)
-            {
-                //根据配置动态加载dy.image程序集
-                Assembly assembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "dy.image.dll"));
-                services.AddServicesFromNamespace("dy.image", assembly);
-            }
+
+            services.AddSingleton<FFmpegHelper>();
+            ////下载图片合成视频-需要ffmpeg支持,镜像会很大。
+            //if (downImageVideo)
+            //{
+            //    //根据配置动态加载dy.image程序集
+            //    Assembly assembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "dy.image.dll"));
+            //    services.AddServicesFromNamespace("dy.image", assembly);
+            //}
             // SPA静态文件支持
             services.AddSpaStaticFiles(options => options.RootPath = SpaRootPath);
 
@@ -189,7 +189,7 @@ ____/   _|_)_____/   _|  _| \_|\____|
         /// <summary>
         /// 初始化应用服务数据
         /// </summary>
-        private static void InitApplicationServices(WebApplication app)
+        private static void InitApplicationServices(WebApplication app,bool isDevelopment)
         {
             using var scope = app.Services.CreateScope();
             var services = scope.ServiceProvider;
@@ -212,9 +212,13 @@ ____/   _|_)_____/   _|  _| \_|\____|
                 commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
-                // 启动定时任务
-                var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
-                quartzJobService.StartJob(config?.Cron ?? "30");
+           
+                if(!isDevelopment)
+                {
+                    // 启动定时任务
+                    var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
+                    quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
+                }
 
             }
             catch (Exception ex)

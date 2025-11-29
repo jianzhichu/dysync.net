@@ -95,7 +95,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 | `full_latest`     | x86_64 (amd64) | **完整版**- 包含全部核心功能- **内置 FFmpeg**- 支持图文视频下载与合成 |
 | `arm_latest`      | ARM64          | **ARM 标准版**- 核心功能（与 `latest` 一致）                          |
 | `full_arm_latest` | ARM64          | **ARM 完整版**- 完整功能（与 `full_latest` 一致）                     |
-| `beta_1.0`        | x86_64 (amd64) | **测试版 v1.0**- 测试版                                               |
+| `beta_1.2`        | x86_64 (amd64) | **测试版 v1.0**- 测试版                                               |
 
 ### 构建命令示例
 
@@ -186,7 +186,7 @@ services:
 
 7. ✅ 将网站名称改成 "抖小云" 灵感来源于哪吒电影 驮门的那个小云云
 
-8. ⭕️ <span style="color: #999;">Cookie 过期提醒（或者看看能不能实现扫码登录自动获取 Cookie）</span>
+8. ⭕️ <span style="color: #999;">Cookie 过期提醒</span>
 
 9. ⭕️ <span style="color: #999;">重复视频去重（一个视频同时属于收藏视频、喜欢的视频或指定的博主作品）</span>
 

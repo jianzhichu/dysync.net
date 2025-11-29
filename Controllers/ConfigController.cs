@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Quartz.Util;
+using System.Xml.Linq;
 using static Dm.net.buffer.ByteArrayBuffer;
 
 namespace dy.net.Controllers
@@ -32,7 +34,7 @@ namespace dy.net.Controllers
         /// <summary>
         /// 分页查询
         /// </summary>
-        /// <returns>分页结果（视频列表和总数）</returns>
+        /// <returns>分页结果</returns>
         [HttpPost("paged")]
         public async Task<IActionResult> GetPagedAsync(
            PageRequestDto dto)
@@ -51,16 +53,26 @@ namespace dy.net.Controllers
             }
            );
         }
+
+
+        /// <summary>
+        /// 查询所有用户Cookie
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("list")]
+        public async Task<IActionResult> GetAllList()
+        {
+            var list = await dyCookieService.GetAllOpendAsync();
+            var result = list.Select(x => new { key= x.MyUserId, name= x.UserName });
+            return Ok(new { code = 0, data = result });
+        }
         /// <summary>
         /// 新增用户Cookie
         /// </summary>
         [HttpPost("add")]
-        public async Task<IActionResult> AddAsync([FromBody] DouyinUserCookie dyUserCookies)
+        public async Task<IActionResult> AddAsync([FromBody] DouyinCookie dyUserCookies)
         {
-           if(dyUserCookies.UpSecUserIdsJson!=null)
-            {
-                dyUserCookies.UpSecUserIds = JsonConvert.SerializeObject( dyUserCookies.UpSecUserIdsJson);
-            }
+           
             var result = await dyCookieService.Add(dyUserCookies);
             if (result)
             {
@@ -74,13 +86,8 @@ namespace dy.net.Controllers
         /// 更新用户Cookie
         /// </summary>
         [HttpPost("update")]
-        public async Task<IActionResult> UpdateAsync([FromBody] DouyinUserCookie dyUserCookies)
+        public async Task<IActionResult> UpdateAsync([FromBody] DouyinCookie dyUserCookies)
         {
-
-            if (dyUserCookies.UpSecUserIdsJson != null )
-            {
-                dyUserCookies.UpSecUserIds = JsonConvert.SerializeObject(dyUserCookies.UpSecUserIdsJson);
-            }
 
             if (dyUserCookies.Id == "0")
             {
@@ -144,26 +151,16 @@ namespace dy.net.Controllers
         public async Task<IActionResult> ExecuteJobNow()
         {
             var config =  commonService.GetConfig();
-            await quartzJobService.StartJob(config.Cron);
+            if (config!=null)
+            await quartzJobService.InitOrReStartAllJobs(config.Cron.ToString());
             return Ok(new { code =  0 , error =  ""  });
         }
 
 
         private async Task ReStartJob() {
             var config= commonService.GetConfig();
-
-            //var cookies = await dyCookieService.GetAllCookies();
-            //重置同步状态
-            //foreach (var cookie in cookies)
-            //{
-            //    cookie.CollHasSyncd = 0;
-            //    cookie.FavHasSyncd = 0;
-            //    cookie.UperSyncd = 0;
-            //    await dyCookieService.UpdateAsync(cookie);
-            //}
-          
             if (config!=null)
-             quartzJobService.StartJob(config.Cron);
+             quartzJobService.InitOrReStartAllJobs(config.Cron.ToString());
             //避免前端等待
         }
     }

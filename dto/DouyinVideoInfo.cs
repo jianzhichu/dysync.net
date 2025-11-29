@@ -1259,7 +1259,8 @@ namespace dy.net.dto
         /// <summary>
         /// 
         /// </summary>
-        //public int height { get; set; }
+        [JsonProperty("height")]
+        public int Height { get; set; }
         ///// <summary>
         ///// 
         ///// </summary>
@@ -1272,7 +1273,8 @@ namespace dy.net.dto
         /// <summary>
         /// 
         /// </summary>
-        //public int width { get; set; }
+        [JsonProperty("width")]
+        public int Width { get; set; }
     }
 
 

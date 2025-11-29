@@ -1,63 +1,93 @@
 <template>
   <div>
-    <a-form layout="inline" style="margin-top:10px;" :model="quaryData">
-      <a-form-item label="同步日期">
-        <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" />
-      </a-form-item>
-      <a-form-item label="抖音作者" ref="author" name="author">
-        <a-input v-model:value="quaryData.author"></a-input>
-      </a-form-item>
-      <a-form-item>
-        <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged">
-          <a-radio-button value="*">全部</a-radio-button>
-          <a-radio-button value="1">喜欢的</a-radio-button>
-          <a-radio-button value="2">收藏的</a-radio-button>
-          <a-radio-button value="3">关注的</a-radio-button>
-          <a-radio-button value="4" v-if="showImageViedo">图文视频</a-radio-button>
-        </a-radio-group>
-      </a-form-item>
-      <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
-        <a-space>
-          <a-button type="primary" @click="GetRecords">查询</a-button>
-          <a-button type="danger" @click="StartNow" :disabled="isSyncing">
-            <template #icon>
-              <a-spin v-if="isSyncing" size="small" />
-            </template>
-            立即同步
-          </a-button>
-        </a-space>
-      </a-form-item>
-    </a-form>
+    <!-- 优化查询区域：增加容器、响应式布局、合理间距 -->
+    <div class="query-container">
+      <a-form layout="inline" :model="quaryData" class="query-form">
+        <!-- 第一行：日期选择器组 -->
+        <div class="form-row">
+          <a-form-item label="同步日期" class="form-item">
+            <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" class="range-picker" />
+          </a-form-item>
 
-    <!-- 视频播放弹窗 - 简化视频信息 + 优化样式 -->
+          <a-form-item label="发布日期" class="form-item">
+            <a-range-picker v-model:value="value2" :ranges="ranges2" :locale="locale" @change="datePicked2" class="range-picker" />
+          </a-form-item>
+        </div>
+
+        <!-- 第二行：输入框组 -->
+        <div class="form-row">
+          <a-form-item label="作者" ref="author" name="author" class="form-item">
+            <a-input v-model:value="quaryData.author" class="query-input" placeholder="请输入作者" />
+          </a-form-item>
+          <a-form-item label="标题" ref="title" name="title" class="form-item">
+            <a-input v-model:value="quaryData.title" class="query-input" placeholder="请输入标题" />
+          </a-form-item>
+        </div>
+
+        <!-- 第三行：单选组 + 按钮组（新增批量操作开关和删除按钮） -->
+        <div class="form-row form-actions-row">
+          <a-form-item label="视频类型" class="form-item radio-group-item">
+            <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged" class="video-type-radio">
+              <a-radio-button value="*">全部</a-radio-button>
+              <a-radio-button value="1">喜欢的</a-radio-button>
+              <a-radio-button value="2">收藏的</a-radio-button>
+              <a-radio-button value="3">关注的</a-radio-button>
+              <a-radio-button value="4" v-if="showImageViedo">图文视频</a-radio-button>
+            </a-radio-group>
+          </a-form-item>
+
+          <a-form-item class="form-item batch-operation-item">
+            <a-switch v-model:checked="isBatchMode" checked-children="批量操作" un-checked-children="批量操作" class="batch-switch" />
+          </a-form-item>
+
+          <a-form-item class="form-item button-group-item">
+            <a-space size="middle" class="button-group">
+              <a-button success @click="handleBatchShare" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
+                <ShareAltOutlined />
+                分享选中
+              </a-button>
+              <a-button type="danger" @click="handleBatchDelete" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
+                <DeleteOutlined />
+                删除选中
+              </a-button>
+
+              <a-button type="primary" @click="GetRecords" class="query-button">
+                <SearchOutlined />查询
+              </a-button>
+              <a-button type="danger" @click="StartNow" :disabled="isSyncing" class="sync-button">
+                <template #icon>
+                  <a-spin v-if="isSyncing" size="small" />
+                </template>
+                <SyncOutlined />
+                立即同步
+              </a-button>
+            </a-space>
+          </a-form-item>
+        </div>
+      </a-form>
+    </div>
+
+    <!-- 视频播放弹窗 - 保持原有 -->
     <a-modal v-model:visible="isModalOpen" :title="playingTitle" :width="900" :mask-closable="false" :footer="null" @cancel="handleCancel" :body-style="{ padding: '0', overflow: 'hidden', backgroundColor: '#fff' }" :style="{ 
     borderRadius: '8px',
-    maxWidth: '85vw', // 最大宽度不超过视口85%（防止超屏）
-    maxHeight: '80vh', // 最大高度不超过视口80%
-    minWidth: '500px', // 最小宽度兜底（避免过小）
-    minHeight: '380px'  // 最小高度兜底
+    maxWidth: '85vw',
+    maxHeight: '80vh',
+    minWidth: '500px',
+    minHeight: '400px'
   }" :mask-style="{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }">
-      <!-- 视频容器：增加加载遮罩层 -->
       <div class="video-container">
-        <!-- 加载遮罩层 - 视频加载中显示 -->
         <div v-if="isVideoLoading" class="loading-overlay">
           <a-spin size="large" tip="视频加载中..." />
           <p class="loading-tip">请稍候，正在为您准备视频...</p>
         </div>
-
-        <!-- 错误提示 - 视频加载失败显示 -->
         <div v-else-if="hasError" class="error-container">
           <a-alert type="error" showIcon :message="errorMessage" description="建议尝试：1. 检查网络连接 2. 刷新页面重试 3. 联系管理员" />
         </div>
-
-        <!-- 视频播放器：添加尺寸限制和比例保持 -->
         <video ref="videoRef" class="video-element" controls preload="metadata" :autoplay="autoPlay" :muted="autoMuted" @error="handleVideoError" @loadeddata="() => isVideoLoading = false" @waiting="() => isVideoLoading = true" @canplay="() => isVideoLoading = false" :style="{ opacity: isVideoLoading || hasError ? 0 : 1, transition: 'opacity 0.3s ease' }">
           <source :src="videoUrl" type="video/mp4" />
           您的浏览器不支持 HTML5 视频播放，请升级浏览器。
         </video>
       </div>
-
-      <!-- 视频信息栏：仅保留同步时间和视频类型 + 优化样式 -->
       <div v-if="currentVideoInfo" class="video-info-bar">
         <div class="info-container">
           <div class="info-item">
@@ -72,14 +102,25 @@
       </div>
     </a-modal>
 
-    <!-- 表格：视频标题超长省略 + 悬停显示完整标题（修复编译报错） -->
-    <a-table :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading">
+    <!-- 表格 - 增加复选框和操作列 -->
+    <a-table :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading" :row-selection="isBatchMode ? rowSelection : null" row-key="id">
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'videoTitle'">
-          <!-- 核心修复：将内联箭头函数改为方法调用，避免build报错 -->
           <a class="video-title-link" :title="record.videoTitle || '无标题'" @click="handleVideoClick(record)" @mouseenter="handleTitleMouseEnter" @mouseleave="handleTitleMouseLeave">
             {{ formatVideoTitle(record.videoTitle) }}
           </a>
+        </template>
+        <template v-if="column.key === 'operation'">
+          <a-space size="small">
+            <a-button type="link" @click="handleReDownload(record)" :disabled="isSyncing">
+              <DownloadOutlined />
+              重新同步
+            </a-button>
+            <a-button type="link" @click="handleShare(record)" :disabled="!record.id">
+              <ShareAltOutlined />
+              分享
+            </a-button>
+          </a-space>
         </template>
       </template>
     </a-table>
@@ -87,13 +128,13 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, onMounted, nextTick, watch } from 'vue';
+import { reactive, ref, onMounted, nextTick, watch, computed } from 'vue';
 import { useApiStore } from '@/store';
 import type { UnwrapRef } from 'vue';
 import dayjs, { Dayjs } from 'dayjs';
 import locale from 'ant-design-vue/es/date-picker/locale/zh_CN';
-import { message, Spin, Alert } from 'ant-design-vue';
-
+import { message, Modal } from 'ant-design-vue';
+import CryptoJS from 'crypto-js';
 // 类型定义
 type RangeValue = [Dayjs, Dayjs];
 interface DataItem {
@@ -104,22 +145,60 @@ interface DataItem {
   author?: string; // 博主
   viedoCate?: string; // 视频类型
   dyUser?: string; // CK名称
+  fileHash?: string;
+  authorId?: string;
 }
 
 interface QuaryParam {
   dates?: string[];
+  dates2?: string[];
   pageIndex: number;
   pageSize: number;
   author: string;
-  tag: string;
+  title: string;
   viedoType: string;
+  fileHash: string;
+  authorId: string;
 }
 
 // 引入dayjs中文包
 import 'dayjs/locale/zh-cn';
+import { forEach } from 'lodash';
 dayjs.locale('zh-cn');
 
-// 表格列配置
+// 批量操作相关状态
+const isBatchMode = ref(false); // 批量操作开关状态
+const selectedRowKeys = ref<string[]>([]); // 选中的行ID集合
+
+// 表格行选择器类型定义（对齐 Ant Design Vue 3.x 规范）
+interface CustomTableRowSelection<T> {
+  type: 'checkbox' | 'radio';
+  selectedRowKeys: string[] | number[];
+  onChange?: (
+    selectedRowKeys: string[] | number[],
+    selectedRows: T[],
+    info: { type: 'select' | 'unselect' | 'selectAll' | 'unselectAll' | 'clear' }
+  ) => void;
+  preserveSelectedRowKeys?: boolean;
+  getCheckboxProps?: (record: T) => { disabled?: boolean };
+}
+
+// ✅ 修复：用计算属性实现响应式绑定（解决 checkbox 选中卡顿）
+const rowSelection = computed<CustomTableRowSelection<DataItem>>(() => ({
+  type: 'checkbox',
+  selectedRowKeys: selectedRowKeys.value, // 计算属性自动同步选中状态
+  onChange: (selectedKeys, selectedRows) => {
+    selectedRowKeys.value = selectedKeys as string[];
+    console.log('选中的行ID：', selectedRowKeys.value);
+    console.log('选中的行数据：', selectedRows);
+  },
+  preserveSelectedRowKeys: false,
+  getCheckboxProps: (record) => ({
+    disabled: isSyncing.value, // 同步时禁用复选框，避免冲突
+  }),
+}));
+
+// 表格列配置（优化：临时注释 fixed: right 避免渲染冲突）
 const columns = ref([
   {
     title: '同步时间',
@@ -149,7 +228,7 @@ const columns = ref([
     title: '视频标题',
     dataIndex: 'videoTitle',
     align: 'left',
-    width: 350, // 确保标题单元格有足够宽度
+    width: 350,
   },
   {
     title: 'CK名称',
@@ -157,13 +236,33 @@ const columns = ref([
     align: 'center',
     width: 200,
   },
+  {
+    title: '操作',
+    key: 'operation',
+    align: 'center',
+    width: 180,
+    // fixed: 'right', // 注释：避免固定列导致的重绘卡顿，如需使用可后续调试
+  },
 ]);
 
-// 基础状态
+// 监听批量操作开关状态变化，清空选中状态+强制表格重绘
+watch(isBatchMode, (isOpen) => {
+  if (!isOpen) {
+    selectedRowKeys.value = [];
+    // 强制表格重新渲染，解决状态残留问题
+    nextTick(() => {
+      const tableEl = document.querySelector('.ant-table') as HTMLElement;
+      if (tableEl) {
+        tableEl.setAttribute('key', Date.now().toString());
+      }
+    });
+  }
+});
+
+// 基础状态（优化：删除冗余的 datas 响应式数组）
 const loading = ref(false);
-const datas: UnwrapRef<DataItem[]> = reactive([]);
 const showImageViedo = ref(false);
-const dataSource = ref(datas);
+const dataSource = ref<DataItem[]>([]); // 直接用 ref 数组存储表格数据，减少响应式嵌套
 
 // 查询参数
 const value1 = ref<RangeValue>();
@@ -171,12 +270,20 @@ const ranges = {
   今天: [dayjs(), dayjs()] as RangeValue,
   本月: [dayjs(), dayjs().endOf('month')] as RangeValue,
 };
+
+const value2 = ref<RangeValue>();
+const ranges2 = {
+  今天: [dayjs(), dayjs()] as RangeValue,
+  本月: [dayjs(), dayjs().endOf('month')] as RangeValue,
+};
 const quaryData: UnwrapRef<QuaryParam> = reactive({
   pageIndex: 0,
   pageSize: 20,
   author: '',
-  tag: '',
+  title: '',
   viedoType: '*',
+  authorId: '',
+  fileHash: '',
 });
 
 // 分页配置
@@ -188,27 +295,24 @@ const pagination = ref({
 });
 
 // 视频播放相关配置
-const DEFAULT_LOW_VOLUME = 0.3; // 默认低音量（与示例一致）
-// 视频播放相关状态
-const isVideoLoading = ref(false); // 视频加载状态（控制加载动画显示）
-const videoErrorMsg = ref(''); // 视频错误提示
-const isSyncing = ref(false);
+const DEFAULT_LOW_VOLUME = 0.3;
+const isVideoLoading = ref(false); // 视频加载状态
+const isSyncing = ref(false); // 同步状态
+const currentVideoInfo = ref<DataItem | null>(null); // 当前播放视频信息
 
-// 当前播放视频信息
-const currentVideoInfo = ref<DataItem | null>(null);
-
-// 状态管理（视频弹窗相关）
-const isModalOpen = ref(false); // 弹窗显示状态
-const videoRef = ref(null); // 视频元素引用
-const videoUrl = ref(''); // 当前播放视频地址
-const hasError = ref(false); // 错误状态
-const errorMessage = ref(''); // 错误信息
-const autoPlay = ref(true); // 弹窗打开自动播放
-const autoMuted = ref(true); // 自动播放时静音（浏览器政策要求）
+// 视频弹窗相关状态
+const isModalOpen = ref(false);
+const videoRef = ref<HTMLVideoElement | null>(null);
+const videoUrl = ref('');
+const hasError = ref(false);
+const errorMessage = ref('');
+const autoPlay = ref(true);
+const autoMuted = ref(true);
 const videoId = ref('');
 const playingTitle = ref('');
+let videoProgressListener: ((e: Event) => void) | null = null; // 进度监听器
 
-// -------------------------- 核心方法：标题格式化 --------------------------
+// -------------------------- 核心工具方法 --------------------------
 /** 格式化表格视频标题：超过20字符显示省略号 */
 const formatVideoTitle = (title?: string) => {
   if (!title) return '无标题';
@@ -232,9 +336,9 @@ const handleTitleMouseLeave = (e: Event) => {
   const target = e.target as HTMLElement;
   target.style.textDecoration = 'none';
 };
-// ----------------------------------------------------------------------------------
 
-// 查询表格数据
+// -------------------------- 核心业务方法 --------------------------
+/** 查询表格数据 */
 const GetRecords = () => {
   loading.value = true;
   quaryData.pageIndex = pagination.value.current;
@@ -243,13 +347,15 @@ const GetRecords = () => {
   if (value1.value) {
     quaryData.dates = value1.value.map((date) => date.format('YYYY-MM-DD'));
   }
-
+  if (value2.value) {
+    quaryData.dates2 = value1.value.map((date) => date.format('YYYY-MM-DD'));
+  }
   useApiStore()
     .VideoPageList(quaryData)
     .then((res) => {
       loading.value = false;
       if (res.code === 0) {
-        dataSource.value = res.data.data;
+        dataSource.value = res.data.data; // 直接更新 ref 数组，优化响应式
         pagination.value.current = res.data.pageIndex;
         pagination.value.defaultPageSize = res.data.pageSize;
         pagination.value.total = res.data.total;
@@ -265,13 +371,11 @@ const GetRecords = () => {
     });
 };
 
-// 立即同步
+/** 立即同步 */
 const StartNow = () => {
   if (isSyncing.value) return;
-
   message.success('请耐心等待，同步任务正在启动...');
   isSyncing.value = true;
-
   useApiStore()
     .StartJobNow()
     .then((res) => {
@@ -291,20 +395,30 @@ const StartNow = () => {
     });
 };
 
-// 日期选择器变化事件
+/** 同步日期选择器变化事件 */
 const datePicked = (_, dateArry: RangeValue) => {
   quaryData.dates = dateArry.map((date) => date.format('YYYY-MM-DD'));
-  console.log('选择的日期范围:', quaryData.dates);
+  console.log('选择的同步日期范围:', quaryData.dates);
 };
 
-// 表格分页变化事件
+/** 发布日期选择器变化事件 */
+const datePicked2 = (_, dateArry: RangeValue) => {
+  quaryData.dates2 = dateArry.map((date) => date.format('YYYY-MM-DD'));
+  console.log('选择的发布日期范围:', quaryData.dates2);
+};
+
+/** 表格分页/排序变化事件 */
 const handleTableChange = (paginationObj: any) => {
   pagination.value.current = paginationObj.current;
   pagination.value.defaultPageSize = paginationObj.pageSize;
+  // 分页变化时清空选中状态（跨页不保留）
+  if (isBatchMode.value) {
+    selectedRowKeys.value = [];
+  }
   GetRecords();
 };
 
-// 获取配置
+/** 获取系统配置 */
 const getConfig = () => {
   useApiStore()
     .apiGetConfig()
@@ -314,6 +428,7 @@ const getConfig = () => {
       } else {
         message.warning(`获取配置失败: ${res.message}`);
       }
+      GetRecords();
     })
     .catch((error) => {
       console.error('获取配置失败:', error);
@@ -321,7 +436,13 @@ const getConfig = () => {
     });
 };
 
-// 视频点击事件处理 - 核心修改：使用formatModalTitle处理弹窗标题长度
+/** 视频类型切换事件 */
+const onViedoTypeChanged = () => {
+  GetRecords();
+};
+
+// -------------------------- 视频播放相关方法 --------------------------
+/** 点击视频标题播放 */
 const handleVideoClick = (record: DataItem) => {
   if (!record.id) {
     message.warning('该视频暂无播放地址');
@@ -330,84 +451,76 @@ const handleVideoClick = (record: DataItem) => {
   // 保存当前视频信息
   currentVideoInfo.value = record;
   videoId.value = record.id;
-  // 弹窗标题显示格式化后的标题（超过40字符显示省略号）
   playingTitle.value = formatModalTitle(record.videoTitle);
-  isModalOpen.value = true;
-  // 显示加载状态
-  isVideoLoading.value = true;
   // 重置错误状态
   hasError.value = false;
+  // 显示弹窗（触发watch加载视频）
+  isModalOpen.value = true;
 };
 
-// 监听弹窗状态，加载默认视频
-watch(
-  isModalOpen,
-  (isOpen) => {
-    if (isOpen) {
-      loadVideo();
-    } else {
-      pauseVideo();
-      // 关闭弹窗时重置状态
-      currentVideoInfo.value = null;
-      videoUrl.value = '';
-      isVideoLoading.value = false; // 重置加载状态
-    }
-  },
-  { immediate: false }
-);
-
-// 关闭弹窗
-const handleCancel = () => {
-  isModalOpen.value = false;
-};
-
-// 加载视频
+/** 加载视频（优化：简化逻辑，避免内存泄漏） */
 const loadVideo = () => {
-  hasError.value = false;
-  isVideoLoading.value = true; // 开始加载，显示加载动画
+  if (!videoRef.value || !videoId.value) return;
 
-  // 拼接后端视频接口地址
-  videoUrl.value = `${import.meta.env.VITE_API_URL}api/Video/play/${videoId.value}`;
+  isVideoLoading.value = true;
 
-  // 重新加载视频（解决切换视频不刷新的问题）
-  nextTick(() => {
-    if (videoRef.value) {
-      // 监听视频加载进度
-      videoRef.value.addEventListener('progress', handleVideoProgress);
-      videoRef.value.load();
-    }
-  });
+  // 移除之前的监听器
+  if (videoProgressListener) {
+    videoRef.value.removeEventListener('progress', videoProgressListener);
+    videoProgressListener = null;
+  }
+
+  // 拼接视频地址（添加时间戳避免缓存）
+  const timestamp = new Date().getTime();
+  videoUrl.value = `${import.meta.env.VITE_API_URL}api/Video/play/${videoId.value}?t=${timestamp}`;
+
+  // 直接赋值src并加载
+  videoRef.value.src = videoUrl.value;
+
+  // 重新绑定进度监听器
+  videoProgressListener = handleVideoProgress;
+  videoRef.value.addEventListener('progress', videoProgressListener);
+
+  // 触发加载
+  videoRef.value.load();
 };
 
-// 视频加载进度处理（可选：显示加载百分比）
+/** 视频加载进度处理 */
 const handleVideoProgress = (e: Event) => {
   const video = e.target as HTMLVideoElement;
   if (video.buffered.length > 0) {
     const bufferedEnd = video.buffered.end(video.buffered.length - 1);
     const duration = video.duration;
-    // 当缓冲达到总时长的90%以上时，可以提前隐藏加载动画
+    // 缓冲达到90%以上隐藏加载动画
     if (duration > 0 && bufferedEnd / duration > 0.9) {
       isVideoLoading.value = false;
-      video.removeEventListener('progress', handleVideoProgress);
     }
   }
 };
 
-// 暂停视频
+/** 暂停视频并释放资源 */
 const pauseVideo = () => {
-  if (videoRef.value) {
-    (videoRef.value as HTMLVideoElement).pause();
-    (videoRef.value as HTMLVideoElement).removeEventListener('progress', handleVideoProgress); // 移除进度监听
+  if (!videoRef.value) return;
+
+  const video = videoRef.value;
+  // 暂停播放
+  video.pause();
+  // 移除监听器
+  if (videoProgressListener) {
+    video.removeEventListener('progress', videoProgressListener);
+    videoProgressListener = null;
   }
+  // 清空src
+  video.src = '';
+  // 重置状态
+  isVideoLoading.value = false;
 };
 
-// 视频错误处理
+/** 视频错误处理 */
 const handleVideoError = (e: Event) => {
-  hasError.value = true;
   const video = e.target as HTMLVideoElement;
   const errorCode = video.error?.code;
 
-  // 错误码映射（参考 HTML5 视频错误标准）
   const errorMap: Record<number, string> = {
     1: '视频加载中断',
     2: '网络错误（跨域未配置/后端服务未启动/接口不可用）',
@@ -416,52 +529,382 @@ const handleVideoError = (e: Event) => {
     5: '视频文件不存在或后端权限不足',
   };
 
-  errorMessage.value = `加载失败：${errorMap[errorCode as number] || '未知错误'}（视频ID：${videoId.value}）`;
-  isVideoLoading.value = false; // 错误时隐藏加载态
+  if (!video.src) {
+    errorMessage.value = '视频地址为空，请重试';
+  } else {
+    errorMessage.value = `加载失败：${errorMap[errorCode as number] || '未知错误'}（视频ID：${videoId.value}）`;
+  }
+
+  hasError.value = true;
+  isVideoLoading.value = false;
   console.error('视频播放错误详情：', video.error);
 };
 
-// 修复缺失的方法
-const onViedoTypeChanged = () => {
-  // 可根据需要添加类型切换后的逻辑
+/** 关闭视频弹窗 */
+const handleCancel = () => {
+  // 暂停视频并释放资源
+  pauseVideo();
+  // 立即关闭弹窗
+  isModalOpen.value = false;
+  // 延迟重置状态
+  setTimeout(() => {
+    currentVideoInfo.value = null;
+    videoUrl.value = '';
+    videoId.value = '';
+    playingTitle.value = '';
+  }, 100);
 };
 
-// 页面挂载时初始化
+// 监听弹窗状态，加载/释放视频
+watch(
+  isModalOpen,
+  (isOpen) => {
+    if (isOpen) {
+      // 弹窗打开时，延迟加载视频（给DOM渲染时间）
+      nextTick(() => {
+        loadVideo();
+      });
+    } else {
+      // 弹窗关闭时，立即暂停视频
+      pauseVideo();
+    }
+  },
+  { immediate: false }
+);
+
+// -------------------------- 批量操作和操作列事件 --------------------------
+/** 批量删除事件 */
+const handleBatchDelete = () => {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning('请先选择要删除的视频');
+    return;
+  }
+
+  Modal.confirm({
+    title: '确认删除',
+    content: `您确定要删除选中的 ${selectedRowKeys.value.length} 条视频数据吗？此操作不可撤销！`,
+    okText: '确认删除',
+    cancelText: '取消',
+    okType: 'danger',
+    onOk: async () => {
+      reDownload({ ids: selectedRowKeys.value });
+    },
+  });
+};
+
+const reDownload = (param: object) => {
+  try {
+    loading.value = true;
+    console.log('执行批量删除，选中ID：', selectedRowKeys.value);
+
+    useApiStore()
+      .ReDownViedos(param)
+      .then((res) => {
+        loading.value = false;
+        if (res.code === 0) {
+          message.success('删除成功，下次任务执行时会重新下载');
+          // 刷新数据并清空选中状态
+          GetRecords();
+          selectedRowKeys.value = [];
+        } else {
+          message.warning(res.message || '获取数据失败');
+        }
+      })
+      .catch((error) => {
+        loading.value = false;
+      });
+  } catch (error) {
+    console.error('批量删除失败：', error);
+    message.error('删除失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+/** 重新下载事件 */
+const handleReDownload = (record: DataItem) => {
+  if (!record.id) {
+    message.warning('视频ID不存在，无法重新下载');
+    return;
+  }
+
+  try {
+    loading.value = true;
+    const _ids = [record.id];
+    reDownload({ ids: _ids });
+  } catch (error) {
+    console.error('重新下载失败：', error);
+    message.error('重新下载失败，请稍后重试');
+    loading.value = false;
+  }
+};
+
+const handleBatchShare = () => {
+  const matchedItems = dataSource.value.filter((item) => selectedRowKeys.value.includes(item.id));
+  try {
+    // console.log('执行分享操作，视频ID：', record.id, '视频标题：', record.videoTitle);
+    // 生成分享链接
+    let shareUrl = '';
+    matchedItems.forEach((record) => {
+      let k = CryptoJS.MD5(record.fileHash + record.authorId).toString();
+      shareUrl += `${import.meta.env.VITE_API_URL}share/${record.id}/${k}
+      `;
+    });
+
+    // 复制链接到剪贴板
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        message.success('分享链接已复制到剪贴板！');
+      })
+      .catch(() => {
+        // 降级方案：显示链接让用户手动复制
+        Modal.info({
+          title: '视频分享',
+          content: `
+          <p>分享链接：<a href="${shareUrl}" target="_blank" rel="noopener noreferrer">${shareUrl}</a></p>
+          <p style="margin-top: 8px;">复制链接后可分享给他人</p>
+        `,
+          okText: '已复制',
+        });
+      });
+  } catch (error) {
+    console.error('分享失败：', error);
+    message.error('分享功能异常，请稍后重试');
+  }
+};
+/** 分享事件 */
+const handleShare = (record: DataItem) => {
+  if (!record.id) {
+    message.warning('视频ID不存在，无法分享');
+    return;
+  }
+
+  try {
+    // console.log('执行分享操作，视频ID：', record.id, '视频标题：', record.videoTitle);
+    // 生成分享链接
+    let k = CryptoJS.MD5(record.fileHash + record.authorId).toString();
+    const shareUrl = `${import.meta.env.VITE_API_URL}share/${record.id}/${k}`;
+    // 复制链接到剪贴板
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        message.success('分享链接已复制到剪贴板！');
+      })
+      .catch(() => {
+        // 降级方案：显示链接让用户手动复制
+        Modal.info({
+          title: '视频分享',
+          content: `
+          <p>分享链接：<a href="${shareUrl}" target="_blank" rel="noopener noreferrer">${shareUrl}</a></p>
+          <p style="margin-top: 8px;">复制链接后可分享给他人</p>
+        `,
+          okText: '已复制',
+        });
+      });
+  } catch (error) {
+    console.error('分享失败：', error);
+    message.error('分享功能异常，请稍后重试');
+  }
+};
+
+// -------------------------- 页面初始化 --------------------------
 onMounted(() => {
-  GetRecords();
   getConfig();
 });
 </script>
 
 <style>
-/* 视频容器样式 - 与表格风格统一 */
-.video-container {
-  position: relative;
-  border-bottom: 1px solid #e8e8e8; /* 与表格边框一致 */
-  overflow: hidden;
-  max-height: 420px;
-}
-
-/* 视频播放器样式 - 优化响应式和过渡效果 */
+/* 新增：优化视频元素的过渡效果，避免关闭时的视觉卡顿 */
 .video-element {
   width: 100%;
   height: auto;
   max-height: 420px;
   min-height: 250px;
-  background-color: #000; /* 加载时显示黑色背景，提升体验 */
-  object-fit: contain; /* 保持视频比例，不拉伸 */
+  background-color: #000;
+  object-fit: contain;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out; /* 缩短过渡时间 */
+  will-change: opacity; /* 告诉浏览器提前优化渲染 */
+}
+/* 新增：查询区域样式优化 */
+.query-container {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.query-form {
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-item {
+  margin-bottom: 0 !important;
+  margin-right: 24px !important;
+  display: flex;
+  align-items: center;
+}
+
+/* 新增：批量操作开关样式 */
+.batch-operation-item {
+  margin-right: 16px !important;
+}
+
+.batch-switch {
+  --ant-switch-height: 24px;
+  --ant-switch-width: 80px;
+}
+
+/* 新增：删除按钮样式 */
+.delete-button {
+  min-width: 100px;
+}
+
+/* 日期选择器样式 */
+.range-picker {
+  width: 320px !important;
+}
+
+/* 输入框样式 */
+.query-input {
+  width: 250px !important;
+}
+
+/* 单选组样式 */
+.video-type-radio {
+  display: flex;
+  flex-wrap: wrap;
+  /* gap: 8px; */
+}
+
+.radio-group-item {
+  flex: 1;
+  min-width: 300px;
+}
+
+/* 按钮组样式 */
+.button-group-item {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+}
+
+.query-button,
+.sync-button {
+  min-width: 100px;
+}
+
+/* 响应式调整 */
+@media (max-width: 1440px) {
+  .range-picker {
+    width: 280px !important;
+  }
+  .query-input {
+    width: 140px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .form-actions-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  .batch-operation-item {
+    margin-left: 0 !important;
+    margin-top: 8px !important;
+  }
+  .button-group-item {
+    margin-left: 0 !important;
+    margin-top: 12px !important;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 992px) {
+  .range-picker {
+    width: 240px !important;
+  }
+  .query-input {
+    width: 100px !important;
+  }
+  .form-item {
+    margin-right: 16px !important;
+    margin-bottom: 12px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  .form-item {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+  .range-picker,
+  .query-input {
+    width: 100% !important;
+  }
+  .video-type-radio {
+    width: 100%;
+  }
+  .button-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .query-button,
+  .sync-button,
+  .delete-button {
+    flex: 1;
+    margin: 0 4px;
+  }
+}
+
+/* 原有样式保持不变 */
+.video-container {
+  position: relative;
+  border-bottom: 1px solid #e8e8e8;
+  overflow: hidden;
+  max-height: 420px;
+}
+
+.video-element {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  min-height: 250px;
+  background-color: #000;
+  object-fit: contain;
   opacity: 1;
   transition: opacity 0.3s ease;
 }
 
-/* 加载遮罩层 - 优化居中效果和样式 */
 .loading-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7); /* 半透明黑色背景，突出加载动画 */
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -470,7 +913,6 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-/* 加载提示文字样式 */
 .loading-tip {
   color: #ffffff;
   font-size: 16px;
@@ -479,7 +921,6 @@ onMounted(() => {
   padding: 0 20px;
 }
 
-/* 错误容器样式（优化错误显示） */
 .error-container {
   position: absolute;
   top: 0;
@@ -493,18 +934,17 @@ onMounted(() => {
   background-color: #fff;
 }
 
-/* 视频信息栏：简化样式 + 优化布局 */
 .video-info-bar {
   padding: 16px 24px;
-  background: #f8f9fa; /* 淡灰色背景，更清爽 */
+  background: #f8f9fa;
   border-bottom: 1px solid #e8e8e8;
 }
 
 .info-container {
   display: flex;
-  gap: 40px; /* 两个信息项之间的间距 */
+  gap: 40px;
   align-items: center;
-  flex-wrap: wrap; /* 响应式适配，小屏幕自动换行 */
+  flex-wrap: wrap;
 }
 
 .info-item {
@@ -515,18 +955,17 @@ onMounted(() => {
 }
 
 .info-label {
-  color: #666666; /* 标签深灰色，更醒目 */
+  color: #666666;
   margin-right: 8px;
   white-space: nowrap;
   font-weight: 500;
 }
 
 .info-value {
-  color: #333333; /* 数值深色，保证可读性 */
+  color: #333333;
   white-space: nowrap;
 }
 
-/* 视频标题链接样式（统一提取到CSS，避免内联样式冲突） */
 .video-title-link {
   color: #1890ff;
   cursor: pointer;
@@ -538,7 +977,6 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
-/* 弹窗标题样式优化：确保超长时不会撑破弹窗 */
 :deep(.ant-modal-title) {
   font-size: 16px !important;
   font-weight: 500 !important;
@@ -547,18 +985,17 @@ onMounted(() => {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  max-width: calc(100% - 40px) !important; /* 预留关闭按钮空间 */
+  max-width: calc(100% - 40px) !important;
 }
 
-/* 弹窗样式深度优化 - 与主风格完全统一 */
 :deep(.ant-modal) {
   border-radius: 8px !important;
-  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1) !important; /* Ant Design标准阴影 */
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1) !important;
   overflow: hidden !important;
-  max-width: 85vw !important; /* 最大宽度不超过视口85% */
-  max-height: 80vh !important; /* 最大高度不超过视口80% */
-  min-width: 500px !important; /* 最小宽度兜底 */
-  min-height: 380px !important; /* 最小高度兜底 */
+  max-width: 85vw !important;
+  max-height: 80vh !important;
+  min-width: 500px !important;
+  min-height: 380px !important;
   width: 900px !important;
 }
 
@@ -583,7 +1020,7 @@ onMounted(() => {
 
 :deep(.ant-modal-close:hover) {
   color: #1890ff !important;
-  background-color: #f0f9ff !important; /* 与Ant Design按钮hover背景一致 */
+  background-color: #f0f9ff !important;
 }
 
 :deep(.ant-modal-content) {
@@ -593,22 +1030,20 @@ onMounted(() => {
 
 :deep(.ant-modal-mask) {
   background-color: rgba(0, 0, 0, 0.5) !important;
-  backdrop-filter: blur(2px) !important; /* 增加毛玻璃效果，提升质感 */
+  backdrop-filter: blur(2px) !important;
 }
 
-/* 加载组件样式优化 - 与Ant Design统一 */
 :deep(.ant-spin-dot) {
   color: #1890ff !important;
-  font-size: 36px !important; /* 放大加载动画，更醒目 */
+  font-size: 36px !important;
 }
 
 :deep(.ant-spin-tip) {
-  color: #ffffff !important; /* 加载提示文字白色，与深色背景对比 */
+  color: #ffffff !important;
   font-size: 16px !important;
   margin-top: 20px !important;
 }
 
-/* 错误提示样式优化 - 与Ant Design警告组件统一 */
 :deep(.ant-alert-error) {
   border: none !important;
   background-color: #fff2f0 !important;
@@ -624,12 +1059,23 @@ onMounted(() => {
   margin-right: 8px !important;
 }
 
-/* 表格单元格 hover 效果保持一致 */
-:deep(.ant-table-tbody tr:hover td) {
+/* :deep(.ant-table-tbody tr:hover td) {
   background-color: #fafafa !important;
+} */
+
+/* 新增：表格复选框列样式调整 */
+:deep(.ant-table-selection-column) {
+  width: 50px !important;
+  text-align: center !important;
 }
 
-/* 响应式优化：保持各屏幕尺寸下的一致性 */
+/* 新增：操作列按钮样式 */
+:deep(.ant-space-item button) {
+  padding: 0 8px !important;
+  height: 28px !important;
+  font-size: 13px !important;
+}
+
 @media (max-width: 1200px) {
   .video-element {
     max-height: 380px;
@@ -648,17 +1094,19 @@ onMounted(() => {
     min-width: 320px !important;
     min-height: 320px !important;
   }
-  /* 移动端弹窗标题适配 */
   :deep(.ant-modal-title) {
     max-width: calc(100% - 30px) !important;
     font-size: 15px !important;
   }
-  /* 移动端加载动画适配 */
   :deep(.ant-spin-dot) {
     font-size: 28px !important;
   }
   .loading-tip {
     font-size: 14px;
+  }
+  /* 响应式下操作列调整 */
+  :deep(.ant-table-column-has-fix-right) {
+    right: 0 !important;
   }
 }
 
@@ -674,10 +1122,15 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
   }
-  /* 移动端弹窗标题适配 */
   :deep(.ant-modal-title) {
     max-width: calc(100% - 25px) !important;
     font-size: 14px !important;
+  }
+  /* 移动端操作列换行显示 */
+  :deep(.ant-space) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
   }
 }
 </style>
