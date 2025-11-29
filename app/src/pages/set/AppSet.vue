@@ -119,7 +119,7 @@
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>
-              启用后，同一个视频,只会下载一次。
+              启用后，同一个视频,只会下载一次。(但是暂时不能决定保留哪个文件夹的)
             </span>
           </div>
         </a-form-item>
