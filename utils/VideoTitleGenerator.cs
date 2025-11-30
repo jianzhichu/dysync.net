@@ -57,9 +57,9 @@ namespace dy.net.utils
 
             var fullName= finalTitle.Replace("--","-");
 
-            if (fullName.Length > 120)
+            if (fullName.Length > 60)
             {
-                return fullName.Substring(0, 120);
+                return fullName.Substring(0, 60);
             }
             else
             {

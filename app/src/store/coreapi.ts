@@ -212,15 +212,6 @@ export const useApiStore = defineStore('coreapi', () => {
   }
 
 
-  //当前版本
-  async function MyTag() {
-    return http.request<any, Response<any>>('/api/config/mytag', 'get').then(r => {
-      return r.data;
-    }).finally(() => {
-
-    });
-  }
-
   //检查版本
   async function CheckTag() {
     return http.request<any, Response<any>>('/api/config/checktag', 'get').then(r => {
@@ -229,9 +220,19 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+
+  //添加非关注的博主
+  async function AddFollow(param: object) {
+    return http.request<any, Response<any>>('/api/follow/add', 'post_json', param).then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
+
   return {
+    AddFollow,
     CheckTag,
-    MyTag,
     deleteCookie,
     UpdateConfig,
     apiCheckInitStatus,

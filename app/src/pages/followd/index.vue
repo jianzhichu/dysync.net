@@ -18,8 +18,12 @@
             <a-input v-model:value="quaryData.followUserName" placeholder="输入关注的用户名，按回车" allow-clear @pressEnter="handleSearch" class="search-input" ref="searchInputRef" />
           </div>
         </transition>
+        <a-button type="primary" class="sync-btn" @click="handleAdd" :disabled="isAddDisabled">
+          <PlusOutlined />
+          <span class="sync-btn-text">新增</span>
+        </a-button>
         <!-- 同步按钮（请求期间禁用） -->
-        <a-button type="primary" class="sync-btn" @click="handleSyncAll" :disabled="isSyncDisabled">
+        <a-button type="danger" class="sync-btn" @click="handleSyncAll" :disabled="isSyncDisabled">
           <SyncOutlined />
           <span class="sync-btn-text">立即同步</span>
         </a-button>
@@ -98,35 +102,92 @@
         <Empty description="暂无关注用户，或Cookie设置中未设置SecUserId" />
       </div>
     </div>
+
+    <a-modal v-model:visible="addModalVisible" title="新增非关注博主" :width="600" :confirm-loading="addFormLoading" @ok="handleAddSubmit" @cancel="handleAddCancel">
+      <a-form :model="addForm" :rules="addFormRules" ref="addFormRef" layout="horizontal" class="add-form" :label-col="{ span: 6 }" :wrapper-col="{ span: 17 }">
+        <a-form-item name="uperName" label="博主姓名" :validate-status="addFormErrors.uperName ? 'error' : ''" :help="addFormErrors.uperName || ''">
+          <a-input v-model:value="addForm.uperName" placeholder="请输入博主姓名" maxlength="20" @input="clearFormError('uperName')" />
+        </a-form-item>
+
+        <a-form-item name="uperId" label="uperId" :validate-status="addFormErrors.uperId ? 'error' : ''" :help="addFormErrors.uperId || ''" class="uper-id-form-item">
+          <a-input v-model:value="addForm.uperId" placeholder="请输入博主Uid" maxlength="50" @input="clearFormError('uperId')" />
+        </a-form-item>
+
+        <a-form-item name="secUid" label="sec_Uid" :validate-status="addFormErrors.secUid ? 'error' : ''" :help="addFormErrors.secUid || ''">
+          <a-input v-model:value="addForm.secUid" placeholder="请输入博主secUid" maxlength="50" />
+        </a-form-item>
+
+        <a-form-item name="savePath" label="保存文件夹" :validate-status="addFormErrors.savePath ? 'error' : ''" :help="addFormErrors.savePath || ''">
+          <a-input v-model:value="addForm.savePath" placeholder="不填则默认使用博主姓名" maxlength="10" @input="clearFormError('savePath')" />
+        </a-form-item>
+
+        <a-form-item label="同步设置" :wrapper-col="{ span: 17, offset: 6 }">
+          <div class="form-switch-group">
+            <div class="form-switch-item">
+              <span class="switch-label">是否同步</span>
+              <a-switch v-model:checked="addForm.openSync" checked-children="是" un-checked-children="否" />
+            </div>
+            <div class="form-switch-item">
+              <span class="switch-label">是否全量同步</span>
+              <a-switch v-model:checked="addForm.fullSync" checked-children="是" un-checked-children="否" :disabled="!addForm.openSync" />
+            </div>
+          </div>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted, UnwrapRef, reactive, nextTick } from 'vue';
-import { message, Spin, Empty, Tooltip } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted, UnwrapRef, reactive, nextTick, Ref } from 'vue';
+import { message, Spin, Empty, Tooltip, Modal, Form, FormInstance } from 'ant-design-vue';
 import { useApiStore } from '@/store';
-import { SyncOutlined, CloseOutlined, SearchOutlined, SaveOutlined, EditOutlined } from '@ant-design/icons-vue';
+
+// 类型定义
+interface TabItem {
+  key: string;
+  name: string;
+  total?: number;
+}
+
+interface FollowItem {
+  id: string;
+  mySelfId: string;
+  uperName: string;
+  enterprise: string;
+  signature: string;
+  uperAvatar: string;
+  fullSync: boolean;
+  openSync: boolean;
+  savePath?: string;
+  isEditing: boolean;
+  isSaving?: boolean;
+  userId?: string; // 新增：UserId字段
+}
+
+interface QuaryParam {
+  pageIndex: number;
+  pageSize: number;
+  followUserName: string | null;
+  mySelfId?: string;
+}
+
+interface AddForm {
+  uperName: string;
+  secUid: string;
+  savePath: string;
+  openSync: boolean;
+  fullSync: boolean;
+  mySelfId: string;
+  uperId: string;
+}
 
 // Tab列表数据
-const tabList = ref<Array<{ key: string; name: string; total?: number }>>([]);
+const tabList = ref<TabItem[]>([]);
 const activeTabKey = ref('');
 
-// 关注用户列表数据：新增 isSaving 状态（控制保存期间按钮禁用）
-const followData = ref<
-  Array<{
-    id: string;
-    mySelfId: string;
-    uperName: string;
-    enterprise: string;
-    signature: string;
-    uperAvatar: string;
-    fullSync: boolean;
-    openSync: boolean;
-    savePath?: string;
-    isEditing: boolean;
-    isSaving?: boolean; // 新增：保存中状态（true=禁用按钮）
-  }>
->([]);
+// 关注用户列表数据
+const followData = ref<FollowItem[]>([]);
 
 // 状态变量
 const loading = ref(false);
@@ -134,15 +195,45 @@ const noMoreData = ref(false);
 const hasMore = ref(true);
 const searchInputVisible = ref(false);
 const searchInputRef = ref<HTMLInputElement | null>(null);
-const isSyncDisabled = ref(false); // 同步按钮禁用状态
+const isSyncDisabled = ref(false);
+const isAddDisabled = ref(false);
+
+// 新增表单相关
+const addModalVisible = ref(false);
+const addFormLoading = ref(false);
+const addFormRef = ref<FormInstance | null>(null);
+
+// 新增表单数据
+const addForm = ref<AddForm>({
+  uperName: '',
+  secUid: '',
+  savePath: '',
+  openSync: true,
+  fullSync: false,
+  mySelfId: '',
+  uperId: '',
+});
+
+// 表单校验规则
+const addFormRules = ref({
+  uperName: [
+    { required: true, message: '请输入博主姓名', trigger: 'blur' },
+    { max: 20, message: '姓名长度不能超过20个字符', trigger: 'blur' },
+  ],
+  uperId: [{ required: true, message: '请输入博主Uid', trigger: 'blur' }],
+  secUid: [{ required: true, message: '请输入博主secUid', trigger: 'blur' }],
+  savePath: [{ max: 10, message: '文件夹名称长度不能超过10个字符', trigger: 'blur' }],
+});
+
+// 表单错误信息
+const addFormErrors = ref({
+  uperName: '',
+  uperId: '',
+  savePath: '',
+  secUid: '',
+});
 
 // 搜索参数
-interface QuaryParam {
-  pageIndex: number;
-  pageSize: number;
-  followUserName: string | null;
-  mySelfId?: string;
-}
 const quaryData: UnwrapRef<QuaryParam> = reactive({
   pageIndex: 0,
   pageSize: 20,
@@ -196,11 +287,12 @@ const GetFollows = (isReset = false) => {
         const newData = res.data.data || [];
         const total = res.data.total || 0;
 
-        // 给新数据初始化 isSaving: false（避免未定义导致的禁用异常）
+        // 格式化数据
         const formattedData = newData.map((item) => ({
           ...item,
-          isSaving: false, // 初始化保存中状态为false
-          isEditing: item.isEditing ?? false, // 兼容后端未返回isEditing的情况
+          isSaving: false,
+          isEditing: item.isEditing ?? false,
+          userId: item.userId || item.id, // 兼容旧数据，优先使用userId字段
         }));
 
         // 更新当前Tab的总数
@@ -304,21 +396,22 @@ const handleScroll = () => {
 };
 
 // 开关状态变更（启用/禁用用户）
-const handleSwitchChange = (item, checked) => {
+const handleSwitchChange = (item: FollowItem, checked: boolean) => {
+  item.openSync = checked;
   uploadSyncStatus(item);
 };
 
 // 全量同步开关变更
-const handleSyncChange = (item, checked) => {
+const handleSyncChange = (item: FollowItem, checked: boolean) => {
   item.fullSync = checked;
-  uploadFullSyncStatus(item);
+  uploadSyncStatus(item);
 };
 
-// 编辑存储路径：增加防重复编辑（保存中不可编辑）
-const handleEditPath = (item) => {
-  if (item.isSaving) return; // 正在保存时，禁止点击编辑
+// 编辑存储路径
+const handleEditPath = (item: FollowItem) => {
+  if (item.isSaving) return;
   item.isEditing = true;
-  // 延迟聚焦输入框（确保DOM已更新）
+  // 延迟聚焦输入框
   setTimeout(() => {
     const input = document.querySelector(
       `.dept-user-card-container .custom-card[data-key="${item.id}"] .edit-input-group .ant-input`
@@ -327,24 +420,27 @@ const handleEditPath = (item) => {
   }, 100);
 };
 
-// 保存存储路径：增加按钮禁用逻辑
-const handleSavePath = (item) => {
-  // 防止重复提交：正在保存时直接返回
+// 保存存储路径
+const handleSavePath = (item: FollowItem) => {
   if (item.isSaving) return;
   uploadSyncStatus(item);
 };
-const uploadSyncStatus = (item) => {
+
+// 上传同步状态
+const uploadSyncStatus = (item: FollowItem) => {
+  item.isSaving = true;
   useApiStore()
     .OpenOrCloseSync({
       Id: item.id,
       OpenSync: item.openSync,
       FullSync: item.fullSync,
-      SavePath: item.savePath, // 保持原有逻辑：提交 savePath
+      SavePath: item.savePath,
+      UserId: item.userId, // 新增：传递UserId
     })
     .then((res) => {
       if (res.code === 0) {
         message.success(`保存成功，将在下次任务执行时生效`);
-        item.isEditing = false; // 保存成功后关闭编辑状态
+        item.isEditing = false;
       } else {
         message.error('保存失败' + (res.msg || '未知错误'));
       }
@@ -354,27 +450,19 @@ const uploadSyncStatus = (item) => {
       message.error('保存失败，请重试');
     })
     .finally(() => {
-      // 接口响应结束：解除禁用（无论成功失败）
       item.isSaving = false;
     });
-};
-
-//全量同步开关
-const uploadFullSyncStatus = (item) => {
-  item.isSaving = true;
-  uploadSyncStatus(item);
 };
 
 // 批量同步所有用户
 const handleSyncAll = () => {
   if (isSyncDisabled.value) return;
 
-  // 请求开始：禁用按钮+显示加载
   isSyncDisabled.value = true;
   loading.value = true;
 
   useApiStore()
-    .SyncFollow()
+    .StartJobNow()
     .then((res) => {
       if (res.code === 0) {
         message.success('后台开始同步...根据您关注的数量，需要的时间不一定...请耐心等待');
@@ -387,15 +475,112 @@ const handleSyncAll = () => {
       message.error('同步失败，请重试');
     })
     .finally(() => {
-      // 请求完成：解禁按钮+关闭加载
       isSyncDisabled.value = false;
       loading.value = false;
+    });
+};
+
+// ===================== 新增功能相关 =====================
+// 打开新增弹窗
+const handleAdd = () => {
+  // 重置表单
+  addForm.value = {
+    uperName: '',
+    uperId: '',
+    savePath: '',
+    openSync: true,
+    fullSync: false,
+    secUid: '',
+    mySelfId: activeTabKey.value,
+  };
+  // 清空错误信息
+  Object.keys(addFormErrors.value).forEach((key) => {
+    addFormErrors.value[key as keyof typeof addFormErrors.value] = '';
+  });
+  // 重置表单校验状态
+  addFormRef.value?.resetFields();
+  // 显示弹窗
+  addModalVisible.value = true;
+};
+
+// 关闭新增弹窗
+const handleAddCancel = () => {
+  addModalVisible.value = false;
+  // 重置表单
+  addFormRef.value?.resetFields();
+  Object.keys(addFormErrors.value).forEach((key) => {
+    addFormErrors.value[key as keyof typeof addFormErrors.value] = '';
+  });
+};
+
+// 清空表单错误
+const clearFormError = (field: keyof typeof addFormErrors.value) => {
+  addFormErrors.value[field] = '';
+};
+
+// 提交新增表单
+const handleAddSubmit = () => {
+  // 手动校验表单
+  addFormRef.value
+    ?.validate()
+    .then(() => {
+      addFormLoading.value = true;
+
+      // 构造提交数据
+      const submitData = {
+        mySelfId: activeTabKey.value, // 当前选中的Tab的key
+        uperId: addForm.value.uperId,
+        uperName: addForm.value.uperName,
+        savePath: addForm.value.savePath,
+        openSync: addForm.value.openSync,
+        fullSync: addForm.value.fullSync,
+        secUid: addForm.value.secUid,
+        signature: '', // 默认为空签名
+        uperAvatar: '', // 默认为空头像
+        enterprise: '', // 默认为空企业信息
+      };
+
+      // 调用新增接口
+      useApiStore()
+        .AddFollow(submitData)
+        .then((res) => {
+          if (res.code === 0) {
+            message.success('新增非关注博主成功！');
+            addModalVisible.value = false;
+            // 重新加载数据
+            quaryData.pageIndex = 0;
+            GetFollows(true);
+
+            // 更新Tab总数
+            const tabIndex = tabList.value.findIndex((tab) => tab.key === activeTabKey.value);
+            if (tabIndex !== -1) {
+              tabList.value[tabIndex].total = (tabList.value[tabIndex].total || 0) + 1;
+            }
+          } else {
+            message.error('新增失败：' + (res.msg || '未知错误'));
+          }
+        })
+        .catch((err) => {
+          console.error('新增关注博主异常：', err);
+          message.error('网络异常，请重试');
+        })
+        .finally(() => {
+          addFormLoading.value = false;
+        });
+    })
+    .catch((errors) => {
+      // 处理表单校验错误
+      errors.forEach((err: any) => {
+        if (err.field && addFormErrors.value.hasOwnProperty(err.field)) {
+          addFormErrors.value[err.field as keyof typeof addFormErrors.value] = err.message;
+        }
+      });
     });
 };
 </script>
 
 <style scoped>
-/* 原有样式保持不变，无需修改 */
+/* 原有样式保持不变 */
 .dept-user-card-container {
   max-width: 1500px;
   margin: 0 auto;
@@ -403,7 +588,6 @@ const handleSyncAll = () => {
   min-height: 100vh;
 }
 
-/* 搜索+Tab容器 */
 .search-tab-container {
   display: flex;
   justify-content: space-between;
@@ -425,7 +609,6 @@ const handleSyncAll = () => {
   transition: all 0.3s ease;
 }
 
-/* 同步按钮样式 */
 .sync-btn {
   height: 40px !important;
   padding: 0 16px !important;
@@ -440,7 +623,6 @@ const handleSyncAll = () => {
   font-size: 14px;
 }
 
-/* 同步按钮禁用样式（浅色模式） */
 .sync-btn:disabled {
   background-color: #f5f5f5 !important;
   border-color: #d9d9d9 !important;
@@ -449,7 +631,6 @@ const handleSyncAll = () => {
   opacity: 0.8;
 }
 
-/* 搜索按钮样式 */
 .search-btn {
   height: 40px !important;
   padding: 0 16px !important;
@@ -466,7 +647,6 @@ const handleSyncAll = () => {
   height: 40px !important;
 }
 
-/* 搜索框过渡动画 */
 .search-input-fade-enter-from,
 .search-input-fade-leave-to {
   width: 0 !important;
@@ -479,7 +659,6 @@ const handleSyncAll = () => {
   transition: all 0.3s ease;
 }
 
-/* Tab样式 */
 .custom-tabs {
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -495,7 +674,6 @@ const handleSyncAll = () => {
   padding-right: 16px !important;
 }
 
-/* 卡片列表容器 */
 .card-list-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -505,7 +683,6 @@ const handleSyncAll = () => {
   padding-bottom: 40px;
 }
 
-/* 卡片样式 */
 .custom-card {
   border-radius: 12px !important;
   box-shadow: none !important;
@@ -530,7 +707,6 @@ const handleSyncAll = () => {
   flex-direction: column !important;
 }
 
-/* 卡片开关位置 */
 .card-switch {
   position: absolute !important;
   top: 12px;
@@ -538,21 +714,19 @@ const handleSyncAll = () => {
   z-index: 10;
 }
 
-/* 卡片主要内容 */
 .card-main-content {
   display: flex;
-  align-items: flex-start; /* 改为顶部对齐，避免多行签名导致头像居中错位 */
+  align-items: flex-start;
   gap: 20px;
   margin-top: 8px !important;
   flex: 1 !important;
 }
 
-/* 头像样式 */
 .avatar-wrapper {
   width: 64px;
   height: 64px;
   flex-shrink: 0;
-  margin-top: 4px; /* 微调头像位置，与多行签名对齐 */
+  margin-top: 4px;
 }
 
 .ant-avatar-lg {
@@ -567,12 +741,11 @@ const handleSyncAll = () => {
   font-weight: 600;
 }
 
-/* 卡片内容区域 */
 .card-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px; /* 缩小行间距，适配多行签名 */
+  gap: 4px;
   margin: 4px 0;
 }
 
@@ -583,35 +756,32 @@ const handleSyncAll = () => {
   line-height: 1.4;
 }
 
-/* 核心修改：签名多行显示（高度控制） */
 .card-desc {
   font-size: 12px !important;
   color: #86909c;
-  line-height: 1.5; /* 行高适配多行 */
+  line-height: 1.5;
   width: 100%;
-  /* 保持原有宽度，不影响布局 */
 }
 
 .signature-text {
-  display: -webkit-box; /* 关键：启用弹性盒模型 */
-  width: 250px; /* 固定宽度（原300px不变） */
-  max-height: 54px; /* 控制显示行数：12px字体+1.5行高 → 2行=36px，3行=54px */
-  line-height: 1.5; /* 行高，需与font-size配合计算高度 */
-  overflow: hidden; /* 隐藏溢出内容 */
-  text-overflow: ellipsis; /* 溢出显示省略号 */
-  -webkit-line-clamp: 3; /* 关键：限制显示2行（可改为3行） */
-  -webkit-box-orient: vertical; /* 垂直排列 */
-  cursor: pointer; /* 提示可悬停查看完整内容 */
-  word-break: break-all; /* 长单词/URL自动换行，避免横向溢出 */
+  display: -webkit-box;
+  width: 250px;
+  max-height: 54px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  cursor: pointer;
+  word-break: break-all;
 }
 
-/* 路径+同步开关容器 */
 .card-path-sync-container {
   display: flex;
   align-items: center;
   width: 100%;
   height: 34px !important;
-  margin-top: 8px !important; /* 微调与签名的间距，适配多行 */
+  margin-top: 8px !important;
   gap: 8px;
 }
 
@@ -645,7 +815,6 @@ const handleSyncAll = () => {
   font-style: italic;
 }
 
-/* 全量同步开关区域 */
 .sync-switch-wrapper {
   display: flex;
   align-items: center;
@@ -661,7 +830,6 @@ const handleSyncAll = () => {
   font-weight: 500;
 }
 
-/* 编辑按钮样式 */
 .edit-btn {
   width: 32px !important;
   height: 32px !important;
@@ -711,7 +879,6 @@ const handleSyncAll = () => {
   border-width: 1px !important;
 }
 
-/* 加载状态 */
 .loading-container {
   grid-column: 1 / -1;
   display: flex;
@@ -726,7 +893,6 @@ const handleSyncAll = () => {
   font-size: 14px;
 }
 
-/* 无更多数据 */
 .no-more-container {
   grid-column: 1 / -1;
   display: flex;
@@ -737,13 +903,38 @@ const handleSyncAll = () => {
   font-size: 14px;
 }
 
-/* 空状态 */
 .empty-container {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px 0;
+}
+
+/* 新增表单样式 */
+.add-form {
+  margin-top: 16px;
+}
+
+.form-switch-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.form-switch-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.switch-label {
+  font-size: 14px;
+  color: #4e5969;
+  white-space: nowrap;
 }
 
 /* 移动端适配 */
@@ -768,7 +959,7 @@ const handleSyncAll = () => {
   }
 
   .custom-card {
-    height: auto !important; /* 移动端卡片高度自适应，避免多行签名溢出 */
+    height: auto !important;
   }
 
   .path-area {
@@ -795,18 +986,24 @@ const handleSyncAll = () => {
     padding: 0 12px !important;
   }
 
-  /* 移动端签名样式调整 */
   .signature-text {
-    width: 250px; /* 移动端宽度缩减 */
-    max-height: 30px; /* 移动端显示2行（12px字体+1.25行高） */
+    width: 250px;
+    max-height: 30px;
     line-height: 1.25;
-    -webkit-line-clamp: 2; /* 保持2行显示 */
+    -webkit-line-clamp: 2;
+  }
+
+  .form-switch-group {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-switch-item {
+    width: 100%;
   }
 }
 
-/* ====================================== */
-/* 黑暗模式样式（html.dark-mode 强制生效） */
-/* ====================================== */
+/* 黑暗模式样式 */
 html.dark-mode .dept-user-card-container .custom-card {
   border-color: #374151 !important;
 }
@@ -848,7 +1045,6 @@ html.dark-mode .dept-user-card-container .no-more-container span {
   color: #9ca3af !important;
 }
 
-/* 黑暗模式下同步按钮样式 */
 html.dark-mode .dept-user-card-container .sync-btn {
   color: #d1d5db !important;
   border-color: #4b5563 !important;
@@ -858,5 +1054,66 @@ html.dark-mode .dept-user-card-container .sync-btn:hover {
   color: #f3f4f6 !important;
   border-color: #6b7280 !important;
   background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+html.dark-mode .switch-label {
+  color: #d1d5db !important;
+}
+
+/* 精准控制uperId表单项的间距 */
+.uper-id-form-item {
+  --ant-form-item-extra-margin-top: 4px !important; /* 核心：减小extra与input的间距（默认12px） */
+}
+
+/* 表单提醒样式 - 进一步减小间距 */
+.form-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0 !important; /* 覆盖可能的默认margin */
+  padding-top: 2px; /* 微调上内边距，控制最终间距 */
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4; /* 减小行高，让整体更紧凑 */
+  height: auto;
+}
+
+.hint-link {
+  color: #4096ff;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.hint-link:hover {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.hint-desc {
+  color: #9ca3af;
+  font-size: 11px; /* 小一点的字体，更紧凑 */
+}
+
+/* 黑暗模式适配 */
+html.dark-mode .form-hint {
+  color: #9ca3af;
+}
+
+html.dark-mode .hint-link {
+  color: #60a5fa;
+}
+
+html.dark-mode .hint-link:hover {
+  color: #3b82f6;
+}
+
+html.dark-mode .hint-desc {
+  color: #6b7280;
+}
+
+/* 可选：统一调整所有form-item的extra间距（如果需要） */
+:deep(.ant-form-item) {
+  --ant-form-item-extra-margin-top: 6px; /* 全局调整，优先级低于单独设置的类 */
 }
 </style>

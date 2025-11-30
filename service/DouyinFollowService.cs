@@ -1,4 +1,5 @@
-﻿using dy.net.dto;
+﻿using ClockSnowFlake;
+using dy.net.dto;
 using dy.net.model;
 using dy.net.repository;
 using SqlSugar;
@@ -14,6 +15,18 @@ namespace dy.net.service
         public DouyinFollowService(DouyinFollowRepository followRepository)
         {
             _followRepository = followRepository;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="followed"></param>
+        /// <returns></returns>
+        public async Task<bool> AddAsync(DouyinFollowed followed)
+        {
+            followed.Id = IdGener.GetLong().ToString();
+            followed.LastSyncTime = DateTime.UtcNow;
+            return await _followRepository.InsertAsync(followed);
         }
 
         /// <summary>

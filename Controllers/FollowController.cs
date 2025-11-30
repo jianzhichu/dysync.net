@@ -1,4 +1,5 @@
 ﻿using dy.net.dto;
+using dy.net.model;
 using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Http;
@@ -62,6 +63,12 @@ namespace dy.net.Controllers
             _douyinQuartzJobService.StartFollowJobOnceAsync();
             await Task.Delay(1000);
             return Ok(new { code = 0 });
+        }
+        [HttpPost("add")]
+        public async Task<IActionResult> AddFollow(DouyinFollowed followed)
+        {
+            var res = await _douyinFollowService.AddAsync(followed);
+            return Ok(new { code = res ? 0 : -1, msg = res ? "" : "添加失败" });
         }
 
         /// <summary>
