@@ -12,9 +12,8 @@ namespace dy.net.utils
     {
         #region 配置参数
         /// <summary>
-        /// 建议120字节（约60个汉字），适配所有系统
         /// </summary>
-        private const int MaxFileNameBytes = 120;
+        private const int MaxFileNameBytes = 60;
 
 
 
@@ -147,9 +146,9 @@ namespace dy.net.utils
                 {
                     path = path.Replace(c, '_');
                 }
-                if (path.Length > 100)
+                if (path.Length > 60)
                 {
-                    path = path.Substring(0, 100);
+                    path = path.Substring(0, 60);
                 }
                 return path.Trim().Replace(" ", "");
             }

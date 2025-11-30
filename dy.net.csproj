@@ -73,6 +73,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="db\dy.sqlite" />
     <None Include="dy.net.sln" />
   </ItemGroup>
 

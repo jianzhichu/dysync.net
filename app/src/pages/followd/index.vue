@@ -109,16 +109,16 @@
           <a-input v-model:value="addForm.uperName" placeholder="请输入博主姓名" maxlength="20" @input="clearFormError('uperName')" />
         </a-form-item>
 
-        <a-form-item name="uperId" label="uperId" :validate-status="addFormErrors.uperId ? 'error' : ''" :help="addFormErrors.uperId || ''" class="uper-id-form-item">
+        <a-form-item name="博主ID" label="uperId" :validate-status="addFormErrors.uperId ? 'error' : ''" :help="addFormErrors.uperId || ''" class="uper-id-form-item">
           <a-input v-model:value="addForm.uperId" placeholder="请输入博主Uid" maxlength="50" @input="clearFormError('uperId')" />
         </a-form-item>
 
         <a-form-item name="secUid" label="sec_Uid" :validate-status="addFormErrors.secUid ? 'error' : ''" :help="addFormErrors.secUid || ''">
-          <a-input v-model:value="addForm.secUid" placeholder="请输入博主secUid" maxlength="50" />
+          <a-input v-model:value="addForm.secUid" placeholder="请输入博主secUid" />
         </a-form-item>
 
         <a-form-item name="savePath" label="保存文件夹" :validate-status="addFormErrors.savePath ? 'error' : ''" :help="addFormErrors.savePath || ''">
-          <a-input v-model:value="addForm.savePath" placeholder="不填则默认使用博主姓名" maxlength="10" @input="clearFormError('savePath')" />
+          <a-input v-model:value="addForm.savePath" placeholder="不填则默认使用博主姓名" maxlength="20" @input="clearFormError('savePath')" />
         </a-form-item>
 
         <a-form-item label="同步设置" :wrapper-col="{ span: 17, offset: 6 }">
@@ -222,7 +222,7 @@ const addFormRules = ref({
   ],
   uperId: [{ required: true, message: '请输入博主Uid', trigger: 'blur' }],
   secUid: [{ required: true, message: '请输入博主secUid', trigger: 'blur' }],
-  savePath: [{ max: 10, message: '文件夹名称长度不能超过10个字符', trigger: 'blur' }],
+  savePath: [{ max: 20, message: '文件夹名称长度不能超过20个字符', trigger: 'blur' }],
 });
 
 // 表单错误信息
