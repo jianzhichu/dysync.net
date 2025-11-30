@@ -66,8 +66,8 @@ namespace dy.net.model
         /// </summary>
         public bool ImageViedoSaveAlone { get; set; }
 
-        [SugarColumn(IsIgnore=true)]
-        public bool DownImageVideoFromEnv { get; set; }
+        [SugarColumn(IsIgnore = true)]
+        public bool DownImageVideoFromEnv => DownImageVideo;
 
         /// <summary>
         /// 自动去重-逻辑是遇到相同ID的视频直接跳过

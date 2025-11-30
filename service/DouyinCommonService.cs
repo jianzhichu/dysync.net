@@ -19,28 +19,18 @@ namespace dy.net.service
 
         public AppConfig GetConfig()
         {
-            var config = sqlSugarClient.Queryable<AppConfig>().First();
-
-            var downImgConfig = Appsettings.Get(SystemStaticUtil.DOWN_IMAGE_VIDEO_ENABLE);
-            if (config != null && !string.IsNullOrEmpty(downImgConfig))
-            {
-                downImgConfig = downImgConfig.ToLower();
-                config.DownImageVideoFromEnv = downImgConfig == "1";
-            }
-            return config;
+            return sqlSugarClient.Queryable<AppConfig>().First();
         }
         /// <summary>
         /// 初始化并返回配置
         /// </summary>
         /// <param name="downLoadImage"></param>
         /// <returns></returns>
-        public AppConfig InitConfig(bool downLoadImage)
+        public AppConfig InitConfig()
         {
             var conf = GetConfig();
             if (conf != null)
             {
-                conf.DownImageVideo = downLoadImage;
-                sqlSugarClient.Updateable(conf).ExecuteCommand();
                 return conf;
             }
             else
@@ -53,14 +43,14 @@ namespace dy.net.service
                     LogKeepDay = 10,
                     UperSaveTogether = false,//博主视频：true-->每个视频单独一个文件夹 false-->所有视频放在同一个文件夹
                     UperUseViedoTitle = false,//博主视频：true-->使用视频标题作为文件名 false-->使用视频id作为文件名
-                    DownImageVideo = downLoadImage,
+                    DownImageVideo = false,//默认不下载图文视频
                     DownMp3 = false,
                     DownImage = false,
                     ImageViedoSaveAlone = true,
-                    FollowedTitleTemplate ="",
-                    FullFollowedTitleTemplate="",
-                    FollowedTitleSeparator="",
-                    AutoDistinct=true,//默认开启
+                    FollowedTitleTemplate = "",
+                    FullFollowedTitleTemplate = "",
+                    FollowedTitleSeparator = "",
+                    AutoDistinct = true//默认开启
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;

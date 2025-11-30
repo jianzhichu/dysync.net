@@ -18,5 +18,4 @@ RUN ffmpeg -version
 COPY . .
 ENV ASPNETCORE_URLS=http://*:10101
 ENV TZ=Asia/Shanghai
-ENV DOWN_IMGVIDEO=1
 ENTRYPOINT ["dotnet", "dy.net.dll"]

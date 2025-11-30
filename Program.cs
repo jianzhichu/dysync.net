@@ -25,7 +25,6 @@ namespace dy.net
         /// <summary>
         /// 打包时注意，如果是false,前端不允许修改开启下载图片和视频的选项
         /// </summary>
-        private  static bool downImageVideo = false;
         public static void Main(string[] args)
         {
             //Console.ForegroundColor = ConsoleColor.Yellow;
@@ -36,13 +35,7 @@ namespace dy.net
             var builder = WebApplication.CreateBuilder(args);
             //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
             DefaultListenUrl = builder.Configuration.GetValue<string>(SystemStaticUtil.ASPNETCORE_URLS) ?? DefaultListenUrl;
-            var downImgConfig = builder.Configuration.GetValue<string>(SystemStaticUtil.DOWN_IMAGE_VIDEO_ENABLE);
-
-            //Console.WriteLine("DOWN_IMGVIDEO=" + downImgConfig);
-            if (!string.IsNullOrEmpty(downImgConfig))
-            {
-                downImageVideo = downImgConfig.ToLower() == "1" ;
-            }
+     
             var isDevelopment = builder.Environment.IsDevelopment();
 
             // 配置主机
@@ -53,8 +46,7 @@ namespace dy.net
 
             // 构建应用
             var app = builder.Build();
-            if (downImageVideo)
-                Log.Debug("ffmpeg is on");
+            Log.Debug("ffmpeg is on");
 
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);
@@ -206,7 +198,7 @@ ____/   _|_)_____/   _|  _| \_|\____|
 
                 // 初始化配置
                 var commonService = services.GetRequiredService<DouyinCommonService>();
-                var config = commonService.InitConfig(downImageVideo);
+                var config = commonService.InitConfig();
 
                 // 更新视频类型--兼容老版本
                 commonService.UpdateCollectViedoType();
