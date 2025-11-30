@@ -24,15 +24,6 @@ namespace dy.net.utils
         private const string IllegalCharReplacement = "";
 
 
-        // 修正：使用 \U 前缀来表示超过 \uFFFF 的Unicode码点
-        private static readonly Regex _emojiRegex = new Regex(
-            @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\U0001E000-\U0001EFFF\u2600-\u2B55\u200D]",
-            RegexOptions.Compiled);
-
-        private static readonly Regex _hashtagRegex = new Regex(@"\#\S+", RegexOptions.Compiled);
-        private static readonly Regex _invalidCharsRegex;
-        private static readonly Regex _multipleUnderscoresRegex = new Regex(@"_+", RegexOptions.Compiled);
-
         #endregion
 
         #region 处理抖音视频文件名

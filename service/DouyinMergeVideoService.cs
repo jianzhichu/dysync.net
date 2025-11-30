@@ -1,4 +1,5 @@
-﻿using dy.net.dto;
+﻿using ClockSnowFlake;
+using dy.net.dto;
 using dy.net.utils;
 using Serilog;
 
@@ -200,7 +201,7 @@ namespace dy.net.service
                 // 保存下载的图片（如果需要）
                 if (downImage)
                 {
-                    await SaveDownloadedFilesAsync(rawImages, fileNamefolder, "temp_", "jpg");
+                    await SaveDownloadedFilesAsync(rawImages, fileNamefolder, "jpg",Path.GetFileNameWithoutExtension(outputVideoPath));
                 }
 
                 // 2. 下载音频
@@ -218,7 +219,7 @@ namespace dy.net.service
                     // 保存下载的音频（如果需要）
                     if (downMp3)
                     {
-                        await SaveDownloadedFilesAsync(rawAudios, fileNamefolder, "temp_", "mp3");
+                        await SaveDownloadedFilesAsync(rawAudios, fileNamefolder, "mp3", Path.GetFileNameWithoutExtension(outputVideoPath));
                     }
                 }
 
@@ -293,7 +294,7 @@ namespace dy.net.service
         /// <summary>
         /// 保存下载的文件（图片/音频）到目标目录
         /// </summary>
-        private async Task SaveDownloadedFilesAsync(string[] sourcePaths, string targetFolder, string fileNamePrefix, string defaultExt)
+        private async Task SaveDownloadedFilesAsync(string[] sourcePaths, string targetFolder,  string defaultExt,string videoFileName)
         {
             if (sourcePaths == null || sourcePaths.Length == 0) return;
             Directory.CreateDirectory(targetFolder); // 确保目标目录存在
@@ -303,19 +304,15 @@ namespace dy.net.service
             {
                 if (!File.Exists(sourcePath)) return;
                 string extension = Path.GetExtension(sourcePath) ?? $".{defaultExt}";
-                string destFileName = $"{fileNamePrefix}{index + 1:D3}{extension}";
+                string destFileName = $"{videoFileName}{index + 1:D3}{extension}";
                 string destPath = Path.Combine(targetFolder, destFileName);
 
-                // 避免文件覆盖，同时确保文件名唯一
-                if (File.Exists(destPath))
+                // 文件不存在时才复制，避免覆盖
+                if (!File.Exists(destPath))
                 {
-                    destFileName = $"{fileNamePrefix}{index + 1:D3}_{Guid.NewGuid().ToString("N")}{extension}";
-                    destPath = Path.Combine(targetFolder, destFileName);
+                    await Task.Run(() => File.Copy(sourcePath, destPath, overwrite: false));
+                    Log.Debug($"已保存文件：{destPath}");
                 }
-
-                // 复制文件（异步避免阻塞）
-                await Task.Run(() => File.Copy(sourcePath, destPath, overwrite: false));
-                Log.Debug($"已保存文件：{destPath}");
             }));
         }
 

@@ -55,28 +55,16 @@ namespace dy.net.utils
                 return placeholderMap.TryGetValue(placeholderKey, out var value) ? value : match.Value;
             });
 
-            return finalTitle.Replace("--","-");
-        }
+            var fullName= finalTitle.Replace("--","-");
 
-        /// <summary>
-        /// 格式化文件大小（字节→KB/MB/GB）
-        /// </summary>
-        private static string FormatFileSize(long fileSizeInBytes)
-        {
-            if (fileSizeInBytes < 0) return "无效大小";
-            if (fileSizeInBytes == 0) return "0B";
-
-            const long kb = 1024;
-            const long mb = kb * 1024;
-            const long gb = mb * 1024;
-
-            return fileSizeInBytes switch
+            if (fullName.Length > 120)
             {
-                < kb => $"{fileSizeInBytes}B",
-                < mb => $"{fileSizeInBytes / (double)kb:F1}KB",
-                < gb => $"{fileSizeInBytes / (double)mb:F1}MB",
-                _ => $"{fileSizeInBytes / (double)gb:F1}GB"
-            };
+                return fullName.Substring(0, 120);
+            }
+            else
+            {
+                return fullName;
+            }
         }
     }
 }
