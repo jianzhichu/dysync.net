@@ -14,6 +14,7 @@ namespace dy.net.model
         /// <summary>
         /// 用户抖音ID，对应我关注信息里面的myself_user_id
         /// </summary>
+        [SugarColumn(Length =500,IsNullable =true)]
         public string MyUserId { get; set; }
         /// <summary>
         /// 用户描述

@@ -128,7 +128,8 @@ namespace dy.net.job
                         Id = item.AwemeId,
                         ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
                         Resolution = $"{Width}×{Height}",
-                        VideoTitle = DouyinFileNameHelper.GenerateFileName(item.Desc, item.AwemeId)
+                        VideoTitle = DouyinFileNameHelper.GenerateFileName(item.Desc, item.AwemeId),
+                        Author = item.Author.Nickname
                     });
 
                     fileName= $"{DouyinFileNameHelper.SanitizePath(fullName)}.{Format}";

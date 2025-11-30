@@ -59,7 +59,8 @@ namespace dy.net.service
                     ImageViedoSaveAlone = true,
                     FollowedTitleTemplate ="",
                     FullFollowedTitleTemplate="",
-                    FollowedTitleSeparator=""
+                    FollowedTitleSeparator="",
+                    AutoDistinct=true,//默认开启
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;

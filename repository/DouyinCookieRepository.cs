@@ -36,5 +36,11 @@ namespace dy.net.repository
             return (list, totalCount);
         }
 
+        public  DouyinCookie GetDefault()
+        {
+            return  Db.Queryable<DouyinCookie>()
+                                .First();
+        }
+
     }
 }

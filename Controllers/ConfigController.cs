@@ -2,6 +2,7 @@
 using dy.net.dto;
 using dy.net.model;
 using dy.net.service;
+using dy.sync.lib;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -20,12 +21,14 @@ namespace dy.net.Controllers
 
         private readonly DouyinCommonService commonService;
         private readonly DouyinQuartzJobService quartzJobService;
+        private readonly IHttpClientFactory httpClientFactory;
 
-        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService,DouyinQuartzJobService quartzJobService)
+        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService,DouyinQuartzJobService quartzJobService,IHttpClientFactory httpClientFactory)
         {
             this.dyCookieService = dyCookieService;
             this.commonService = commonService;
             this.quartzJobService = quartzJobService;
+            this.httpClientFactory = httpClientFactory;
         }
 
 
@@ -162,6 +165,30 @@ namespace dy.net.Controllers
             if (config!=null)
              quartzJobService.InitOrReStartAllJobs(config.Cron.ToString());
             //避免前端等待
+        }
+        /// <summary>
+        /// 镜像标签
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("mytag")]
+        public async Task<IActionResult> GetMyTag()
+        {
+            return Ok(new { code = 0, data =Appsettings.Get("tagName") });
+        }
+
+        [HttpGet("checktag")]
+        public async Task<IActionResult> CheckTag()
+        {
+            var data =await DouyinHttpHelper.GetTenImage(Appsettings.Get("tagName"));
+            if (data.IsSuccessStatusCode)
+            {
+                var content = await data.Content.ReadAsStringAsync();
+                return Ok(content);
+            }
+            else
+            {
+                return BadRequest(new { code = -1, message = "请求失败" });
+            }
         }
     }
 }

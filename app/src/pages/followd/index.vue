@@ -19,10 +19,10 @@
           </div>
         </transition>
         <!-- 同步按钮（请求期间禁用） -->
-        <!-- <a-button type="primary" class="sync-btn" @click="handleSyncAll" :disabled="isSyncDisabled">
+        <a-button type="primary" class="sync-btn" @click="handleSyncAll" :disabled="isSyncDisabled">
           <SyncOutlined />
-          <span class="sync-btn-text">同步</span>
-        </a-button> -->
+          <span class="sync-btn-text">立即同步</span>
+        </a-button>
       </div>
     </div>
     <!-- 卡片列表区域 -->
@@ -67,7 +67,7 @@
                     </template>
                     <template v-else>
                       <span class="path-text" :class="{ 'path-empty': !item.savePath }">
-                        {{ item.savePath || '未设置存储文件夹名称' }}
+                        {{ item.savePath || '默认用作者名字' }}
                       </span>
                       <!-- 编辑按钮禁用：item.isSaving 为 true 时 -->
                       <a-button type="text" class="edit-btn" @click="() => handleEditPath(item)" title="编辑文件夹名称" :disabled="item.isSaving">
@@ -95,7 +95,7 @@
       <div v-if="noMoreData && followData.length > 0" class="no-more-container">暂无更多数据</div>
       <!-- 空状态 -->
       <div v-if="followData.length === 0 && !loading" class="empty-container">
-        <Empty description="暂无关注用户" />
+        <Empty description="暂无关注用户，或Cookie设置中未设置SecUserId" />
       </div>
     </div>
   </div>
@@ -305,15 +305,7 @@ const handleScroll = () => {
 
 // 开关状态变更（启用/禁用用户）
 const handleSwitchChange = (item, checked) => {
-  item.openSync = checked;
-  if (!checked) item.isEditing = false; // 禁用时关闭编辑状态
-  if (!checked) {
-    uploadSyncStatus(item);
-  } else {
-    if (item.savePath.length > 0) {
-      uploadSyncStatus(item);
-    }
-  }
+  uploadSyncStatus(item);
 };
 
 // 全量同步开关变更
@@ -342,7 +334,6 @@ const handleSavePath = (item) => {
   uploadSyncStatus(item);
 };
 const uploadSyncStatus = (item) => {
-  item.isSaving = true;
   useApiStore()
     .OpenOrCloseSync({
       Id: item.id,
@@ -371,29 +362,7 @@ const uploadSyncStatus = (item) => {
 //全量同步开关
 const uploadFullSyncStatus = (item) => {
   item.isSaving = true;
-  useApiStore()
-    .OpenOrCloseFullSync({
-      Id: item.id,
-      OpenSync: item.openSync,
-      FullSync: item.fullSync,
-      SavePath: item.savePath, // 保持原有逻辑：提交 savePath
-    })
-    .then((res) => {
-      if (res.code === 0) {
-        message.success(`保存成功，将在下次任务执行时生效`);
-        item.isEditing = false; // 保存成功后关闭编辑状态
-      } else {
-        message.error('保存失败' + (res.msg || '未知错误'));
-      }
-    })
-    .catch((err) => {
-      console.error('保存失败', err);
-      message.error('保存失败，请重试');
-    })
-    .finally(() => {
-      // 接口响应结束：解除禁用（无论成功失败）
-      item.isSaving = false;
-    });
+  uploadSyncStatus(item);
 };
 
 // 批量同步所有用户

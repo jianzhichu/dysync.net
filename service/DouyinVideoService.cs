@@ -213,25 +213,51 @@ namespace dy.net.service
                     Serilog.Log.Error(e, "数据库事务执行失败：Ids={0}", string.Join(",", videoIds));
                 });
 
-                // 5. 文件删除（非事务操作，失败不回滚数据库，可根据业务调整）
-                // 采用异步文件操作，避免同步IO阻塞线程（需.NET 5+支持）
-                foreach (var path in filePathsToDelete)
+                // 5. 文件夹删除（非事务操作，失败不回滚数据库，可根据业务调整）
+                // 关键：先通过文件路径获取父文件夹，再删除整个文件夹（含子内容）
+                foreach (var filePath in filePathsToDelete)
                 {
                     try
                     {
-                        if (File.Exists(path))
+                        // 1. 验证文件路径有效性
+                        if (string.IsNullOrWhiteSpace(filePath))
                         {
-                            File.Delete(path); // 异步删除，提升并发性能
-                            Serilog.Log.Debug("视频文件删除成功：Path={0}", path);
+                            Serilog.Log.Error("文件路径为空，跳过文件夹删除");
+                            continue;
+                        }
+
+                        // 2. 获取文件对应的父文件夹路径（无论文件是否存在，只要路径合法就能拿到父目录）
+                        string parentDirPath = Path.GetDirectoryName(filePath);
+                        if (string.IsNullOrWhiteSpace(parentDirPath))
+                        {
+                            Serilog.Log.Error("无法获取父文件夹路径，文件路径无效：Filepath={0}", filePath);
+                            continue;
+                        }
+
+                        // 3. 验证父文件夹是否存在
+                        if (Directory.Exists(parentDirPath))
+                        {
+                             Directory.Delete(parentDirPath, recursive: true);
+                            Serilog.Log.Debug("文件夹删除成功（含子内容）：ParentDir={0}，关联文件路径={1}", parentDirPath, filePath);
                         }
                         else
                         {
-                            Serilog.Log.Error("视频文件不存在，跳过删除：Path={0}", path);
+                            Serilog.Log.Error("父文件夹不存在，跳过删除：ParentDir={0}，关联文件路径={1}", parentDirPath, filePath);
                         }
                     }
                     catch (IOException ex)
                     {
-                        Serilog.Log.Error(ex, "视频文件删除失败：Path={0}", path);
+                        Serilog.Log.Error(ex, "文件夹删除失败（IO异常）：Filepath={0}，父文件夹路径={1}", filePath, Path.GetDirectoryName(filePath));
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        // 单独捕获权限异常，更精准的日志提示
+                        Serilog.Log.Error(ex, "文件夹删除失败（权限不足）：Filepath={0}，父文件夹路径={1}", filePath, Path.GetDirectoryName(filePath));
+                    }
+                    catch (Exception ex)
+                    {
+                        // 捕获所有其他异常，避免循环中断
+                        Serilog.Log.Error(ex, "文件夹删除失败（未知异常）：Filepath={0}，父文件夹路径={1}", filePath, Path.GetDirectoryName(filePath));
                     }
                 }
 

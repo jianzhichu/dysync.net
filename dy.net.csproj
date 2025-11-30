@@ -23,15 +23,19 @@
 
   <ItemGroup>
     <Compile Remove="app\**" />
+    <Compile Remove="db\**" />
     <Compile Remove="expand\**" />
     <Compile Remove="logs\**" />
     <Content Remove="app\**" />
+    <Content Remove="db\**" />
     <Content Remove="expand\**" />
     <Content Remove="logs\**" />
     <EmbeddedResource Remove="app\**" />
+    <EmbeddedResource Remove="db\**" />
     <EmbeddedResource Remove="expand\**" />
     <EmbeddedResource Remove="logs\**" />
     <None Remove="app\**" />
+    <None Remove="db\**" />
     <None Remove="expand\**" />
     <None Remove="logs\**" />
   </ItemGroup>
@@ -64,7 +68,6 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <Folder Include="db\" />
     <Folder Include="wwwroot\" />
 	  
   </ItemGroup>
@@ -74,9 +77,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="db\dy.sqlite">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <Reference Include="dy.sync.lib">
+      <HintPath>lib\dy.sync.lib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Dockerfile">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

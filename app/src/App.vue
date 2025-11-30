@@ -16,8 +16,6 @@
     </stepin-view>
   </ThemeProvider>
   <my-personal ref="personalRef" />
-  <!-- <email-set ref="emailRef" /> -->
-  <!-- <login-modal :unless="['/login']" /> -->
 </template>
 
 <script lang="ts" setup>
@@ -36,6 +34,7 @@ const { logout } = useAccountStore();
 const showPersonalDrawer = ref<boolean>(false);
 const personalRef = ref(null);
 const emailRef = ref(null);
+const open = ref(true);
 
 const showSetting = ref(false);
 const router = useRouter();

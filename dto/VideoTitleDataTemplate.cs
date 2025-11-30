@@ -19,7 +19,7 @@
 
         /// <summary> 对应 {Resolution}（分辨率，如 1920x1080） </summary>
         public string Resolution { get; set; } = string.Empty;
-
+        public string Author { get; set; } = string.Empty;
         /// <summary> 对应 {FileSize}（文件大小，单位：字节） </summary>
         //public long FileSize { get; set; } = 0;
     }

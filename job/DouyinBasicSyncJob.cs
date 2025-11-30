@@ -414,6 +414,7 @@ namespace dy.net.job
                     {
                         if (File.Exists(exitVideo.VideoSavePath))
                         {
+                            Serilog.Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在，跳过");
                             continue;// 已存在则跳过
                         }
                     }

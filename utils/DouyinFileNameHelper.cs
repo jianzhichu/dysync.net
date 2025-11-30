@@ -96,7 +96,7 @@ namespace dy.net.utils
 
             // 步骤6：移除首尾无效字符（分隔符、点号）
             title = title.Replace(" ","").Trim(Separator, '.');
-
+            title = title.Replace("--", "-");//避免多个连续----
             // 容错：如果净化后为空，返回默认值
             return string.IsNullOrWhiteSpace(title) ? id : title;
         }
@@ -151,7 +151,7 @@ namespace dy.net.utils
                 //string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
                 //path = Regex.Replace(path, emojiPattern, "", RegexOptions.Compiled);
                 path = Regex.Replace(path, @"[^a-zA-Z0-9\u4e00-\u9fa5]", "-");
-
+                path = path.Replace("--", "-");//避免重复---
                 foreach (var c in Path.GetInvalidFileNameChars())
                 {
                     path = path.Replace(c, '_');

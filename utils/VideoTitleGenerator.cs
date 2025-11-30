@@ -20,7 +20,7 @@ namespace dy.net.utils
         public static string Generate(
             string template,
             VideoTitleDataTemplate data,
-            string timeFormat = "yyyyMMddHHmmss",
+            string timeFormat = "yyyyMMdd",
             string emptyPlaceholder = "")
         {
             // 校验入参
@@ -36,6 +36,7 @@ namespace dy.net.utils
                 ["VideoTitle"] = string.IsNullOrWhiteSpace(data.VideoTitle) ? emptyPlaceholder : data.VideoTitle,
                 ["FileHash"] = string.IsNullOrWhiteSpace(data.FileHash) ? emptyPlaceholder : data.FileHash,
                 ["Resolution"] = string.IsNullOrWhiteSpace(data.Resolution) ? emptyPlaceholder : data.Resolution,
+                ["Author"] = string.IsNullOrWhiteSpace(data.Author) ? emptyPlaceholder : data.Author,
 
                 // 时间字段（支持空值处理）
                 //["SyncTime"] = data.SyncTime.HasValue ? data.SyncTime.Value.ToString(timeFormat) : emptyPlaceholder,
@@ -54,7 +55,7 @@ namespace dy.net.utils
                 return placeholderMap.TryGetValue(placeholderKey, out var value) ? value : match.Value;
             });
 
-            return finalTitle;
+            return finalTitle.Replace("--","-");
         }
 
         /// <summary>

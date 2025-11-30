@@ -1,7 +1,9 @@
-﻿using dy.net.model;
+﻿using ClockSnowFlake;
+using dy.net.model;
 using dy.net.repository;
 using SqlSugar;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace dy.net.service
 {
@@ -28,18 +30,17 @@ namespace dy.net.service
 
         public bool InitCookie()
         {
-            var initId= "2026";
-            var exist = _cookieRepository.GetFirst(x => x.Id == initId);
+            var exist = _cookieRepository.GetDefault();
             if (exist != null)
             {
-                return false;
+                return true;
             }
             var cookie = new DouyinCookie
             {
                 UserName = "douyin",
                 Cookies = "-",
                 SecUserId = "-",
-                Id = initId,
+                Id = IdGener.GetLong().ToString(),
                 Status = 0,
                 SavePath = "/app/collect",
                 FavSavePath = "/app/favorite",
@@ -48,6 +49,7 @@ namespace dy.net.service
                 CollHasSyncd = 0,
                 FavHasSyncd = 0,
                 UperSyncd = 0,
+                MyUserId=""
             };
             return  _cookieRepository.Insert(cookie);
         }

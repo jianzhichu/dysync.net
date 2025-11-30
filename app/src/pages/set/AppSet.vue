@@ -44,10 +44,14 @@
 
         <!-- 模板相关配置：只有关闭"标题当文件名"时才显示 -->
         <a-form-item has-feedback label="定义标题模板" name="FollowedTitleTemplate" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
-          <a-select v-model:value="formState.FollowedTitleTemplate" :options="template_options" mode="multiple" size="middle" placeholder="请选择"></a-select>
+          <a-select v-model:value="formState.FollowedTitleTemplate" :options="template_options" mode="multiple" size="middle" placeholder="请选择占位符组合"></a-select>
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>选择生成文件名的占位符，顺序即为文件名顺序（需配合分隔符使用）</span>
+            <span>
+              选择生成文件名的占位符，顺序即为文件名顺序（需配合分隔符使用）<br />
+              <strong class="text-gray-700">占位符说明：</strong>
+              {Id}=视频ID、{VideoTitle}=视频标题、{ReleaseTime}=发布时间、{Author}=博主名称、{FileHash}=文件哈希、{Resolution}=分辨率
+            </span>
           </div>
         </a-form-item>
 
@@ -55,13 +59,23 @@
           <a-input v-model:value="formState.FollowedTitleSeparator" placeholder="请输入分隔符（如 - _ 或空）" style="width: 200px" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>占位符之间的连接符（如“-”“_”），为空则直接拼接</span>
+            <span>
+              占位符之间的连接符（如“-”“_”“.”），为空则直接拼接<br />
+              <strong class="text-gray-700">示例：</strong>选择{Author}和{VideoTitle}，分隔符填“-”，将生成“博主名称-视频标题”格式文件名
+            </span>
           </div>
         </a-form-item>
 
         <!-- 完整模板预览：只有关闭"标题当文件名"时才显示 -->
         <a-form-item label="完整模板预览" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
           <a-input v-model:value="formState.FullFollowedTitleTemplate" placeholder="最终的模板" disabled style="background: #f5f5f5" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>
+              实时展示您选择的占位符和分隔符组合效果<br />
+              <strong class="text-gray-700">示例：</strong>选择{Author}、{ReleaseTime}、{Id}，分隔符填“_”，预览结果为“博主名称_20250101_123456”
+            </span>
+          </div>
         </a-form-item>
       </div>
 
@@ -150,20 +164,19 @@ import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
 import { useApiStore } from '@/store';
 import { message } from 'ant-design-vue';
-import { InfoCircleOutlined } from '@ant-design/icons-vue';
+import { InfoCircleOutlined, SaveOutlined, CheckOutlined } from '@ant-design/icons-vue';
 
 // 表单引用
 const formRef = ref<FormInstance>();
 
 // 模板字段：结构化数组
 const template_options = [
-  { label: '{Id}', value: '{Id}' },
-  { label: '{VideoTitle}', value: '{VideoTitle}' },
-  { label: '{FileHash}', value: '{FileHash}' },
-  // { label: '{FileSize}', value: '{FileSize}' },
-  { label: '{Resolution}', value: '{Resolution}' },
-  // { label: '{SyncTime}', value: '{SyncTime}' },
-  { label: '{ReleaseTime}', value: '{ReleaseTime}' },
+  { label: '{Id} (视频ID)', value: '{Id}' },
+  { label: '{VideoTitle} (视频标题)', value: '{VideoTitle}' },
+  { label: '{ReleaseTime} (发布时间)', value: '{ReleaseTime}' },
+  { label: '{Author} (博主名称)', value: '{Author}' },
+  { label: '{FileHash} (文件哈希)', value: '{FileHash}' },
+  { label: '{Resolution} (分辨率)', value: '{Resolution}' },
 ];
 
 // 状态定义
@@ -414,5 +427,17 @@ const onCancel = () => {
 // 禁用输入框样式优化
 :deep(.ant-input-disabled) {
   color: #666 !important;
+}
+
+// 模板选择器选项样式优化
+:deep(.ant-select-item-option-content) {
+  display: flex;
+  align-items: center;
+}
+
+// 提示信息中的强调文本样式
+:deep(.text-gray-700) {
+  color: #444 !important;
+  font-weight: 500;
 }
 </style>
