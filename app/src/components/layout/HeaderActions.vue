@@ -13,23 +13,54 @@ const copyLoading = ref<Record<string, boolean>>({}); // 复制按钮加载状�
 const notificationKey = ref<string>('version-notification');
 
 // 复制版本号方法（优化：去除“（当前版本）”标记，只复制纯版本号）
+// 复制版本号方法（优化：兼容所有浏览器，修复 navigator.clipboard 不存在的问题）
 const copyVersion = (version: string) => {
-  const pureVersion = version.replace('（当前版本）', '').trim(); // 过滤标记
+  const pureVersion = version.replace('（当前版本）', '').replace('（最新版）', '').trim(); // 过滤所有标记
   copyLoading.value[version] = true;
-  navigator.clipboard
-    .writeText(pureVersion)
-    .then(() => {
-      message.success(`已复制版本: ${pureVersion}`);
-    })
-    .catch(() => {
-      message.error('复制失败，请手动复制');
-    })
-    .finally(() => {
+
+  // 兼容方案：优先使用现代 API，降级使用传统方法
+  const doCopy = async () => {
+    try {
+      // 方案1：现代浏览器 + HTTPS 环境（优先）
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(pureVersion);
+        message.success(`已复制版本: ${pureVersion}`);
+        return;
+      }
+
+      // 方案2：降级使用 document.execCommand（兼容 HTTP/旧浏览器）
+      const textarea = document.createElement('textarea');
+      // 隐藏文本域（避免影响页面）
+      textarea.style.position = 'absolute';
+      textarea.style.top = '-9999px';
+      textarea.style.left = '-9999px';
+      textarea.value = pureVersion;
+      document.body.appendChild(textarea);
+
+      // 选中并复制
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea); // 清理 DOM
+
+      if (success) {
+        message.success(`已复制版本: ${pureVersion}`);
+      } else {
+        throw new Error('execCommand 复制失败');
+      }
+    } catch (error) {
+      // 方案3：最终降级 - 提示手动复制
+      message.warning(`复制失败，请手动复制：${pureVersion}`);
+      console.warn('复制版本号失败：', error);
+    } finally {
       copyLoading.value[version] = false;
-    });
+    }
+  };
+
+  doCopy();
 };
 
 // 定义版本列表组件（移除所有额外当前版本标记）
+// 定义版本列表组件（完整版本：保留所有原有逻辑+样式优化+单行显示）
 const renderVersionList = (): VNode => {
   return h(
     'div',
@@ -45,42 +76,57 @@ const renderVersionList = (): VNode => {
     [
       dyVersions.value.length > 0
         ? dyVersions.value.map((tag, index) => {
-            const isFirstWithCurrent = tag.includes('（当前版本）'); // 只通过文本判断是否为当前版本
+            // 判断是否包含当前版本/最新版标记
+            const isCurrentVersion = tag.includes('（当前版本）');
+            const isLatestVersion = tag.includes('（最新版）');
+
             return h(
               'div',
               {
-                class: ['custom-version-item', isFirstWithCurrent ? 'custom-current-version' : ''],
+                class: [
+                  'custom-version-item',
+                  isCurrentVersion ? 'custom-current-version' : '',
+                  isLatestVersion ? 'custom-latest-version' : '',
+                ],
                 key: index,
-                title: isFirstWithCurrent ? '当前使用版本 - 点击右侧按钮复制版本号' : '点击右侧按钮复制版本号',
+                title: isCurrentVersion
+                  ? '当前使用版本 - 点击右侧按钮复制版本号'
+                  : isLatestVersion
+                  ? '最新版本 - 点击右侧按钮复制版本号'
+                  : '点击右侧按钮复制版本号',
                 style: {
                   width: '100%',
                   padding: '8px 12px',
                   borderBottom: '1px solid #f0f0f0',
                   borderRadius: '4px',
-                  transition: 'all 0.2s',
+                  transition: 'all 0.2s ease',
                   boxSizing: 'border-box',
-                  // 核心：块级Flex，强制内部（文字+按钮）一行
+                  // 核心：Flex布局确保文字+按钮一行显示
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  whiteSpace: 'nowrap',
-                  // 只保留轻微背景色（可选，可删除）
-                  backgroundColor: isFirstWithCurrent ? 'rgba(24, 144, 255, 0.05)' : 'transparent',
+                  whiteSpace: 'nowrap', // 禁止整行换行
+                  // 版本标记背景色（区分当前版和最新版）
+                  backgroundColor: isCurrentVersion
+                    ? 'rgba(24, 144, 255, 0.05)'
+                    : isLatestVersion
+                    ? 'rgba(46, 125, 50, 0.05)'
+                    : 'transparent',
                 },
               },
               [
-                // 文本容器（单行+溢出省略）
+                // 文本容器（单行溢出省略+标记颜色区分）
                 h(
                   'div',
                   {
                     style: {
                       display: 'flex',
                       alignItems: 'center',
-                      // 给按钮留固定空间，文本超长时省略
+                      // 给复制按钮留固定宽度，避免文本挤压
                       maxWidth: 'calc(100% - 40px)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
+                      whiteSpace: 'nowrap', // 文本单行显示
                     },
                   },
                   [
@@ -89,17 +135,21 @@ const renderVersionList = (): VNode => {
                       {
                         style: {
                           fontSize: '14px',
-                          color: isFirstWithCurrent ? '#1890ff' : '#1f2937', // 当前版本文字变色（可选，可删除）
+                          color: isCurrentVersion
+                            ? '#1890ff' // 当前版本文字色
+                            : isLatestVersion
+                            ? '#2e7d32' // 最新版本文字色
+                            : '#1f2937', // 普通版本文字色
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         },
                       },
-                      tag // 直接显示带“（当前版本）”的文本
+                      tag // 显示带标记的完整文本（如：v1.0.0（当前版本））
                     ),
                   ]
                 ),
-                // 复制按钮（固定大小，不挤压）
+                // 复制按钮（固定大小+加载动画+hover效果）
                 h(
                   'button',
                   {
@@ -109,18 +159,24 @@ const renderVersionList = (): VNode => {
                       border: 'none',
                       borderRadius: '4px',
                       backgroundColor: 'transparent',
-                      color: copyLoading.value[tag] ? '#d1d5db' : isFirstWithCurrent ? '#1890ff' : '#9ca3af',
+                      color: copyLoading.value[tag]
+                        ? '#d1d5db' // 加载中颜色
+                        : isCurrentVersion
+                        ? '#1890ff' // 当前版本按钮色
+                        : isLatestVersion
+                        ? '#2e7d32' // 最新版本按钮色
+                        : '#9ca3af', // 普通版本按钮色
                       cursor: copyLoading.value[tag] ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       padding: '0',
                       margin: '0',
-                      flexShrink: '0',
-                      transition: 'all 0.2s',
+                      flexShrink: '0', // 禁止按钮收缩
+                      transition: 'all 0.2s ease',
                     },
                     onClick: (e: Event) => {
-                      e.stopPropagation();
+                      e.stopPropagation(); // 阻止事件冒泡
                       copyVersion(tag);
                     },
                     disabled: copyLoading.value[tag],
@@ -130,6 +186,7 @@ const renderVersionList = (): VNode => {
                     h(CopyOutlined, {
                       style: {
                         fontSize: '14px',
+                        // 加载时旋转动画
                         animation: copyLoading.value[tag] ? 'custom-spin 1s linear infinite' : 'none',
                       },
                     }),
