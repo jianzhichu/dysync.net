@@ -109,29 +109,26 @@
           <a-input v-model:value="addForm.uperName" placeholder="请输入博主姓名" maxlength="20" @input="clearFormError('uperName')" />
         </a-form-item>
 
-        <a-form-item name="博主ID" label="uperId" :validate-status="addFormErrors.uperId ? 'error' : ''" :help="addFormErrors.uperId || ''" class="uper-id-form-item">
+        <a-form-item name="uperId" label="博主Uid" :validate-status="addFormErrors.uperId ? 'error' : ''" :help="addFormErrors.uperId || ''" class="uper-id-form-item">
           <a-input v-model:value="addForm.uperId" placeholder="请输入博主Uid" maxlength="50" @input="clearFormError('uperId')" />
         </a-form-item>
 
-        <a-form-item name="secUid" label="sec_Uid" :validate-status="addFormErrors.secUid ? 'error' : ''" :help="addFormErrors.secUid || ''">
+        <a-form-item name="secUid" label="博主SecUid" :validate-status="addFormErrors.secUid ? 'error' : ''" :help="addFormErrors.secUid || ''">
           <a-input v-model:value="addForm.secUid" placeholder="请输入博主secUid" />
         </a-form-item>
 
         <a-form-item name="savePath" label="保存文件夹" :validate-status="addFormErrors.savePath ? 'error' : ''" :help="addFormErrors.savePath || ''">
-          <a-input v-model:value="addForm.savePath" placeholder="不填则默认使用博主姓名" maxlength="20" @input="clearFormError('savePath')" />
+          <a-input v-model:value="addForm.savePath" placeholder="不填默认使用博主姓名" maxlength="20" @input="clearFormError('savePath')" />
         </a-form-item>
 
-        <a-form-item label="同步设置" :wrapper-col="{ span: 17, offset: 6 }">
-          <div class="form-switch-group">
-            <div class="form-switch-item">
-              <span class="switch-label">是否同步</span>
-              <a-switch v-model:checked="addForm.openSync" checked-children="是" un-checked-children="否" />
-            </div>
-            <div class="form-switch-item">
-              <span class="switch-label">是否全量同步</span>
-              <a-switch v-model:checked="addForm.fullSync" checked-children="是" un-checked-children="否" :disabled="!addForm.openSync" />
-            </div>
-          </div>
+        <!-- 是否同步 - 独立表单项 -->
+        <a-form-item label="是否同步">
+          <a-switch v-model:checked="addForm.openSync" checked-children="是" un-checked-children="否" />
+        </a-form-item>
+
+        <!-- 是否全量同步 - 独立表单项 -->
+        <a-form-item label="全量同步">
+          <a-switch v-model:checked="addForm.fullSync" checked-children="是" un-checked-children="否" :disabled="!addForm.openSync" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -208,7 +205,7 @@ const addForm = ref<AddForm>({
   uperName: '',
   secUid: '',
   savePath: '',
-  openSync: true,
+  openSync: false,
   fullSync: false,
   mySelfId: '',
   uperId: '',
@@ -488,7 +485,7 @@ const handleAdd = () => {
     uperName: '',
     uperId: '',
     savePath: '',
-    openSync: true,
+    openSync: false,
     fullSync: false,
     secUid: '',
     mySelfId: activeTabKey.value,

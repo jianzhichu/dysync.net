@@ -33,7 +33,7 @@
 ## 1. 获取抖音关键信息（必做！同步核心凭证）
 Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，避免遗漏或错误。
 
-### 1.1 提取抖音 Cookie
+### 1.1 提取抖音 Cookie 
 1. 打开 **抖音网页版** (https://www.douyin.com/) 并登录目标账号；
 2. 进入「我的收藏」页面，确保页面加载完成；
 3. 按 `F12` 打开浏览器「开发者工具」，切换到「Network (网络)」标签；
@@ -41,20 +41,20 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 5. 点击任意一条筛选结果，在右侧「Headers (标头)」中找到 `Cookie` 字段，**完整复制整段内容**（不可删减字符）。
 
 ![获取Cookie步骤](docs/getcookies.png)
-![提取个人sec_user_id](docs/secUserId.png)
 
-### 1.2 提取 `sec_user_id`（个人/指定博主）
-- **个人 sec_user_id**（同步自己的收藏/喜欢用）：  
-  进入自己的抖音主页，浏览器地址栏中 `sec_user_id=` 后的字符串即为个人 ID（如 `https://www.douyin.com/user/sec_user_id=xxx`）。
-- **博主 sec_user_id**（同步指定博主作品用）：  
-  1. 进入目标博主主页；  
-  2. 方式1：直接复制地址栏中 `user/` 到 `?from_tab_name` 中间部分内容即是博主的 `sec_user_id`；  
-  3. 方式2：按 `F12` → 「Network」→ 任意请求 → 「Headers」→ 提取 `sec_user_id` 字段值。
+### 1.2 提取你的`sec_user_id`
+- **个人 sec_user_id**（同步自己喜欢用）：  
+  1.进入自己的抖音主页：
+- 方式：按 `F12` 点击`Network` 或`网络` 筛选器里面填`web/user/following/list` 然后 查看请求的 `payload` 或`负载` 即可找到`sec_user_id`;
+  2.进入抖音主页后随便点一个自己的作品，然后你的名字，进入目标博主主页；  
+  方式：直接复制地址栏中 `user/` 到 `?from_tab_name` 中间部分内容即是博主的 `sec_user_id`；
 
-> ⚠️ **风控提示**：同步博主作品时，**慎用开启全量同步**（一次性下载过多易被抖音限制访问）。
+  ![获取Cookie步骤](docs/getmysecuid.png)
 
-![提取博主sec_user_id](docs/upers-uid.png)
-
+### 1.3 提取 博主的`sec_user_id`以及博主的uid
+- **对于想下载博主视频，但是又不想关注博主，需要用到**
+- 1.进入博主主页，按`F12` 点击`Network` 或`网络` 筛选器里面填`/web/aweme/post` 然后切到`预览`或`preview` 展开 json数据结果 找到`aweme_list` 然后随便点开其中一个子项 即可找到`author_user_id` 这便是博主的uid 。后续在关注列表中，需要手动添加非关注博主同步视频时将会要用到。
+ ![获取Cookie步骤](docs/getuperuid.png)
 ---
 
 ## 2. 路径映射规则（核心！错配会导致无法访问/数据丢失）
