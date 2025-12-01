@@ -24,6 +24,11 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> AddAsync(DouyinFollowed followed)
         {
+          var foll= await _followRepository.GetFirstAsync(x=>x.SecUid==followed.SecUid && x.mySelfId== followed.mySelfId);
+            if(foll!=null)
+            {
+                return false;
+            }
             followed.Id = IdGener.GetLong().ToString();
             followed.LastSyncTime = DateTime.UtcNow;
             return await _followRepository.InsertAsync(followed);

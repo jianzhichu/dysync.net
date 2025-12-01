@@ -68,7 +68,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> AddFollow(DouyinFollowed followed)
         {
             var res = await _douyinFollowService.AddAsync(followed);
-            return Ok(new { code = res ? 0 : -1, msg = res ? "" : "添加失败" });
+            return Ok(new { code = res ? 0 : -1, msg = res ? "" : "添加失败,或者已存在相同secuid和uid" });
         }
 
         /// <summary>
