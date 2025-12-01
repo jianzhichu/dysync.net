@@ -73,6 +73,5 @@ namespace dy.net.model
         /// 自动去重-逻辑是遇到相同ID的视频直接跳过
         /// </summary>
         public bool AutoDistinct { get; set; }
-
     }
 }

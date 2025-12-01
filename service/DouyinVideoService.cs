@@ -3,6 +3,7 @@ using dy.net.dto;
 using dy.net.model;
 using dy.net.repository;
 using dy.net.utils;
+using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
@@ -21,38 +22,66 @@ namespace dy.net.service
         }
 
 
-        public async Task<bool> batchInsert(List<DouyinVideo> videos)
+        public async Task<bool> BatchInsertOrUpdate(List<DouyinVideo> videos)
         {
-
-            // 边界处理：如果传入的列表为空，直接返回成功（或根据业务返回false）
+            // 边界处理：传入列表为空直接返回成功
             if (videos == null || !videos.Any())
                 return true;
 
-            // 1. 提取待插入的所有AwemeId（去重，减少数据库查询压力）
-            var newAwemeIds = videos.Select(x => x.AwemeId)
-                                    .Distinct()
-                                    .ToList();
+            // 1. 提取所有AwemeId（无需去重，用户保证无重复）
+            var allAwemeIds = videos.Select(v => v.AwemeId).ToList();
 
-            // 2. 查询数据库中已存在的AwemeId（只查需要的字段，提高效率）
-            var existingAwemeIds = await _dyCollectVideoRepository
-                .Query(x => newAwemeIds.Contains(x.AwemeId)) // 使用Query方法构建查询
-                .Select(x => x.AwemeId) // 只获取AwemeId，减少数据传输
+            // 2. 查询数据库中已存在的视频记录（用于后续更新）
+            var existingVideos = await _dyCollectVideoRepository
+                .Query(x => allAwemeIds.Contains(x.AwemeId))
                 .ToListAsync();
 
-            // 3. 过滤出数据库中不存在的视频（只保留新记录）
+            // 3. 分拆数据集：不存在的（插入）、已存在的（更新）
+            var existingAwemeIdSet = existingVideos.Select(v => v.AwemeId).ToHashSet();
             var videosToInsert = videos
-                .Where(video => !existingAwemeIds.Contains(video.AwemeId))
+                .Where(v => !existingAwemeIdSet.Contains(v.AwemeId))
+                .ToList();
+            var videosToUpdate = videos
+                .Where(v => existingAwemeIdSet.Contains(v.AwemeId))
                 .ToList();
 
-            // 4. 如果没有需要插入的新记录，直接返回成功
-            if (!videosToInsert.Any())
-                return true;
+            // 4. 事务包裹：确保插入/更新原子性
+             var transaction = await _dyCollectVideoRepository.UseTranAsync(async () =>
+            {
+                int insertedCount = 0;
+                int updatedCount = 0;
 
-            // 5. 批量插入过滤后的新记录
-            var insertedCount = await _dyCollectVideoRepository.InsertRangeAsync(videosToInsert);
+                // 5. 批量插入新记录
+                if (videosToInsert.Any())
+                {
+                    insertedCount = await _dyCollectVideoRepository.InsertRangeAsync(videosToInsert);
+                }
 
-            // 返回是否插入成功（至少插入一条）
-            return insertedCount > 0;
+                // 6. 批量更新已存在记录（核心逻辑）
+                if (videosToUpdate.Any())
+                {
+                    // 建立AwemeId与待更新数据的映射（O(1)匹配效率）
+                    var updateMap = videosToUpdate.ToDictionary(v => v.AwemeId);
+
+                    // 遍历已存在实体，赋值需要更新的字段
+                    List<DouyinVideo> updates= new List<DouyinVideo>();
+                    foreach (var existingVideo in existingVideos)
+                    {
+                        if (updateMap.TryGetValue(existingVideo.AwemeId, out var updateData))
+                        {
+                            existingVideo.VideoSavePath = updateData.VideoSavePath;
+                            existingVideo.VideoCoverSavePath = updateData.VideoCoverSavePath;
+                        }
+                    }
+                    // 批量更新数据库
+                    updatedCount = await _dyCollectVideoRepository.UpdateRangeAsync(existingVideos);
+                }
+
+            }, ex =>
+            {
+                Serilog.Log.Error(ex, "批量插入/更新抖音视频失败，AwemeIds：{AwemeIds}", string.Join(",", allAwemeIds));
+            });
+            return transaction;
         }
 
 

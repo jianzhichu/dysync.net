@@ -72,7 +72,7 @@ namespace dy.net.job
         /// <summary>
         /// 是否下载图片并合成视频
         /// </summary>
-        private bool _downImageVideo;
+        //private bool _downImageVideo;
 
         #endregion
 
@@ -138,13 +138,10 @@ namespace dy.net.job
             if (config.BatchCount > 0)
                 count = config.BatchCount.ToString();
 
-            // 3. 初始化是否下载图片视频的设置
-            InitializeDownImageVideoSetting(config);
-
-            // 4. 在处理Cookie之前执行的预处理操作（子类可重写）
+            // 3. 在处理Cookie之前执行的预处理操作
             await BeforeProcessCookies();
 
-            // 5. 获取所有有效的Cookie
+            // 4. 获取所有有效的Cookie
             var cookies = await GetValidCookies();
             if (cookies == null || !cookies.Any())
             {
@@ -314,10 +311,10 @@ namespace dy.net.job
                     int syncCount = 0; // 本次同步成功的视频数量
                     string cursor = "0"; // 初始游标
                     bool hasMore = true; // 是否还有更多数据
+
+                    //查询关注列表开启了同步的关注
                     var follows = await douyinFollowService.GetSyncFollows(cookie.MyUserId);
 
-
-                    //var ups = JsonConvert.DeserializeObject<List<DouyinUpSecUserIdDto>>(cookie.UpSecUserIds);
                     var firstUp = follows?.Where(x => !string.IsNullOrWhiteSpace(x.SecUid)).FirstOrDefault();
                     if (firstUp == null)
                     {
@@ -385,6 +382,13 @@ namespace dy.net.job
                 // 保存视频信息到数据库
                 syncCount += await SaveVideos(videos);
 
+                //当syncCount达到上限时，跳出循环
+                if (config.BatchCount > 0 && syncCount >= config.BatchCount)
+                {
+                    Log.Debug($"{JobType}-Cookie[{cookie.UserName}]本次同步达到上限{config.BatchCount}，停止同步!!!");
+                    break;
+                }
+
                 // 随机延迟，模拟人类操作，避免请求过快
                 await Task.Delay(_random.Next(5, 10) * 1000);
             }
@@ -414,7 +418,7 @@ namespace dy.net.job
                     {
                         if (File.Exists(exitVideo.VideoSavePath))
                         {
-                            Serilog.Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在，跳过");
+                            Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在，跳过");
                             continue;// 已存在则跳过
                         }
                     }
@@ -434,14 +438,11 @@ namespace dy.net.job
                     videos.Add(video);
 
                 // 如果配置了下载图片视频，则处理图片集并合成视频
-                if (_downImageVideo)
+                if (config.DownImageVideo || config.DownMp3 || config.DownImage)
                 {
-                    if (config.DownImageVideo || config.DownMp3 || config.DownImage)
-                    {
-                        var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
-                        if (mergevideo != null)
-                            videos.Add(mergevideo);
-                    }
+                    var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
+                    if (mergevideo != null)
+                        videos.Add(mergevideo);
                 }
             }
             return videos;
@@ -480,7 +481,11 @@ namespace dy.net.job
             var savePath = Path.Combine(saveFolder, fileName);
 
             // 如果文件已存在，跳过
-            if (File.Exists(savePath)) return null;
+            if (File.Exists(savePath))
+            {
+                Log.Debug($"{JobType}-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
+                return null;
+            }
 
             Log.Debug($"{JobType}-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]开始下载...");
             // 随机延迟，模拟人类操作
@@ -656,7 +661,7 @@ namespace dy.net.job
             if (!videos.Any()) return 0;
             try
             {
-                await douyinVideoService.batchInsert(videos);
+                await douyinVideoService.BatchInsertOrUpdate(videos);
 
                 var redowns = await douyinCommonService.GetAllRedown();
                 if (redowns != null && redowns.Any())
@@ -798,20 +803,6 @@ namespace dy.net.job
             );
         }
 
-        /// <summary>
-        /// 初始化是否下载图片视频的设置
-        /// 从环境变量和配置文件中读取设置，环境变量优先级更高
-        /// </summary>
-        /// <param name="config">应用配置</param>
-        private void InitializeDownImageVideoSetting(AppConfig config)
-        {
-            var downImageVideoConfig = Appsettings.Get("DOWN_IMGVIDEO");
-            if (!string.IsNullOrWhiteSpace(downImageVideoConfig))
-            {
-                downImageVideoConfig = downImageVideoConfig.ToLower();
-                _downImageVideo = config.DownImageVideo && downImageVideoConfig == "1";
-            }
-        }
 
         /// <summary>
         /// 清理保存失败的视频文件
