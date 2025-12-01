@@ -334,23 +334,6 @@ const formatFilePath = (filePath?: string) => {
   return filePath;
 };
 
-/** 渲染弹窗标题（带悬停显示存储路径） */
-const renderModalTitle = () => {
-  // 获取存储路径（优先显示实际路径，无路径时显示提示）
-  const filePath = formatFilePath(currentVideoInfo.value?.videoSavePath);
-  // 格式化后的标题文本
-  const titleText = formatModalTitle(currentVideoInfo.value?.videoTitle);
-
-  return h(
-    'span',
-    {
-      class: 'modal-title-with-tooltip',
-      title: filePath, // 悬停时显示的存储路径
-    },
-    titleText
-  );
-};
-
 // -------------------------- 核心工具方法 --------------------------
 /** 格式化表格视频标题：超过20字符显示省略号 */
 const formatVideoTitle = (title?: string) => {

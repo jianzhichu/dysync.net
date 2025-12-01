@@ -99,7 +99,7 @@
       <div v-if="noMoreData && followData.length > 0" class="no-more-container">暂无更多数据</div>
       <!-- 空状态 -->
       <div v-if="followData.length === 0 && !loading" class="empty-container">
-        <Empty description="暂无关注用户，或Cookie设置中未设置SecUserId" />
+        <Empty description="暂无关注用户" />
       </div>
     </div>
 

@@ -418,7 +418,7 @@ namespace dy.net.job
                     {
                         if (File.Exists(exitVideo.VideoSavePath))
                         {
-                            Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在，跳过");
+                            //Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在，跳过");
                             continue;// 已存在则跳过
                         }
                     }
@@ -483,7 +483,7 @@ namespace dy.net.job
             // 如果文件已存在，跳过
             if (File.Exists(savePath))
             {
-                Log.Debug($"{JobType}-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
+                //Log.Debug($"{JobType}-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
                 return null;
             }
 
