@@ -48,7 +48,21 @@ namespace dy.net.job
                     List<FollowingsItem> follows = new List<FollowingsItem>();
                     while (hasmore)
                     {
-                        var data = await _douyinService.SyncMyFollows(count, offset, ck.SecUserId, ck.Cookies);
+                        var data = await _douyinService.SyncMyFollows(count, offset, ck.SecUserId, ck.Cookies, async err =>
+                        {
+                            if (err.StatusCode != 0)
+                            {
+                                Serilog.Log.Error($"同步用户[{ck.UserName}]关注列表时发生错误，错误信息：{err.StatusMsg}，状态码：{err.StatusCode}");
+                            }
+                            // 如果是未登录错误，则跳出循环
+                            if (err.StatusCode == 8)
+                            {
+                                hasmore = false;
+                            }
+                            ck.StatusMsg = err.StatusCode == 8 ? "已过期" : "正 常";
+                            ck.StatusCode = err.StatusCode;
+                            await _dyCookieService.UpdateAsync(ck);
+                        });
 
                         if (data != null)
                         {

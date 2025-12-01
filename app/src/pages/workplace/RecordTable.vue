@@ -53,13 +53,6 @@
                 <SyncOutlined />
                 重新同步
               </a-button>
-              <!-- <a-button type="danger" @click="StartNow" :disabled="isSyncing" class="sync-button">
-                <template #icon>
-                  <a-spin v-if="isSyncing" size="small" />
-                </template>
-                <SyncOutlined />
-                立即同步
-              </a-button> -->
             </a-space>
           </a-form-item>
         </div>
@@ -79,6 +72,7 @@
         <span class="modal-title-with-tooltip" :title="formatFilePath(currentVideoInfo?.videoSavePath)">
           {{ playingTitle }}
         </span>
+
       </template>
       <div class="video-container">
         <div v-if="isVideoLoading" class="loading-overlay">
@@ -95,6 +89,7 @@
       </div>
       <div v-if="currentVideoInfo" class="video-info-bar">
         <div class="info-container">
+
           <div class="info-item">
             <span class="info-label">同步时间：</span>
             <span class="info-value">{{ currentVideoInfo.syncTimeStr || '未知' }}</span>
@@ -103,6 +98,17 @@
             <span class="info-label">视频类型：</span>
             <span class="info-value">{{ currentVideoInfo.viedoCate || '未知' }}</span>
           </div>
+          <div class="info-item">
+            <a-popover placement="bottom">
+              <template #content>
+                <p>{{formatPathSeparator(currentVideoInfo?.videoSavePath)}}</p>
+              </template>
+              <a-button type="link" size="small" @click="copyVideoPath(formatPathSeparator(currentVideoInfo?.videoSavePath))" class="copy-path-btn">
+                复制路径
+              </a-button>
+            </a-popover>
+          </div>
+
         </div>
       </div>
     </a-modal>
@@ -335,6 +341,12 @@ const formatFilePath = (filePath?: string) => {
 };
 
 // -------------------------- 核心工具方法 --------------------------
+
+const formatPathSeparator = (path) => {
+  if (!path) return path; // 处理空路径情况
+  // 正则表达式 /\\/g 表示全局匹配所有反斜杠
+  return path.replace(/\\/g, '/');
+};
 /** 格式化表格视频标题：超过20字符显示省略号 */
 const formatVideoTitle = (title?: string) => {
   if (!title) return '无标题';
@@ -674,7 +686,7 @@ const handleBatchShare = () => {
       shareUrl += `${currentDomain}/share/${record.id}/${k}
       `;
     });
-    copyToClipboard(shareUrl);
+    copyToClipboard(shareUrl, '分享链接已复制到剪贴板！');
   } catch (error) {
     console.error('分享失败：', error);
     message.error('分享功能异常，请稍后重试');
@@ -682,12 +694,12 @@ const handleBatchShare = () => {
 };
 
 // 复制链接到剪贴板（兼容生产环境）
-const copyToClipboard = async (shareUrl) => {
+const copyToClipboard = async (shareUrl, msg) => {
   try {
     // 方案1：优先使用 navigator.clipboard（现代浏览器+HTTPS环境）
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       await navigator.clipboard.writeText(shareUrl);
-      message.success('分享链接已复制到剪贴板！');
+      message.success(msg);
     } else {
       // 方案2：降级使用 document.execCommand（兼容HTTP/旧浏览器）
       const textarea = document.createElement('textarea');
@@ -704,7 +716,7 @@ const copyToClipboard = async (shareUrl) => {
       document.body.removeChild(textarea); // 清理DOM
 
       if (success) {
-        message.success('分享链接已复制到剪贴板！');
+        message.success(msg);
       } else {
         // 方案3：最终降级 - 显示链接让用户手动复制
         throw new Error('自动复制失败');
@@ -737,11 +749,20 @@ const handleShare = (record: DataItem) => {
     // 生成分享链接
     let k = CryptoJS.MD5(record.fileHash + record.authorId).toString();
     const shareUrl = `${currentDomain}/share/${record.id}/${k}`;
-    copyToClipboard(shareUrl);
+    copyToClipboard(shareUrl, '分享链接已复制到剪贴板！');
   } catch (error) {
     console.error('分享失败：', error);
     message.error('分享功能异常，请稍后重试');
   }
+};
+
+// 新增：复制视频路径方法
+const copyVideoPath = (path?: string) => {
+  if (!path) {
+    message.warning('暂无视频存储路径');
+    return;
+  }
+  copyToClipboard(path, '视频保存路径已复制到剪贴板！');
 };
 
 // -------------------------- 页面初始化 --------------------------
@@ -986,9 +1007,11 @@ onMounted(() => {
 
 .info-item {
   display: flex;
+  flex: 1;
   align-items: center;
   font-size: 14px;
   line-height: 1.6;
+  flex-wrap: nowrap;
 }
 
 .info-label {
@@ -1000,6 +1023,17 @@ onMounted(() => {
 
 .info-value {
   color: #333333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+/* 新增：复制路径按钮样式 */
+.copy-path-btn {
+  padding: 0 6px !important;
+  height: 24px !important;
+  font-size: 12px !important;
   white-space: nowrap;
 }
 

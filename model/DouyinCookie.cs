@@ -84,60 +84,17 @@ namespace dy.net.model
         [SugarColumn(Length = 500, IsNullable = true)]
         public string ImgSavePath { get; set; }
 
+        /// <summary>
+        /// 抖音返回的状态码，主要用于判断Cookie是否有效
+        /// 0 正常 8 - 用户未登录
+        /// </summary>
+        public int StatusCode { get; set; }
 
-        //[SugarColumn(IsIgnore = true)]
-        //public List<DouyinUpSecUserIdDto> UpSecUserIdsJson
-        //{
-        //    get
-        //    {
-        //        // 反序列化逻辑（保持不变）
-        //        if (string.IsNullOrWhiteSpace(UpSecUserIds))
-        //        {
-        //            return new List<DouyinUpSecUserIdDto>();
-        //        }
-
-        //        try
-        //        {
-        //            return JsonConvert.DeserializeObject<List<DouyinUpSecUserIdDto>>(UpSecUserIds);
-        //        }
-        //        catch (JsonSerializationException ex)
-        //        {
-        //            // 日志记录（按需添加）
-        //            // Logger.Error($"反序列化失败：{ex.Message}，原始值：{UpSecUserIds}");
-        //            return new List<DouyinUpSecUserIdDto>();
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            // 日志记录（按需添加）
-        //            // Logger.Error($"处理异常：{ex.Message}");
-        //            return new List<DouyinUpSecUserIdDto>();
-        //        }
-        //    }
-        //    set
-        //    {
-        //        // 序列化逻辑：将列表转为JSON字符串，赋值给UpSecUserIds
-        //        try
-        //        {
-        //            // 若传入的列表为null，直接设为空字符串（避免序列化后出现"null"字符串）
-        //            UpSecUserIds = value == null
-        //                ? string.Empty
-        //                : JsonConvert.SerializeObject(value);
-        //        }
-        //        catch (JsonSerializationException ex)
-        //        {
-        //            // 捕获序列化异常（如对象循环引用、不支持的类型等）
-        //            // Logger.Error($"序列化失败：{ex.Message}，列表值：{value}");
-        //            // 异常时默认设为空字符串，避免存储错误的JSON
-        //            UpSecUserIds = string.Empty;
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            // 捕获其他未知异常
-        //            // Logger.Error($"设置值异常：{ex.Message}");
-        //            UpSecUserIds = string.Empty;
-        //        }
-        //    }
-        //}
+        /// <summary>
+        /// 
+        /// </summary>
+        [SugarColumn(Length = 100, IsNullable = true)]
+        public string StatusMsg { get; set; }
 
     }
 }

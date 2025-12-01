@@ -229,8 +229,9 @@ namespace dy.net.service
         /// <param name="offset"></param>
         /// <param name="secUserId"></param>
         /// <param name="cookie"></param>
+        /// <param name="callBack"></param>
         /// <returns></returns>
-        public async Task<DouyinFollowInfo> SyncMyFollows(string count,string offset,string secUserId,string cookie)
+        public async Task<DouyinFollowInfo> SyncMyFollows(string count,string offset,string secUserId,string cookie,Action<FollowErrorDto> callBack)
         {
 
             try
@@ -255,7 +256,21 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinFollowInfo>(data);
+                    var res= JsonConvert.DeserializeObject<DouyinFollowInfo>(data);
+                    if(res.Followings==null)
+                    {
+                        var err= JsonConvert.DeserializeObject<FollowErrorDto>(data);
+                        Serilog.Log.Error($"SyncMyFollows error: {err.StatusMsg}");
+                        if (err != null)
+                        {
+                            callBack(err);
+                        }
+                    }
+                    else
+                    {
+                        callBack(new FollowErrorDto { StatusCode = 0 });
+                    }
+                    return res;
                 }
                 else
                 {

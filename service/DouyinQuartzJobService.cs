@@ -43,7 +43,7 @@ namespace dy.net.service
             var jobTasks = new List<Task<bool>>
             {
                    //关注列表
-                StartJobAsync("follow_user", expression),
+                //StartJobAsync("follow_user", expression),
                 //我收藏的作品
                 StartJobAsync("collect", expression),
                 //我喜欢的作品
