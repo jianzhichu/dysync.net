@@ -67,13 +67,19 @@
     </div>
 
     <!-- 视频播放弹窗 - 保持原有 -->
-    <a-modal v-model:visible="isModalOpen" :title="playingTitle" :width="900" :mask-closable="false" :footer="null" @cancel="handleCancel" :body-style="{ padding: '0', overflow: 'hidden', backgroundColor: '#fff' }" :style="{ 
+    <a-modal v-model:visible="isModalOpen" :width="900" :mask-closable="false" :footer="null" @cancel="handleCancel" :body-style="{ padding: '0', overflow: 'hidden', backgroundColor: '#fff' }" :style="{ 
     borderRadius: '8px',
     maxWidth: '85vw',
     maxHeight: '80vh',
     minWidth: '500px',
     minHeight: '400px'
   }" :mask-style="{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }">
+      <!-- 自定义弹窗标题（替代原来的:title属性） -->
+      <template #title>
+        <span class="modal-title-with-tooltip" :title="formatFilePath(currentVideoInfo?.videoSavePath)">
+          {{ playingTitle }}
+        </span>
+      </template>
       <div class="video-container">
         <div v-if="isVideoLoading" class="loading-overlay">
           <a-spin size="large" tip="视频加载中..." />
@@ -146,6 +152,7 @@ interface DataItem {
   dyUser?: string; // CK名称
   fileHash?: string;
   authorId?: string;
+  videoSavePath: string;
 }
 
 interface QuaryParam {
@@ -317,6 +324,33 @@ const videoId = ref('');
 const playingTitle = ref('');
 let videoProgressListener: ((e: Event) => void) | null = null; // 进度监听器
 
+/** 格式化存储路径（过长时中间省略） */
+const formatFilePath = (filePath?: string) => {
+  if (!filePath) return '暂无存储路径信息';
+  // 路径超过80字符时，保留前40和后30字符，中间用...省略
+  if (filePath.length > 80) {
+    return `${filePath.slice(0, 40)}...${filePath.slice(-30)}`;
+  }
+  return filePath;
+};
+
+/** 渲染弹窗标题（带悬停显示存储路径） */
+const renderModalTitle = () => {
+  // 获取存储路径（优先显示实际路径，无路径时显示提示）
+  const filePath = formatFilePath(currentVideoInfo.value?.videoSavePath);
+  // 格式化后的标题文本
+  const titleText = formatModalTitle(currentVideoInfo.value?.videoTitle);
+
+  return h(
+    'span',
+    {
+      class: 'modal-title-with-tooltip',
+      title: filePath, // 悬停时显示的存储路径
+    },
+    titleText
+  );
+};
+
 // -------------------------- 核心工具方法 --------------------------
 /** 格式化表格视频标题：超过20字符显示省略号 */
 const formatVideoTitle = (title?: string) => {
@@ -455,6 +489,7 @@ const handleVideoClick = (record: DataItem) => {
   }
   // 保存当前视频信息
   currentVideoInfo.value = record;
+  console.log(currentVideoInfo);
   videoId.value = record.id;
   playingTitle.value = formatModalTitle(record.videoTitle);
   // 重置错误状态
@@ -1151,5 +1186,19 @@ onMounted(() => {
     align-items: flex-start !important;
     gap: 4px !important;
   }
+}
+/* 弹窗标题悬停样式 */
+.modal-title-with-tooltip {
+  position: relative;
+  cursor: help; /* 鼠标变为帮助图标，提示可悬停 */
+  padding: 2px 0;
+}
+
+/* 可选：添加下划线动画增强交互提示 */
+.modal-title-with-tooltip:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: #1890ff;
+  text-decoration-thickness: 1px;
 }
 </style>
