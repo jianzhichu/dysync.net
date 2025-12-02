@@ -31,6 +31,12 @@ namespace dy.net.service
             var conf = GetConfig();
             if (conf != null)
             {
+                if (string.IsNullOrWhiteSpace(conf.PriorityLevel))
+                {
+                    conf.PriorityLevel = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]";
+                    sqlSugarClient.Updateable(conf).ExecuteCommand();
+                    //兼容旧版本
+                }
                 return conf;
             }
             else
@@ -50,7 +56,8 @@ namespace dy.net.service
                     FollowedTitleTemplate = "",
                     FullFollowedTitleTemplate = "",
                     FollowedTitleSeparator = "",
-                    AutoDistinct = true//默认开启
+                    AutoDistinct = true,//默认开启
+                    PriorityLevel= "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]"
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;
@@ -83,6 +90,7 @@ namespace dy.net.service
                 cc.ImageViedoSaveAlone = config.ImageViedoSaveAlone;
                 cc.FollowedTitleSeparator = config.FollowedTitleSeparator;
                 cc.AutoDistinct = config.AutoDistinct;
+                cc.PriorityLevel = config.PriorityLevel;
             }
 
             int update = await sqlSugarClient.Updateable(cc).ExecuteCommandAsync();

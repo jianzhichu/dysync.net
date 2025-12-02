@@ -84,6 +84,8 @@ namespace dy.net.job
         /// </summary>
         protected abstract string JobType { get; }
 
+        protected abstract VideoTypeEnum VideoType { get; }
+
         #endregion
 
         #region 构造函数
@@ -410,20 +412,12 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                //去重,检查视频是否已存在
-                if (config.AutoDistinct)
+                //判断是否存在视频，是否根据去重规则进行去重处理。。
+                bool Goon = await AutoDistinct(config, item);
+                if (!Goon)
                 {
-                    var exitVideo = await douyinVideoService.GetByAwemeId(item.AwemeId);
-                    if (exitVideo != null)
-                    {
-                        if (File.Exists(exitVideo.VideoSavePath))
-                        {
-                            //Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在，跳过");
-                            continue;// 已存在则跳过
-                        }
-                    }
+                    continue;
                 }
-
                 var uper = await douyinFollowService.GetByUperId(item.AuthorUserId.ToString(), cookie.MyUserId);
                 if (uper != null)
                 {
@@ -446,6 +440,138 @@ namespace dy.net.job
                 }
             }
             return videos;
+        }
+
+        private async Task<bool> AutoDistinct(AppConfig config, Aweme item)
+        {
+            // 去重，检查视频是否已存在（按优先级下载）
+            if (config.AutoDistinct)
+            {
+                // 1. 查询数据库中是否已存在该视频（通过 AwemeId 唯一标识）
+                var exitVideo = await douyinVideoService.GetByAwemeId(item.AwemeId);
+                if (exitVideo != null)
+                {
+                    // 2. 已存在视频：先判断本地文件是否存在
+                    if (File.Exists(exitVideo.VideoSavePath))
+                    {
+                        // 3. 解析优先级配置（前端传递的 JSON 字符串）
+                        List<PriorityLevelDto> priLevs = new List<PriorityLevelDto>();
+                        if (!string.IsNullOrWhiteSpace(config.PriorityLevel))
+                        {
+                            try
+                            {
+                                // 反序列化前端传递的优先级列表（JSON 字符串转对象）
+                                priLevs = JsonConvert.DeserializeObject<List<PriorityLevelDto>>(config.PriorityLevel);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error($"解析优先级配置失败：{ex.Message}", ex);
+                                priLevs = new List<PriorityLevelDto>(); // 解析失败则用默认优先级
+                            }
+                        }
+
+                        // 4. 处理优先级：获取「最高优先级」（Sort 越小优先级越高）
+                        PriorityLevelDto maxPriority = null;
+                        if (priLevs.Any())
+                        {
+                            // 前端已配置优先级：取 Sort 最小的（1最高）
+                            maxPriority = priLevs.OrderBy(x => x.Sort).FirstOrDefault();
+                        }
+                        else
+                        {
+                            // 前端未配置：使用默认优先级（喜欢 > 收藏 > 关注）
+                            maxPriority = new PriorityLevelDto { Id = 1, Sort = 1, Name = "喜欢的" }; // 默认「喜欢的视频」最高
+                        }
+
+                        // 5. 转换为当前上下文的视频类型
+                        var currentVideoType = VideoType; // 当前要下载的视频类型（如：喜欢/收藏/关注）
+                        var maxPriorityType = (VideoTypeEnum)maxPriority.Id; // 配置的最高优先级类型
+
+                        // 6. 获取已存在视频的类型（从数据库中 exitVideo 读取，需确保字段存在）
+                        var exitVideoType = exitVideo.ViedoType; // 假设数据库存储了 VideoType（1/2/3）
+
+                        // 7. 优先级逻辑判断（核心）
+                        if (currentVideoType == maxPriorityType)
+                        {
+                            // 情况1：当前要下载的是「最高优先级」视频
+                            if (exitVideoType == currentVideoType)
+                            {
+                                // 已存在同优先级视频 → 跳过下载（避免重复）
+                                Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在（同最高优先级），跳过");
+                                return false;
+                            }
+                            else
+                            {
+                                // 已存在「低优先级」视频 → 替换（删除旧文件，继续下载新的最高优先级视频）
+                                Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在（低优先级：{exitVideoType}），替换为最高优先级：{currentVideoType}");
+
+                                // 删除旧的低优先级文件（可选：也可保留备份，根据需求调整）
+                                try
+                                {
+                                    File.Delete(exitVideo.VideoSavePath);
+                                    Log.Debug($"已删除旧文件：{exitVideo.VideoSavePath}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error($"删除旧文件失败：{ex.Message}", ex);
+                                    // 即使删除失败，仍继续下载（新文件会覆盖旧文件，或按路径规则重命名）
+                                }
+
+                                // 继续执行下载逻辑（覆盖旧数据）
+                            }
+                        }
+                        else
+                        {
+                            // 情况2：当前要下载的是「非最高优先级」视频
+                            if (exitVideoType == maxPriorityType)
+                            {
+                                // 已存在「最高优先级」视频 → 跳过（不替换最高优先级）
+                                Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在最高优先级视频（{maxPriorityType}），当前类型（{currentVideoType}）优先级低，跳过");
+                                return false;
+                            }
+                            else
+                            {
+                                // 已存在「其他非最高优先级」视频 → 比较两者优先级
+                                // 获取当前类型和已存在类型的 Sort 值
+                                var currentSort = priLevs.FirstOrDefault(x => x.Id == (int)currentVideoType)?.Sort ?? int.MaxValue;
+                                var exitSort = priLevs.FirstOrDefault(x => x.Id == (int)exitVideoType)?.Sort ?? int.MaxValue;
+
+                                if (currentSort < exitSort)
+                                {
+                                    // 当前类型优先级更高 → 替换旧视频
+                                    Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在低优先级视频（{exitVideoType}），替换为当前优先级：{currentVideoType}");
+
+                                    // 删除旧文件
+                                    if (File.Exists(exitVideo.VideoSavePath))
+                                    {
+                                        File.Delete(exitVideo.VideoSavePath);
+                                    }
+
+                                    // 继续下载
+                                }
+                                else
+                                {
+                                    // 当前类型优先级更低或相等 → 跳过
+                                    Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在更高/同等优先级视频（{exitVideoType}），当前类型（{currentVideoType}）跳过");
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 数据库存在记录，但本地文件丢失 → 直接重新下载（无论优先级）
+                        Log.Debug($"视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]数据库存在但本地文件丢失，重新下载");
+                    }
+                }
+                else
+                {
+                    // 数据库和本地均无该视频 → 直接下载
+                    //Log.Debug($"视频-{item.AwemeId}-[{item.Desc}]未存在，开始下载");
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

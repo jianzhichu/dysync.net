@@ -18,6 +18,9 @@ namespace dy.net.job
        : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService, douyinFollowService, douyinMergeVideoService) { }
 
         protected override string JobType => SystemStaticUtil.DY_FAVORITES;
+
+        protected override VideoTypeEnum VideoType => VideoTypeEnum.Favorite;
+
         protected override async Task<List<DouyinCookie>> GetValidCookies()
         {
             return await douyinCookieService.GetAllOpendAsync(x=> !string.IsNullOrWhiteSpace(x.FavSavePath));

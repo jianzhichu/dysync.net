@@ -1,4 +1,5 @@
-﻿using SqlSugar;
+﻿using Newtonsoft.Json;
+using SqlSugar;
 using System.Text.RegularExpressions;
 
 namespace dy.net.model
@@ -73,5 +74,12 @@ namespace dy.net.model
         /// 自动去重-逻辑是遇到相同ID的视频直接跳过
         /// </summary>
         public bool AutoDistinct { get; set; }
+
+        /// <summary>
+        /// 去重优先级配置，json字符串格式存储
+        /// </summary>
+        [SugarColumn(Length = 500, IsNullable = true)]
+        public string PriorityLevel { get; set; }// = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]";
     }
+
 }

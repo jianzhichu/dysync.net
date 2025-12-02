@@ -18,6 +18,8 @@ namespace dy.net.job
 
         protected override string JobType => SystemStaticUtil.DY_FOLLOWEDS;
 
+        protected override VideoTypeEnum VideoType => VideoTypeEnum.UperPost;
+
         protected override async Task<List<DouyinCookie>> GetValidCookies()
         {
             return  await douyinCookieService.GetAllOpendAsync(x => !string.IsNullOrWhiteSpace(x.UpSavePath));

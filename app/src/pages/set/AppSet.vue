@@ -138,6 +138,20 @@
           </div>
         </a-form-item>
 
+        <a-form-item v-show="formState.AutoDistinct" has-feedback label="优先级" name="PriorityLevel" :wrapper-col="{ span: 10 }">
+          <!-- Tag 拖拽容器 -->
+          <div class="tag-drag-container">
+            <!-- Tag 拖拽容器（绑定 ref 供 Sortable 初始化） -->
+            <div ref="tagContainer" class="tag-list">
+              <a-tag v-for="(item, index) in tagData" :key="item.id" class="sortable-tag" color="blue">
+                <!-- 用 "≡" 符号替代 a-icon 作为拖拽手柄 -->
+                <span class="drag-handle" style="margin-right: 6px; cursor: move;">≡</span>
+                {{ item.name }}
+              </a-tag>
+            </div>
+          </div>
+        </a-form-item>
+
       </div>
 
       <!-- 操作按钮 -->
@@ -157,13 +171,15 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, toRaw, ref, watch, onMounted, computed } from 'vue';
+import { reactive, toRaw, ref, watch, onMounted, computed, nextTick } from 'vue';
 import type { UnwrapRef } from 'vue';
 import { Form } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
 import { useApiStore } from '@/store';
 import { message } from 'ant-design-vue';
+import { Sortable } from 'sortablejs';
+
 import { InfoCircleOutlined, SaveOutlined, CheckOutlined } from '@ant-design/icons-vue';
 
 // 表单引用
@@ -200,6 +216,7 @@ interface FormState {
   FollowedTitleSeparator: string; // 分隔符
   FullFollowedTitleTemplate: string; // 新增：完整模板字符串（自动生成）
   AutoDistinct: boolean;
+  PriorityLevel: string;
 }
 
 // 表单初始数据
@@ -219,6 +236,7 @@ const formState: UnwrapRef<FormState> = reactive({
   FollowedTitleSeparator: '',
   FullFollowedTitleTemplate: '', // 初始为空
   AutoDistinct: false,
+  PriorityLevel: '',
 });
 
 // 实时计算完整模板（可选：让用户实时预览，提交时无需重复计算）
@@ -294,9 +312,11 @@ const getConfig = () => {
           FullFollowedTitleTemplate: fullTemplate, // 回显完整模板
           ImageViedoSaveAlone: res.data.imageViedoSaveAlone,
           AutoDistinct: res.data.autoDistinct,
+          PriorityLevel: res.data.priorityLevel,
         });
 
         downImgVideo.value = res.data.downImageVideoFromEnv;
+        tagData.value = JSON.parse(res.data.priorityLevel);
       } else {
         message.error(res.erro || '获取配置失败', 8);
       }
@@ -319,9 +339,48 @@ const parseTemplateToArr = (templateStr: string | null | undefined) => {
   return Array.from(new Set(validPlaceholders));
 };
 
+// 拖拽容器 ref
+const tagContainer = ref(null);
+let sortableInstance = ref(null);
+// 模拟 Tag 数据（替换为你的实际数据）
+const tagData = ref([
+  { id: 1, name: '喜欢的视频', sort: 1 },
+  { id: 2, name: '收藏的视频', sort: 2 },
+  { id: 3, name: '关注的视频', sort: 3 },
+]);
+
+// 重新计算所有 Tag 的 sort 值（核心方法）
+const updateTagSort = () => {
+  tagData.value.forEach((item, index) => {
+    item.sort = index + 1; // sort = 索引+1（保证顺序和 sort 一一对应）
+  });
+};
 // 组件挂载时获取配置
-onMounted(() => {
+onMounted(async () => {
   getConfig();
+  // 等待 Form 组件完全渲染（关键：解决 DOM 未挂载问题）
+  await nextTick();
+  if (tagContainer.value) {
+    sortableInstance.value = new Sortable(tagContainer.value, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'tag-ghost',
+      preventOnFilter: true,
+      onEnd: (evt) => {
+        // 1. 调整 Tag 顺序
+        const [movedTag] = tagData.value.splice(evt.oldIndex, 1);
+        tagData.value.splice(evt.newIndex, 0, movedTag);
+
+        // 2. 重新计算所有 Tag 的 sort 值（关键：同步 sort 和顺序）
+        updateTagSort();
+
+        // 打印结果（验证 sort 是否同步）
+        console.log('最新 Tag 数据（含 sort）：', tagData.value);
+      },
+    });
+  } else {
+    console.warn('拖拽容器未找到，请检查 ref 绑定');
+  }
 });
 
 // 提交表单（核心：自动生成完整模板字符串）
@@ -342,6 +401,7 @@ const onSubmit = () => {
         ...toRaw(formState),
         FullFollowedTitleTemplate: fullTemplate, // 确保提交最新拼接结果
         FollowedTitleTemplate: formState.FollowedTitleTemplate.join(''),
+        PriorityLevel: JSON.stringify(tagData.value),
       };
 
       // 3. 提交接口
@@ -439,5 +499,46 @@ const onCancel = () => {
 :deep(.text-gray-700) {
   color: #444 !important;
   font-weight: 500;
+}
+/* 关键修改：确保拖拽容器不限制子元素 */
+.tag-drag-container {
+  position: relative; /* 必须：让拖拽的 ghost 元素不被截断 */
+  overflow: visible !important; /* 覆盖 Form 可能的 overflow: hidden */
+}
+
+.tag-
+/* Tag 列表布局（换行显示） */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px; /* Tag 之间间距 */
+}
+
+/* 拖拽中的 Tag 占位样式 */
+.tag-ghost {
+  opacity: 0.5;
+  background-color: #e6f7ff !important;
+  border-color: #91d5ff !important;
+}
+
+/* 拖拽手柄样式优化 */
+.drag-handle {
+  font-size: 14px;
+  color: #666;
+  user-select: none; /* 禁止选中文字 */
+}
+
+.drag-handle:hover {
+  color: #1890ff;
+}
+
+/* Tag  hover 效果 */
+.sortable-tag {
+  transition: all 0.2s;
+}
+
+.sortable-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>

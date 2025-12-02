@@ -177,11 +177,11 @@ namespace dy.net.service
                 Log.Error("图片URL列表为空，无法合成视频");
                 return false;
             }
-            if (mergeImg2Viedo && (request.AudioUrls == null || request.AudioUrls.Count == 0))
-            {
-                Log.Error("合成视频时音频URL列表为空");
-                return false;
-            }
+            //if (mergeImg2Viedo && (request.AudioUrls == null || request.AudioUrls.Count == 0))
+            //{
+            //    Log.Error("合成视频时音频URL列表为空");
+            //    return false;
+            //}
 
             string tempDir = null;
             try
@@ -206,7 +206,7 @@ namespace dy.net.service
 
                 // 2. 下载音频
                 string[] rawAudios = Array.Empty<string>();
-                if (mergeImg2Viedo)
+                if (mergeImg2Viedo&& request.AudioUrls != null && request.AudioUrls.Count>0)
                 {
                     var (audios, audioError) = await DownloadMediaAsync(
                         request.AudioUrls, Path.Combine(tempDir, "raw-audios"), "audio_", "mp3", cookie);
@@ -257,6 +257,13 @@ namespace dy.net.service
                         // 超时控制：避免 FFmpeg 进程无限运行（300秒=5分钟）
                         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300));
                         // 执行合成（确保每个图片都参与）
+
+                        if (rawAudios.Length == 0)
+                        {
+                            rawAudios= new string[] { Path.Combine(AppContext.BaseDirectory,"mp3", "silent_10.mp3") };
+                            Log.Debug("未检测到音频，使用默认静音音频-无声");
+                        }
+
                         string resultPath = await ffmpegHelper.CreateVideoFromImagesAndAudioAsync(
                             rawImages,          // 所有下载的图片（确保无遗漏）
                             rawAudios[0],       // 取第一个音频（可根据需求调整）

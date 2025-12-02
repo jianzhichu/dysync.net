@@ -32,11 +32,13 @@
     "nprogress": "^0.2.0",
     "pinia": "^2.0.33",
     "qs": "^6.10.1",
+    "sortablejs": "^1.15.6",
     "stepin": "2.1.42-beta",
     "vue": "^3.3.4",
     "vue-json-editor": "^1.4.3",
     "vue-request": "^2.0.4",
-    "vue-router": "^4.1.6"
+    "vue-router": "^4.1.6",
+    "vue-sortablejs": "^1.0.4"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.0",

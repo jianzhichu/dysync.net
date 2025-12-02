@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+// 步骤2：声明父组件传递的 showSetting 事件（关键！）
+const emits = defineEmits(['showSetting']);
 import { ref, h, VNode, onMounted } from 'vue';
 import { StepinHeaderAction } from 'stepin';
 import DayNightSwitch from '@/components/switch/DayNightSwitch.vue';
@@ -301,6 +303,7 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- 步骤1：添加 div 作为单个根元素 -->
   <StepinHeaderAction>
     <DayNightSwitch />
   </StepinHeaderAction>
@@ -375,5 +378,11 @@ onMounted(() => {
     background-color: rgba(24, 144, 255, 0.1) !important;
     color: #1890ff !important;
   }
+}
+/* 新增：根容器样式（和原布局保持一致） */
+.header-actions-root {
+  display: flex;
+  align-items: center;
+  gap: 8px; // 按钮之间间距，可根据需要调整
 }
 </style>

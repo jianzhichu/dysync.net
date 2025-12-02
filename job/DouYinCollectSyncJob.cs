@@ -17,6 +17,8 @@ namespace dy.net.job
 
         protected override string JobType => SystemStaticUtil.DY_COLLECTS;
 
+        protected override VideoTypeEnum VideoType => VideoTypeEnum.Collect;
+
         protected override async Task BeforeProcessCookies()
         {
             var now = DateTime.Now;
