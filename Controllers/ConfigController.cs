@@ -21,14 +21,14 @@ namespace dy.net.Controllers
 
         private readonly DouyinCommonService commonService;
         private readonly DouyinQuartzJobService quartzJobService;
-        private readonly IHttpClientFactory httpClientFactory;
+        private readonly DouyinFollowService douyinFollowService;
 
-        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService,DouyinQuartzJobService quartzJobService,IHttpClientFactory httpClientFactory)
+        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService, DouyinQuartzJobService quartzJobService, DouyinFollowService douyinFollowService)
         {
             this.dyCookieService = dyCookieService;
             this.commonService = commonService;
             this.quartzJobService = quartzJobService;
-            this.httpClientFactory = httpClientFactory;
+            this.douyinFollowService = douyinFollowService;
         }
 
 
@@ -65,9 +65,8 @@ namespace dy.net.Controllers
         [HttpGet("list")]
         public async Task<IActionResult> GetAllList()
         {
-            var list = await dyCookieService.GetAllOpendAsync();
-            var result = list.Select(x => new { key= x.MyUserId, name= x.UserName });
-            return Ok(new { code = 0, data = result });
+            var follows= await douyinFollowService.GetGroupByCookieAsync();
+            return Ok(new { code = 0, data = follows });
         }
         /// <summary>
         /// 新增用户Cookie
@@ -150,7 +149,7 @@ namespace dy.net.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("ExecuteJobNow")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> ExecuteJobNow()
         {
             var config =  commonService.GetConfig();

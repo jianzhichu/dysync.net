@@ -17,6 +17,13 @@ namespace dy.net.service
             _followRepository = followRepository;
         }
 
+
+
+        public async Task<List<DouyinFollowGroupDto>> GetGroupByCookieAsync()
+        {
+            return await _followRepository.GetDouyinFollowGroup();
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -79,6 +86,13 @@ namespace dy.net.service
         }
 
 
+
+        public async Task<bool> DeleteFollow(FollowUpdateDto dto)
+        {
+            return await _followRepository.DeleteByIdAsync(dto.Id);
+        }
+       
+
         /// <summary>
         /// 打开或关闭同步
         /// </summary>
@@ -86,13 +100,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> OpenOrCloseFullSync(FollowUpdateDto dto)
         {
-            var followed = await _followRepository.GetByIdAsync(dto.Id);
-            if (followed != null)
-            {
-                followed.FullSync = dto.FullSync;
-                return await _followRepository.Update(followed);
-            }
-            return false;
+            return await OpenOrCloseSync(dto);
         }
 
         /// <summary>

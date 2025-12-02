@@ -30,7 +30,9 @@ namespace dy.net.model
         /// </summary>
         [SugarColumn(Length =255,IsNullable =true)]
         public string SavePath { get; set; }
-
+        /// <summary>
+        /// 1 开启同步 0 关闭同步
+        /// </summary>
         public int  Status { get; set; }
 
         /// <summary>

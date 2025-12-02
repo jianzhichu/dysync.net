@@ -47,5 +47,7 @@ namespace dy.net.dto
 
         public string SavePath { get; set; }
 
+        public string UperId { get; set; }
+
     }
 }

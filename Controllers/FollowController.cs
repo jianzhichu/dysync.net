@@ -93,17 +93,16 @@ namespace dy.net.Controllers
                         });
                     }
 
-                    if (dto.SavePath.Length > 10)
+                    if (dto.SavePath.Length > 15)
                     {
                         return Ok(new
                         {
                             code = -1,
-                            msg = "请输入有效文件夹名称（最长10）"
+                            msg = "请输入有效文件夹名称（最长15）"
                         });
                     }
                 }
             }
-
             var result=  await _douyinFollowService.OpenOrCloseSync(dto);
             return Ok(new
             {
@@ -120,37 +119,15 @@ namespace dy.net.Controllers
         [HttpPost("openOrCloseFullSync")]
         public async Task<IActionResult> OpenOrCloseFullSync(FollowUpdateDto dto)
         {
+            return await OpenOrCloseSync(dto);
+        }
 
-            if (dto.FullSync)
-            {
-                if (!string.IsNullOrWhiteSpace(dto.SavePath))
-                {
-                    if (!DouyinFileNameHelper.IsValidWithoutSpecialChars(dto.SavePath))
-                    {
-                        return Ok(new
-                        {
-                            code = -1,
-                            msg = "请输入有效文件夹名称（字母数字中文简体）"
-                        });
-                    }
 
-                    if (dto.SavePath.Length > 10)
-                    {
-                        return Ok(new
-                        {
-                            code = -1,
-                            msg = "请输入有效文件夹名称（最长10）"
-                        });
-                    }
-                }
-            }
-
-            var result = await _douyinFollowService.OpenOrCloseFullSync(dto);
-            return Ok(new
-            {
-                code = result ? 0 : -1,
-                data = result
-            });
+        [HttpPost("delete")]
+        public async Task<IActionResult> DeleteFollow(FollowUpdateDto dto)
+        {
+            var result= await _douyinFollowService.DeleteFollow(dto);
+            return Ok(new { code = result ? 0 : -1, data = result });
         }
     }
 }

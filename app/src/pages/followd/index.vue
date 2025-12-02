@@ -31,11 +31,17 @@
     </div>
     <!-- 卡片列表区域 -->
     <div class="card-list-container" @scroll="handleScroll">
-      <a-card v-for="(item, index) in currentTabData" :key="item.id" :data-key="item.id" class="custom-card" :bordered="true" :hoverable="true">
+      <a-card v-for="(item, index) in currentTabData" :key="item.id" :data-key="item.id" class="custom-card" :bordered="true" :hoverable="true" :class="{ 'no-followed-card': item.isNoFollowed }">
         <div class="card-inner">
+          <!-- 非关注标记 -->
+          <!-- <div v-if="item.isNoFollowed" class="no-followed-tag">
+            非关注
+          </div> -->
+
           <div class="card-switch">
             <a-switch v-model:checked="item.openSync" @change="(checked) => handleSwitchChange(item, checked)" checked-children="开" un-checked-children="关" />
           </div>
+
           <div class="card-main-content">
             <div class="avatar-wrapper">
               <a-avatar shape="circle" size="large" :src="item.uperAvatar" v-if="item.uperAvatar" />
@@ -44,12 +50,20 @@
               </a-avatar>
             </div>
             <div class="card-content">
-              <div class="card-name">{{ item.uperName }}</div>
+              <div class="card-name">
+                {{ item.uperName }}
+                <!-- 非关注小标记 -->
+                <span v-if="item.isNoFollowed" class="no-followed-badge">非关注</span>
+                <!-- 删除按钮（仅非关注项显示，放在名字+非关注后面） -->
+                <a-button v-if="item.isNoFollowed" type="text" class="delete-btn" @click="(e) => { e.stopPropagation(); handleDeleteItem(item); }" :disabled="item.isSaving" title="删除该非关注博主">
+                  <DeleteOutlined />
+                </a-button>
+              </div>
               <!-- 签名多行显示：高度控制 + 溢出截断 + Tooltip气泡 -->
               <div class="card-desc">
                 <a-tooltip placement="top" :title="item.signature || '无签名'">
                   <span class="signature-text">
-                    {{ item.signature || '无签名' }}
+                    {{ truncateText(item.signature || '无签名', 30) }}
                   </span>
                 </a-tooltip>
               </div>
@@ -71,7 +85,7 @@
                     </template>
                     <template v-else>
                       <span class="path-text" :class="{ 'path-empty': !item.savePath }">
-                        {{ item.savePath || '默认用作者名字' }}
+                        {{ item.savePath || '默认用博主名字' }}
                       </span>
                       <!-- 编辑按钮禁用：item.isSaving 为 true 时 -->
                       <a-button type="text" class="edit-btn" @click="() => handleEditPath(item)" title="编辑文件夹名称" :disabled="item.isSaving">
@@ -137,8 +151,17 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted, UnwrapRef, reactive, nextTick, Ref } from 'vue';
-import { message, Spin, Empty, Tooltip, Modal, Form, FormInstance } from 'ant-design-vue';
+import { message, Spin, Empty, Tooltip, Modal, Form, FormInstance, Popconfirm } from 'ant-design-vue';
 import { useApiStore } from '@/store';
+import {
+  CloseOutlined,
+  SearchOutlined,
+  PlusOutlined,
+  SyncOutlined,
+  SaveOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons-vue';
 
 // 类型定义
 interface TabItem {
@@ -159,7 +182,8 @@ interface FollowItem {
   savePath?: string;
   isEditing: boolean;
   isSaving?: boolean;
-  userId?: string; // 新增：UserId字段
+  uperId?: string; // 原userId改为uperId
+  isNoFollowed: boolean; // 新增：是否为非关注博主
 }
 
 interface QuaryParam {
@@ -241,7 +265,7 @@ const quaryData: UnwrapRef<QuaryParam> = reactive({
 // 生命周期 - 挂载时初始化
 onMounted(() => {
   quaryData.pageIndex = 0;
-  GetCookies();
+  initData();
 });
 
 // 生命周期 - 卸载时移除滚动监听
@@ -252,23 +276,38 @@ onUnmounted(() => {
   }
 });
 
-// 获取Cookie列表（Tab数据）
-const GetCookies = () => {
-  useApiStore()
-    .CookieList()
-    .then((res) => {
-      if (res.code === 0) {
-        const tabs = (res.data || [{ key: 'tab1', name: '部门一' }]).map((tab) => ({
-          ...tab,
-          total: 0,
-        }));
-        tabList.value = tabs;
-        activeTabKey.value = tabList.value[0]?.key || '';
-        quaryData.mySelfId = activeTabKey.value;
-        GetFollows(true);
-        handleTabChange(activeTabKey.value);
-      }
-    });
+// 初始化数据（统一入口，避免循环）
+const initData = () => {
+  GetCookies().then(() => {
+    // Cookie获取成功后，直接加载当前Tab数据
+    if (activeTabKey.value) {
+      quaryData.mySelfId = activeTabKey.value;
+      GetFollows(true);
+    }
+  });
+};
+
+// 获取Cookie列表（Tab数据）- 移除循环调用
+const GetCookies = (): Promise<void> => {
+  return new Promise((resolve) => {
+    useApiStore()
+      .CookieList()
+      .then((res) => {
+        if (res.code === 0) {
+          tabList.value = res.data;
+          // 设置默认选中第一个Tab
+          if (tabList.value.length > 0 && !activeTabKey.value) {
+            activeTabKey.value = tabList.value[0].key;
+          }
+        }
+        resolve();
+      })
+      .catch((err) => {
+        console.error('获取Tab数据失败：', err);
+        message.error('获取Tab数据失败，请刷新重试');
+        resolve();
+      });
+  });
 };
 
 // 获取关注用户列表
@@ -284,12 +323,13 @@ const GetFollows = (isReset = false) => {
         const newData = res.data.data || [];
         const total = res.data.total || 0;
 
-        // 格式化数据
+        // 格式化数据 - 确保isNoFollowed有默认值
         const formattedData = newData.map((item) => ({
           ...item,
           isSaving: false,
           isEditing: item.isEditing ?? false,
-          userId: item.userId || item.id, // 兼容旧数据，优先使用userId字段
+          uperId: item.uperId || item.id, // 兼容旧数据，优先使用uperId字段（原userId）
+          isNoFollowed: item.isNoFollowed ?? false, // 新增字段默认值为false
         }));
 
         // 更新当前Tab的总数
@@ -362,8 +402,10 @@ const handleSearch = () => {
   GetFollows(true);
 };
 
-// Tab切换
+// Tab切换 - 只在用户主动切换时触发，不再调用GetCookies
 const handleTabChange = (key: string) => {
+  if (activeTabKey.value === key) return; // 避免重复切换同一Tab
+
   activeTabKey.value = key;
   quaryData.mySelfId = key;
   quaryData.pageIndex = 0;
@@ -371,6 +413,8 @@ const handleTabChange = (key: string) => {
   hasMore.value = true;
   searchInputVisible.value = false;
   quaryData.followUserName = null;
+
+  // 直接加载当前Tab数据，不再调用GetCookies
   GetFollows(true);
 };
 
@@ -432,7 +476,7 @@ const uploadSyncStatus = (item: FollowItem) => {
       OpenSync: item.openSync,
       FullSync: item.fullSync,
       SavePath: item.savePath,
-      UserId: item.userId, // 新增：传递UserId
+      uperId: item.uperId, // 原userId改为uperId
     })
     .then((res) => {
       if (res.code === 0) {
@@ -475,6 +519,16 @@ const handleSyncAll = () => {
       isSyncDisabled.value = false;
       loading.value = false;
     });
+};
+
+// 工具函数：文本截断，超过指定长度显示省略号
+const truncateText = (text: string, maxLength: number): string => {
+  if (!text) return '';
+  // 计算字符串长度（中文算1个字符）
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.slice(0, maxLength) + '...';
 };
 
 // ===================== 新增功能相关 =====================
@@ -535,6 +589,7 @@ const handleAddSubmit = () => {
         signature: '', // 默认为空签名
         uperAvatar: '', // 默认为空头像
         enterprise: '', // 默认为空企业信息
+        isNoFollowed: true, // 新增的非关注博主，标记为true
       };
 
       // 调用新增接口
@@ -573,6 +628,44 @@ const handleAddSubmit = () => {
         }
       });
     });
+};
+
+// ===================== 删除功能相关 =====================
+// 删除非关注博主
+const handleDeleteItem = (item: FollowItem) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除非关注博主「${item.uperName}」吗？删除后将无法恢复。`,
+    okText: '确认删除',
+    cancelText: '取消',
+    okType: 'danger',
+    maskClosable: false,
+    onOk: () => {
+      return new Promise((resolve, reject) => {
+        useApiStore()
+          .DelFollow({
+            id: item.id,
+            mySelfId: item.mySelfId,
+            uperId: item.uperId,
+          })
+          .then((res) => {
+            if (res.code === 0) {
+              message.success('删除成功！');
+              initData();
+              resolve(true);
+            } else {
+              message.error('删除失败：' + (res.msg || '未知错误'));
+              reject(false);
+            }
+          })
+          .catch((err) => {
+            console.error('删除非关注博主异常：', err);
+            message.error('网络异常，请重试');
+            reject(false);
+          });
+      });
+    },
+  });
 };
 </script>
 
@@ -689,6 +782,8 @@ const handleAddSubmit = () => {
   display: flex !important;
   flex-direction: column !important;
   background: transparent !important;
+  position: relative; /* 为非关注标记定位 */
+  /* 移除之前为右下角按钮预留的底部padding */
 }
 
 .custom-card:hover {
@@ -696,9 +791,76 @@ const handleAddSubmit = () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
+/* 非关注卡片特殊样式 */
+.no-followed-card {
+  border: 1px solid #feb2b2 !important;
+  background-color: #fef7fb !important;
+}
+
+.no-followed-card:hover {
+  border-color: #fc8181 !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08) !important;
+}
+
+/* 非关注标记 */
+.no-followed-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  z-index: 10;
+}
+
+/* 非关注小徽章 */
+.no-followed-badge {
+  display: inline-block;
+  background-color: #fee2e2;
+  color: #dc2626;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* 删除按钮（放在名字+非关注后面） */
+.delete-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: 8px !important;
+  padding: 4px !important;
+  height: 24px !important;
+  width: 24px !important;
+  color: #ef4444 !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+
+.delete-btn:hover {
+  color: #dc2626 !important;
+  background-color: #fee2e2 !important;
+}
+
+.delete-btn:disabled {
+  color: #fca5a5 !important;
+  cursor: not-allowed;
+  background-color: transparent !important;
+}
+
+.delete-btn .anticon {
+  font-size: 14px !important;
+}
+
 .card-inner {
   position: relative;
-  padding: 5px !important;
+  padding: 0px 16px !important;
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -706,7 +868,7 @@ const handleAddSubmit = () => {
 
 .card-switch {
   position: absolute !important;
-  top: 12px;
+  top: 16px;
   right: 16px;
   z-index: 10;
 }
@@ -751,6 +913,9 @@ const handleAddSubmit = () => {
   font-weight: 600;
   color: #1d2129;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .card-desc {
@@ -990,6 +1155,17 @@ const handleAddSubmit = () => {
     -webkit-line-clamp: 2;
   }
 
+  /* 移动端删除按钮调整 */
+  .delete-btn {
+    margin-left: 6px !important;
+    height: 22px !important;
+    width: 22px !important;
+  }
+
+  .delete-btn .anticon {
+    font-size: 13px !important;
+  }
+
   .form-switch-group {
     flex-direction: column;
     gap: 16px;
@@ -1006,14 +1182,6 @@ html.dark-mode .dept-user-card-container .custom-card {
 }
 
 html.dark-mode .dept-user-card-container .custom-card:hover {
-  border-color: #6366f1 !important;
-}
-
-html.dark-mode .dept-user-card-container .ant-card-bordered {
-  border-color: #374151 !important;
-}
-
-html.dark-mode .dept-user-card-container .ant-card-bordered:hover {
   border-color: #6366f1 !important;
 }
 
@@ -1037,11 +1205,6 @@ html.dark-mode .dept-user-card-container .sync-label {
   color: #9ca3af !important;
 }
 
-html.dark-mode .dept-user-card-container .loading-text,
-html.dark-mode .dept-user-card-container .no-more-container span {
-  color: #9ca3af !important;
-}
-
 html.dark-mode .dept-user-card-container .sync-btn {
   color: #d1d5db !important;
   border-color: #4b5563 !important;
@@ -1055,6 +1218,37 @@ html.dark-mode .dept-user-card-container .sync-btn:hover {
 
 html.dark-mode .switch-label {
   color: #d1d5db !important;
+}
+
+/* 黑暗模式下非关注卡片样式 */
+html.dark-mode .no-followed-card {
+  border-color: #7f1d1d !important;
+  background-color: transparent !important;
+  /* background-color: #2b0707 !important; */
+}
+
+html.dark-mode .no-followed-card:hover {
+  border-color: #991b1b !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15) !important;
+}
+
+html.dark-mode .no-followed-tag {
+  background-color: #dc2626 !important;
+  color: #fef2f2 !important;
+}
+
+html.dark-mode .no-followed-badge {
+  background-color: #7f1d1d !important;
+  color: #fecaca !important;
+}
+
+html.dark-mode .delete-btn {
+  color: #fecaca !important;
+}
+
+html.dark-mode .delete-btn:hover {
+  color: #fee2e2 !important;
+  background-color: #7f1d1d !important;
 }
 
 /* 精准控制uperId表单项的间距 */
