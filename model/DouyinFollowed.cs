@@ -67,5 +67,10 @@ namespace dy.net.model
         /// </summary>
         [SugarColumn(IsNullable = true,Length =100)]
         public string UperId { get; set; }
+
+        /// <summary>
+        /// 标记为非关注的用户-手动增加的
+        /// </summary>
+        public bool IsNoFollowed { get; set; }
     }
 }

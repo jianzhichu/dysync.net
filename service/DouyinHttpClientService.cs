@@ -257,18 +257,27 @@ namespace dy.net.service
                 {
                     var data = await respose.Content.ReadAsStringAsync();
                     var res= JsonConvert.DeserializeObject<DouyinFollowInfo>(data);
-                    if(res.Followings==null)
+                    if (res != null)
                     {
-                        var err= JsonConvert.DeserializeObject<FollowErrorDto>(data);
-                        Serilog.Log.Error($"SyncMyFollows error: {err.StatusMsg}");
-                        if (err != null)
+                        if (res.Followings == null)
                         {
-                            callBack(err);
+                            var err = JsonConvert.DeserializeObject<FollowErrorDto>(data);
+                         
+                            if (err != null)
+                            {
+                                Serilog.Log.Error($"SyncMyFollows error: {err.StatusMsg}");
+                                callBack(err);
+                            }
+                        }
+                        else
+                        {
+                            callBack(new FollowErrorDto { StatusCode = 0 });
                         }
                     }
                     else
                     {
-                        callBack(new FollowErrorDto { StatusCode = 0 });
+                        Serilog.Log.Error($"SyncMyFollows error: 反序列化结果为空,接口返回数据：{data}");
+                        callBack(new FollowErrorDto { StatusCode = 8,StatusMsg="未知" });
                     }
                     return res;
                 }

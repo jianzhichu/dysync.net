@@ -92,6 +92,7 @@ namespace dy.net.repository
                 // 1. 查询现有关注列表
                 List<DouyinFollowed> existFollows = await Db.Queryable<DouyinFollowed>()
                     .Where(x => x.mySelfId == myselfUserId)
+                    .Where(x=>!x.IsNoFollowed) //排除手动添加但未关注的用户
                     .ToListAsync() ?? new List<DouyinFollowed>();
 
                 // 2. 提取现有和当前的SecUid集合（去重优化）

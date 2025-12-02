@@ -51,7 +51,7 @@ namespace dy.net.service
                 //关注的用户的作品
                 DelayAndStartJobAsync("uper", expression, delayBetweenJobs * 2),
                 //关注列表
-                DelayAndStartJobAsync("follow_user", expression, delayBetweenJobs * 3)
+                DelayAndStartJobAsync("follow_user", (Convert.ToInt32(expression)*2*24).ToString(), delayBetweenJobs * 3)
             };
 
             var results = await Task.WhenAll(jobTasks);

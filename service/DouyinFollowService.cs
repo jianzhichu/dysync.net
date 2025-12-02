@@ -31,6 +31,7 @@ namespace dy.net.service
             }
             followed.Id = IdGener.GetLong().ToString();
             followed.LastSyncTime = DateTime.UtcNow;
+            followed.IsNoFollowed = true;
             return await _followRepository.InsertAsync(followed);
         }
 

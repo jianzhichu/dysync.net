@@ -107,6 +107,10 @@ namespace dy.net.service
                     END;";
 
             sqlSugarClient.Ado.ExecuteCommand(sql);
+
+            //更新关注表的IsNoFollowed字段为空的数据为0--兼容老版本-新加的字段
+            string followUpdateSql = @"Update  dy_follow SET IsNoFollowed=0 WHERE IsNoFollowed is NULL";
+            sqlSugarClient.Ado.ExecuteCommand(followUpdateSql);
             //var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().ToList();
 
             //if (collectViedos.Any())
