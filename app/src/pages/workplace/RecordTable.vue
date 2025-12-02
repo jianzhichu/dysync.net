@@ -1,30 +1,27 @@
 <template>
   <div>
-    <!-- 优化查询区域：增加容器、响应式布局、合理间距 -->
+    <!-- 优化查询区域：调整布局，时间、博主名称、标题放一行，宽度自适应 -->
     <div class="query-container">
       <a-form layout="inline" :model="quaryData" class="query-form">
-        <!-- 第一行：日期选择器组 -->
-        <div class="form-row">
-          <a-form-item label="同步日期" class="form-item">
+        <!-- 第一行：时间选择器组 + 博主名称 + 标题（合并为一行，自适应宽度） -->
+        <div class="form-row form-main-row">
+          <a-form-item label="同步日期" class="form-item form-item-date">
             <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" class="range-picker" />
           </a-form-item>
 
-          <a-form-item label="发布日期" class="form-item">
+          <a-form-item label="发布日期" class="form-item form-item-date">
             <a-range-picker v-model:value="value2" :ranges="ranges2" :locale="locale" @change="datePicked2" class="range-picker" />
           </a-form-item>
-        </div>
 
-        <!-- 第二行：输入框组 -->
-        <div class="form-row">
-          <a-form-item label="作者" ref="author" name="author" class="form-item">
-            <a-input v-model:value="quaryData.author" class="query-input" placeholder="请输入作者" />
+          <a-form-item label="博主名称" ref="author" name="author" class="form-item form-item-input">
+            <a-input v-model:value="quaryData.author" class="query-input" placeholder="请输入博主名称" />
           </a-form-item>
-          <a-form-item label="标题" ref="title" name="title" class="form-item">
+          <a-form-item label="标题" ref="title" name="title" class="form-item form-item-input">
             <a-input v-model:value="quaryData.title" class="query-input" placeholder="请输入标题" />
           </a-form-item>
         </div>
 
-        <!-- 第三行：单选组 + 按钮组（新增批量操作开关和删除按钮） -->
+        <!-- 第二行：单选组 + 按钮组 -->
         <div class="form-row form-actions-row">
           <a-form-item label="视频类型" class="form-item radio-group-item">
             <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged" class="video-type-radio">
@@ -72,7 +69,6 @@
         <span class="modal-title-with-tooltip" :title="formatFilePath(currentVideoInfo?.videoSavePath)">
           {{ playingTitle }}
         </span>
-
       </template>
       <div class="video-container">
         <div v-if="isVideoLoading" class="loading-overlay">
@@ -89,7 +85,6 @@
       </div>
       <div v-if="currentVideoInfo" class="video-info-bar">
         <div class="info-container">
-
           <div class="info-item">
             <span class="info-label">同步时间：</span>
             <span class="info-value">{{ currentVideoInfo.syncTimeStr || '未知' }}</span>
@@ -108,7 +103,6 @@
               </a-button>
             </a-popover>
           </div>
-
         </div>
       </div>
     </a-modal>
@@ -146,6 +140,8 @@ import dayjs, { Dayjs } from 'dayjs';
 import locale from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import { message, Modal } from 'ant-design-vue';
 import CryptoJS from 'crypto-js';
+import { SearchOutlined, SyncOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
+
 // 类型定义
 type RangeValue = [Dayjs, Dayjs];
 interface DataItem {
@@ -159,6 +155,7 @@ interface DataItem {
   fileHash?: string;
   authorId?: string;
   videoSavePath: string;
+  createTimeStr?: string; // 发布时间
 }
 
 interface QuaryParam {
@@ -228,7 +225,7 @@ const columns = ref([
     title: '同步类型',
     dataIndex: 'viedoTypeStr',
     align: 'center',
-    width: 100,
+    width: 150,
   },
   {
     title: '博主',
@@ -342,7 +339,7 @@ const formatFilePath = (filePath?: string) => {
 
 // -------------------------- 核心工具方法 --------------------------
 
-const formatPathSeparator = (path) => {
+const formatPathSeparator = (path: string | undefined) => {
   if (!path) return path; // 处理空路径情况
   // 正则表达式 /\\/g 表示全局匹配所有反斜杠
   return path.replace(/\\/g, '/');
@@ -382,7 +379,7 @@ const GetRecords = () => {
     quaryData.dates = value1.value.map((date) => date.format('YYYY-MM-DD'));
   }
   if (value2.value) {
-    quaryData.dates2 = value1.value.map((date) => date.format('YYYY-MM-DD'));
+    quaryData.dates2 = value2.value.map((date) => date.format('YYYY-MM-DD')); // 修复：之前误写为value1
   }
   useApiStore()
     .VideoPageList(quaryData)
@@ -694,7 +691,7 @@ const handleBatchShare = () => {
 };
 
 // 复制链接到剪贴板（兼容生产环境）
-const copyToClipboard = async (shareUrl, msg) => {
+const copyToClipboard = async (shareUrl: string, msg: string) => {
   try {
     // 方案1：优先使用 navigator.clipboard（现代浏览器+HTTPS环境）
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -814,9 +811,42 @@ onMounted(() => {
   align-items: center;
 }
 
+/* 核心修改：主查询行自适应布局 */
+.form-main-row {
+  display: flex;
+  flex-wrap: nowrap; /* 禁止换行 */
+  align-items: center;
+  width: 100%;
+  overflow: hidden; /* 防止溢出 */
+}
+
+/* 日期选择器项：固定基础宽度，自适应收缩 */
+.form-item-date {
+  flex: 0 1 280px; /* 不放大，可缩小，基础宽度280px */
+  min-width: 220px; /* 最小宽度，防止过度收缩 */
+}
+
+/* 输入框项：自适应拉伸填充剩余空间 */
+.form-item-input {
+  flex: 1 1 auto; /* 可放大，可缩小，自动宽度 */
+  min-width: 180px; /* 最小宽度，保证可用性 */
+}
+
+/* 日期选择器自适应宽度 */
+.range-picker {
+  width: 100% !important; /* 占满父容器宽度 */
+  min-width: 200px !important;
+}
+
+/* 输入框自适应宽度 */
+.query-input {
+  width: 100% !important; /* 占满父容器宽度 */
+  min-width: 160px !important;
+}
+
 /* 新增：批量操作开关样式 */
 .batch-operation-item {
-  margin-left: 20 !important;
+  margin-left: 20px !important;
   /* margin-right: 16px !important; */
 }
 
@@ -828,16 +858,6 @@ onMounted(() => {
 /* 新增：删除按钮样式 */
 .delete-button {
   min-width: 100px;
-}
-
-/* 日期选择器样式 */
-.range-picker {
-  width: 320px !important;
-}
-
-/* 输入框样式 */
-.query-input {
-  width: 250px !important;
 }
 
 /* 单选组样式 */
@@ -868,13 +888,14 @@ onMounted(() => {
   min-width: 100px;
 }
 
-/* 响应式调整 */
+/* 响应式调整：屏幕较小时允许主查询行换行 */
 @media (max-width: 1440px) {
-  .range-picker {
-    width: 280px !important;
+  .form-main-row {
+    flex-wrap: wrap; /* 允许换行 */
   }
-  .query-input {
-    width: 140px !important;
+  .form-item-date,
+  .form-item-input {
+    margin-bottom: 12px !important; /* 换行后添加底部间距 */
   }
 }
 
@@ -884,7 +905,7 @@ onMounted(() => {
     align-items: flex-start !important;
   }
   .batch-operation-item {
-    margin-left: 20 !important;
+    margin-left: 20px !important;
     margin-top: 8px !important;
   }
   .button-group-item {
@@ -897,33 +918,16 @@ onMounted(() => {
 }
 
 @media (max-width: 992px) {
-  .range-picker {
-    width: 240px !important;
-  }
-  .query-input {
-    width: 100px !important;
-  }
   .form-item {
     margin-right: 16px !important;
-    margin-bottom: 12px !important;
   }
 }
 
 @media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-    align-items: flex-start !important;
-  }
-  .form-item {
-    width: 100% !important;
-    margin-right: 0 !important;
-  }
-  .range-picker,
-  .query-input {
-    width: 100% !important;
-  }
-  .video-type-radio {
-    width: 100%;
+  .form-item-date,
+  .form-item-input {
+    flex: 1 1 100%; /* 占满整行 */
+    min-width: unset;
   }
   .button-group {
     width: 100%;
@@ -943,17 +947,6 @@ onMounted(() => {
   border-bottom: 1px solid #e8e8e8;
   overflow: hidden;
   max-height: 420px;
-}
-
-.video-element {
-  width: 100%;
-  height: auto;
-  max-height: 420px;
-  min-height: 250px;
-  background-color: #000;
-  object-fit: contain;
-  opacity: 1;
-  transition: opacity 0.3s ease;
 }
 
 .loading-overlay {
