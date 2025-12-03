@@ -34,12 +34,12 @@ namespace dy.net.utils
 
             // 3. 计算 UTF-8 字节数，若未超 255 字节，直接返回
             byte[] utf8Bytes = Encoding.UTF8.GetBytes(sanitizedName);
-            if (utf8Bytes.Length <= 252)
+            if (utf8Bytes.Length <= 100)
                 return sanitizedName.Replace(" ", ""); ;
 
             // 4. 超过 255 字节，截取前 255 字节（避免破坏 UTF-8 字符）
-            byte[] truncatedBytes = new byte[252];
-            Array.Copy(utf8Bytes, truncatedBytes, 252);
+            byte[] truncatedBytes = new byte[100];
+            Array.Copy(utf8Bytes, truncatedBytes, 100);
 
             // 5. 字节数组转回字符串（自动忽略不完整的尾部字节，避免乱码）
             string truncatedName = Encoding.UTF8.GetString(truncatedBytes).TrimEnd('\0').Replace(" ",""); // 移除可能的空字符

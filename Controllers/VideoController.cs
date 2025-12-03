@@ -229,6 +229,8 @@ namespace dy.net.Controllers
                     {
                         //加入删除逻辑
                         await douyinCommonService.AddDeleteVideo(new DouyinVideoDelete { ViedoId = video.AwemeId });
+                        Serilog.Log.Debug($"前面的日志,你错了，这条视频是永久删除..哈哈--{video.VideoTitle}");
+
                         return Ok(new { code = 0, data = true });
                     }
                     else
