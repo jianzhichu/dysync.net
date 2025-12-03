@@ -370,7 +370,7 @@ namespace dy.net.service
                 // 延迟清理：给 FFmpeg 进程足够时间释放文件句柄（1秒）
                 await Task.Delay(1000);
                 Directory.Delete(tempDir, recursive: true);
-                Log.Debug($"临时目录已清理：{tempDir}");
+                //Log.Debug($"临时目录已清理：{tempDir}");
             }
             catch (Exception ex)
             {

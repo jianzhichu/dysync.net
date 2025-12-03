@@ -210,6 +210,14 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  //删除
+  async function DeleteVideo(param: string) {
+    return http.request<any, Response<any>>('/api/video/vdelete/' + param, 'get').then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
 
 
   //检查版本
@@ -260,6 +268,7 @@ export const useApiStore = defineStore('coreapi', () => {
     SyncFollow,
     OpenOrCloseSync,
     OpenOrCloseFullSync,
-    ReDownViedos
+    ReDownViedos,
+    DeleteVideo
   };
 });

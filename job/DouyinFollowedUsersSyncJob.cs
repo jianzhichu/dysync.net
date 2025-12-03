@@ -84,10 +84,10 @@ namespace dy.net.job
                   
                     if (follows.Count > 0)
                     {
-                        await _followService.Sync(follows, ck.MyUserId);
+                        await _followService.Sync(follows, ck );
                     }
 
-                    Serilog.Log.Debug($"当前Cookie-[{ck.UserName}]，本次同步关注列表完成，共同步关注{total}人。");
+                    //Serilog.Log.Debug($"当前Cookie-[{ck.UserName}]，本次同步关注列表完成，当前共关注{total}人。");
                 }
             }
         }

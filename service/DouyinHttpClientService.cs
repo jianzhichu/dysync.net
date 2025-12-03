@@ -15,10 +15,13 @@ namespace dy.net.service
         public static readonly string DouYinApi = "https://www.douyin.com/aweme/v1/web/aweme";
         // 随机数生成器（避免重复实例化，保证随机性）
         private readonly IHttpClientFactory _clientFactory;
+        // 下载信号量锁：初始计数1，最大并发1（同时只能一个下载任务）
+        private readonly SemaphoreSlim _downloadSemaphore = new SemaphoreSlim(1, 1);
         public DouyinHttpClientService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
         }
+
 
         /// <summary>
         /// 查询用户收藏的视频
@@ -370,6 +373,111 @@ namespace dy.net.service
                 }
             }
         }
+
+        /// <summary>
+        /// 下载文件并保存到本地（支持重试机制+单线程限制，同时只能一个下载）
+        /// </summary>
+        /// <param name="videoUrl">文件地址</param>
+        /// <param name="savePath">保存路径</param>
+        /// <param name="cookie">请求Cookie</param>
+        /// <param name="httpclientName">HttpClient名称（默认"dy_down1"）</param>
+        /// <param name="cancellationToken">取消令牌（用于终止任务）</param>
+        /// <param name="streamTimeout">流读取超时时间（默认60秒）</param>
+        /// <param name="maxRetryCount">最大重试次数（默认3次）</param>
+        /// <param name="initialRetryDelay">初始重试延迟（默认1秒，指数退避）</param>
+        /// <returns>是否下载成功</returns>
+        //public async Task<bool> DownloadAsync(
+        //       string videoUrl,
+        //       string savePath,
+        //       string cookie,
+        //       CancellationToken cancellationToken = default,
+        //       TimeSpan? streamTimeout = null,
+        //       int maxRetryCount = 3,
+        //       TimeSpan? initialRetryDelay = null)
+        //{
+        //    bool lockAcquired = false;
+        //    try
+        //    {
+        //        // 申请锁：如果已有下载任务在执行，会阻塞等待直到锁释放
+        //        // 传入cancellationToken支持取消等待
+        //        await _downloadSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        //        lockAcquired = true; // 标记锁已获取
+
+        //        // 重试参数初始化
+        //        int retryCount = 0;
+        //        var retryDelay = initialRetryDelay ?? TimeSpan.FromSeconds(1);
+        //        streamTimeout ??= TimeSpan.FromSeconds(60);
+
+        //        while (true)
+        //        {
+        //            try
+        //            {
+        //                return await TryDownloadOnceAsync(
+        //                    videoUrl, savePath, cookie, cancellationToken, streamTimeout.Value);
+        //            }
+        //            catch (Exception ex) when (IsRetryableException(ex) && retryCount < maxRetryCount)
+        //            {
+        //                retryCount++;
+        //                var delay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * Math.Pow(2, retryCount - 1));
+        //                Serilog.Log.Warning(ex, $"下载失败（第{retryCount}/{maxRetryCount}次重试）：{videoUrl}，将在{delay.TotalSeconds:F1}秒后重试");
+
+        //                try
+        //                {
+        //                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+        //                }
+        //                catch (OperationCanceledException)
+        //                {
+        //                    Serilog.Log.Information($"重试等待被取消：{videoUrl}");
+        //                    CleanupIncompleteFile(savePath);
+        //                    return false;
+        //                }
+        //            }
+        //            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        //            {
+        //                Serilog.Log.Information($"下载被取消：{videoUrl}");
+        //                CleanupIncompleteFile(savePath);
+        //                return false;
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Serilog.Log.Error(ex, $"下载失败（不可重试）：{videoUrl}");
+        //                CleanupIncompleteFile(savePath);
+        //                return false;
+        //            }
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        // 确保锁一定释放（无论是否发生异常）
+        //        if (lockAcquired)
+        //        {
+        //            _downloadSemaphore.Release();
+        //            Serilog.Log.Debug($"下载锁已释放，下一个任务可执行");
+        //        }
+        //    }
+        //}
+
+        // 辅助类：用于using语句自动释放SemaphoreSlim
+        //public sealed class SemaphoreReleaser : IDisposable
+        //{
+        //    private readonly SemaphoreSlim _semaphore;
+        //    private bool _disposed;
+
+        //    public SemaphoreReleaser(SemaphoreSlim semaphore)
+        //    {
+        //        _semaphore = semaphore ?? throw new ArgumentNullException(nameof(semaphore));
+        //    }
+
+        //    public void Dispose()
+        //    {
+        //        if (!_disposed)
+        //        {
+        //            _semaphore.Release(); // 释放锁，允许下一个任务执行
+        //            _disposed = true;
+        //        }
+        //    }
+        //}
+
 
         /// <summary>
         /// 单次下载尝试（核心下载逻辑）

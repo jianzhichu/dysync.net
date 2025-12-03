@@ -4,6 +4,7 @@ using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Newtonsoft.Json;
 using System.Drawing.Printing;
 using System.Threading.Tasks;
@@ -15,12 +16,12 @@ namespace dy.net.Controllers
     public class VideoController : ControllerBase
     {
         private readonly DouyinVideoService dyCollectVideoService;
-        private readonly DouyinQuartzJobService douyinQuartzJobService;
+        private readonly DouyinCommonService douyinCommonService;
 
-        public VideoController(DouyinVideoService dyCollectVideoService,DouyinQuartzJobService douyinQuartzJobService)
+        public VideoController(DouyinVideoService dyCollectVideoService, DouyinCommonService douyinCommonService)
         {
             this.dyCollectVideoService = dyCollectVideoService;
-            this.douyinQuartzJobService = douyinQuartzJobService;
+            this.douyinCommonService = douyinCommonService;
         }
         /// <summary>
         /// 分页查询收藏视频
@@ -175,6 +176,7 @@ namespace dy.net.Controllers
             };
         }
 
+
         /// <summary>
         /// 重新下载
         /// </summary>
@@ -193,13 +195,49 @@ namespace dy.net.Controllers
                 var result = await dyCollectVideoService.ReDownloadViedoAsync(dto);
                 if (result)
                 {
-                   //douyinQuartzJobService.StartReDownJobOnceAsync();...无法实现。。逆向失败
                     return Ok(new { code = 0, data = true });
                 }
                 else
                 {
                     return Ok(new { code = -1, data = false });
                 }
+            }
+        }
+        /// <summary>
+        /// 删除视频-不再下载
+        /// </summary>
+        /// <param name="Id"></param>
+        /// <returns></returns>
+        [HttpGet("vdelete/{vid}")]
+        public async Task<IActionResult> DeleteVideo([FromRoute]string vid)
+        {
+            if (string.IsNullOrWhiteSpace(vid))
+            {
+                return Ok(new { code = -1, data = false });
+            }
+            else
+            {
+                var video = await dyCollectVideoService.GetById(vid);
+                if (video == null)
+                {
+                    return Ok(new { code = -1, data = false });
+                }
+                else
+                {
+                    var result = await dyCollectVideoService.ReDownloadViedoAsync(new ReDownViedoDto { Ids = new List<string> { vid } });
+                    if (result)
+                    {
+                        //加入删除逻辑
+                        await douyinCommonService.AddDeleteVideo(new DouyinVideoDelete { ViedoId = video.AwemeId });
+                        return Ok(new { code = 0, data = true });
+                    }
+                    else
+                    {
+                        return Ok(new { code = -1, data = false });
+                    }
+
+                }
+              
             }
         }
     }

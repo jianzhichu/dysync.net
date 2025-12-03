@@ -13,11 +13,11 @@
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="每次同步（条数）" name="BatchCount" :wrapper-col="{ span:6}" style="margin-left:30px">
-          <a-input-number v-model:value="formState.BatchCount" placeholder="请输入查询条数(最大30)" :min="10" :max="30" />
+        <a-form-item has-feedback label="每次同步上限" name="BatchCount" :wrapper-col="{ span:10}" style="margin-left:30px">
+          <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大30)" :min="10" :max="30" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>每次同步获取的条数，范围10-30条，建议使用默认值</span>
+            <span>每次同步获取的条数，范围10-30条（建议使用默认值18,抖音默认的分页大小）</span>
           </div>
         </a-form-item>
       </div>
@@ -121,24 +121,7 @@
       <div class="form-section">
         <h3 class="section-title">其他配置</h3>
 
-        <a-form-item has-feedback label="日志保留（天数）" name="LogKeepDay" :wrapper-col="{ span: 6 }" style="margin-left:30px">
-          <a-input-number v-model:value="formState.LogKeepDay" placeholder="请输入保留天数" :min="1" :max="90" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>系统运行日志的保留天数，范围1-90天，过期自动清理</span>
-          </div>
-        </a-form-item>
-        <a-form-item has-feedback label="是否自动去重" name="AutoDistinct" :wrapper-col="{ span: 10 }">
-          <a-switch v-model:checked="formState.AutoDistinct" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>
-              启用后，同一个视频,只会下载一次。(但是暂时不能决定保留哪个文件夹的)
-            </span>
-          </div>
-        </a-form-item>
-
-        <a-form-item v-show="formState.AutoDistinct" has-feedback label="优先级" name="PriorityLevel" :wrapper-col="{ span: 10 }">
+        <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先等级" name="PriorityLevel" :wrapper-col="{ span: 8 }">
           <!-- Tag 拖拽容器 -->
           <div class="tag-drag-container">
             <!-- Tag 拖拽容器（绑定 ref 供 Sortable 初始化） -->
@@ -150,7 +133,29 @@
               </a-tag>
             </div>
           </div>
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>同一个视频同时存在在多个类型的视频分类时，按照优先级保优先级最高的一个。
+              鼠标放到≡，点击鼠标左键即可拖拽调整优先级，</span>
+          </div>
         </a-form-item>
+
+        <a-form-item has-feedback label="日志保留（天数）" name="LogKeepDay" :wrapper-col="{ span: 6 }" style="margin-left:30px">
+          <a-input-number v-model:value="formState.LogKeepDay" placeholder="请输入保留天数" :min="1" :max="90" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>系统运行日志的保留天数，范围1-90天，过期自动清理</span>
+          </div>
+        </a-form-item>
+        <!-- <a-form-item has-feedback label="是否自动去重" name="AutoDistinct" :wrapper-col="{ span: 10 }">
+          <a-switch v-model:checked="formState.AutoDistinct" disabled />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>
+              启用后，同一个视频,只会下载一次。(但是暂时不能决定保留哪个文件夹的)
+            </span>
+          </div>
+        </a-form-item> -->
 
       </div>
 
@@ -197,7 +202,7 @@ const template_options = [
 
 // 状态定义
 const componentDisabled = ref(true);
-const downImgVideo = ref(false);
+const downImgVideo = ref(true);
 
 // 表单数据结构（新增 FullFollowedTitleTemplate 字段）
 interface FormState {
@@ -315,7 +320,7 @@ const getConfig = () => {
           PriorityLevel: res.data.priorityLevel,
         });
 
-        downImgVideo.value = res.data.downImageVideoFromEnv;
+        // downImgVideo.value = res.data.downImageVideoFromEnv;
         tagData.value = JSON.parse(res.data.priorityLevel);
       } else {
         message.error(res.erro || '获取配置失败', 8);

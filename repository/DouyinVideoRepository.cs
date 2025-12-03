@@ -33,10 +33,11 @@ namespace dy.net.repository
 
 
             VideoTypeEnum? enumviedoType = null;
-            if (!string.IsNullOrEmpty(dto.ViedoType) && dto.ViedoType != "*")
+            if (!string.IsNullOrEmpty(dto.ViedoType) && dto.ViedoType != "*" && dto.ViedoType != "4") 
             {
                 enumviedoType = dto.ViedoType.ToVideoTypeEnum();
             }
+          
             var where = this.Db.Queryable<DouyinVideo>()
                 //.WhereIF(!string.IsNullOrWhiteSpace(title), x => x.VideoTitle.Contains(title))
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.Title), x => x.VideoTitle.Contains(dto.Title))
@@ -45,7 +46,8 @@ namespace dy.net.repository
                 .WhereIF(end.HasValue, x => x.SyncTime <= end.Value)
                 .WhereIF(start2.HasValue, x => x.CreateTime >= start2.Value)
                 .WhereIF(end2.HasValue, x => x.CreateTime <= end2.Value)
-                .WhereIF(enumviedoType.HasValue, x => x.ViedoType == enumviedoType);
+                .WhereIF(enumviedoType.HasValue, x => x.ViedoType == enumviedoType)
+                .WhereIF(dto.ViedoType == "4", x => x.IsMergeVideo == 1);
 
 
             var totalCount = await where.CountAsync();
@@ -90,7 +92,7 @@ namespace dy.net.repository
         public async Task<(string, string)> GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
         {
 
-            var video = await this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == VideoTypeEnum.UperPost)
+            var video = await this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == VideoTypeEnum.dy_follows)
                  .Where(x => x.VideoTitleSimplify == ViedoNameSimplify)
                  .OrderByDescending(x => x.CreateTime).FirstAsync();
 
@@ -140,7 +142,7 @@ namespace dy.net.repository
         /// </summary>
         /// <param name="downs"></param>
         /// <returns></returns>
-        public bool InsertReDowns(List<ViedoReDown> downs)
+        public bool InsertReDowns(List<DouyinReDownload> downs)
         {
             if (downs != null)
             {
@@ -169,9 +171,9 @@ namespace dy.net.repository
             }
 
             // 构建更新条件（统一Where条件，避免重复代码）
-            var updateable = Db.Updateable<ViedoReDown>()
+            var updateable = Db.Updateable<DouyinReDownload>()
                 .Where(it => it.Id == videoId)
-                .SetColumns(it => new ViedoReDown
+                .SetColumns(it => new DouyinReDownload
                 {
                     Status = status,
                     UpdateTime = DateTime.Now
@@ -197,9 +199,9 @@ namespace dy.net.repository
         /// 
         /// </summary>
         /// <returns></returns>
-        public async Task<List<ViedoReDown>> GetViedoReDowns()
+        public async Task<List<DouyinReDownload>> GetViedoReDowns()
         {
-            return await this.Db.Queryable<ViedoReDown>()
+            return await this.Db.Queryable<DouyinReDownload>()
                 .Where(x => x.Status == 0 || x.Status == 2)
                 .ToListAsync();
         }

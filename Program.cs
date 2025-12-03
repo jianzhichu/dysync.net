@@ -1,15 +1,7 @@
-using ClockSnowFlake;
-using dy.net.dto;
 using dy.net.extension;
-using dy.net.model;
 using dy.net.service;
 using dy.net.utils;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.IdentityModel.Tokens;
 using Serilog;
-using SqlSugar;
-using System.Reflection;
 using System.Text;
 
 namespace dy.net
@@ -204,8 +196,8 @@ ____/   _|_)_____/   _|  _| \_|\____|
                 commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
-           
-                if(!isDevelopment)
+
+                if (!isDevelopment)
                 {
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();

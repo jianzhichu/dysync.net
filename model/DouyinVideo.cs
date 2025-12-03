@@ -139,6 +139,11 @@ namespace dy.net.model
         [SugarColumn(Length =200,IsNullable =true)]
         public VideoTypeEnum ViedoType { get; set; }
 
+        /// <summary>
+        /// 是否合成视频
+        /// </summary>
+        public int IsMergeVideo { get; set; }
+
         [SugarColumn(IsIgnore = true)]
         public string ViedoTypeStr  => ViedoType.GetDescription();
 

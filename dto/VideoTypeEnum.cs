@@ -4,24 +4,26 @@ namespace dy.net.dto
 {
     public enum VideoTypeEnum
     {
+        /// <summary>
+        ///喜欢的
+        /// </summary>
         [Description("喜欢的")]
-        Favorite = 1,
+        dy_favorite = 1,
+        /// <summary>
+        ///收藏的
+        /// </summary>
         [Description("收藏的")]
-        Collect = 2,
+        dy_collects = 2,
+        /// <summary>
+        /// 关注的
+        /// </summary>
         [Description("关注的")]
-        UperPost = 3,
+        dy_follows = 3,
+        /// <summary>
+        ///  图文视频，无用了，但是不能删...
+        /// </summary>
         [Description("图片视频")]
         ImageVideo = 4
     }
 
-
-    public enum QuartzJobTypeEnum
-    {
-        [Description("[Favorite]")]
-        Favorite = 1,
-        [Description("[Collect]")]
-        Collect = 2,
-        [Description("[Followed]")]
-        Followed = 3
-    }
 }

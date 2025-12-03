@@ -10,156 +10,45 @@ namespace dy.net.utils
     /// </summary>
     public static class DouyinFileNameHelper
     {
-        #region 配置参数
         /// <summary>
+        /// 处理文件名/文件夹名，确保符合 Linux 限制（最大 255 字节 UTF-8 编码）
         /// </summary>
-        private const int MaxFileNameBytes = 60;
-
-
-
-        /// <summary>
-        /// 非法字符替换后的占位符（也可设为空字符串）
-        /// </summary>
-        private const string IllegalCharReplacement = "";
-
-
-        #endregion
-
-        #region 处理抖音视频文件名
-        /// <summary>
-        /// 生成抖音视频文件名
-        /// </summary>
-        /// <param name="originalTitle">抖音原始标题</param>
-        /// <param name="videoId">排序号--如果有重复标题，根据时间排序取最后一个的序号+1 从001开始</param>
-        /// <returns>安全可用的文件名</returns>
-        public static string GenerateFileName(string originalTitle,string videoId)
+        /// <param name="originalName">原始名称（支持英文、中文、混合字符）</param>
+        /// <param name="defaultName">截取后为空时的默认名称（默认 "default"）</param>
+        /// <returns>符合 Linux 规则的合法名称</returns>
+        public static string SanitizeLinuxFileName(string originalName, string defaultName = "default")
         {
-            // 1. 基础容错（处理空值）
-            originalTitle = string.IsNullOrWhiteSpace(originalTitle) ? videoId : originalTitle;
+            // 1. 空值处理：直接返回默认名
+            if (string.IsNullOrWhiteSpace(originalName))
+                return defaultName.Replace(" ","");
 
-            // 2. 净化标题：移除非法内容
-            string purifiedTitle = PurifyTitle(originalTitle, videoId);
-
-            // 3. 长度控制：按UTF-8字节数截断（避免超系统限制）
-            string truncatedTitle = TruncateByByteLength(purifiedTitle, MaxFileNameBytes);
-
-            return truncatedTitle.Trim();
-        }
-        #endregion
-
-        #region 内部辅助方法：标题净化
-        /// <summary>
-        /// 净化标题（移除非法字符、表情、话题标签）
-        /// </summary>
-        private static string PurifyTitle(string title,string id)
-        {
-            if (string.IsNullOrEmpty(title))
+            // 2. 过滤 Linux 非法字符：
+            // - 禁止：/（路径分隔符）、\0（空字符）
+            // - 替换：其他特殊字符（如 :*?"<>|\\ ）为下划线 _，避免创建失败
+            var invalidChars = new[] { '/', '\0', ':', '*', '?', '"', '<', '>', '|', '\\' };
+            string sanitizedName = originalName;
+            foreach (var c in invalidChars)
             {
-                title = id;
+                sanitizedName = sanitizedName.Replace(c, '_');
             }
 
+            // 3. 计算 UTF-8 字节数，若未超 255 字节，直接返回
+            byte[] utf8Bytes = Encoding.UTF8.GetBytes(sanitizedName);
+            if (utf8Bytes.Length <= 252)
+                return sanitizedName.Replace(" ", ""); ;
 
-            title = Regex.Replace(title, @"[^a-zA-Z0-9\u4e00-\u9fa5]", "-");
-            // 步骤1：移除话题标签（#xxx 或 #xxx#yyy）
-            //title = Regex.Replace(title, @"#\S+", "", RegexOptions.Compiled);
+            // 4. 超过 255 字节，截取前 255 字节（避免破坏 UTF-8 字符）
+            byte[] truncatedBytes = new byte[252];
+            Array.Copy(utf8Bytes, truncatedBytes, 252);
 
-            // 步骤2：移除表情符号（匹配常见表情Unicode区块）
-            //string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
-            //title = Regex.Replace(title, emojiPattern, "", RegexOptions.Compiled);
+            // 5. 字节数组转回字符串（自动忽略不完整的尾部字节，避免乱码）
+            string truncatedName = Encoding.UTF8.GetString(truncatedBytes).TrimEnd('\0').Replace(" ",""); // 移除可能的空字符
 
-            // 步骤3：过滤系统非法字符（Windows/macOS/Linux通用禁止）
-            char[] illegalChars = new[] { '/', '\\', ':', '*', '?', '"', '<', '>', '|', '\0', '\t', '\n', '\r' };
-            foreach (char c in illegalChars)
-            {
-                title = title.Replace(c.ToString(), IllegalCharReplacement);
-            }
-            char Separator = '-';
-
-            foreach (var c in Path.GetInvalidFileNameChars())
-            {
-                title = title.Replace(c, '_');
-            }
-
-
-            // 步骤5：合并连续分隔符（避免多个---）
-            title = Regex.Replace(title, $"{Separator}+", Separator.ToString(), RegexOptions.Compiled);
-
-            // 步骤6：移除首尾无效字符（分隔符、点号）
-            title = title.Replace(" ","").Trim(Separator, '.');
-            title = title.Replace("--", "-");//避免多个连续----
-            // 容错：如果净化后为空，返回默认值
-            return string.IsNullOrWhiteSpace(title) ? id : title;
-        }
-        #endregion
-
-        #region 内部辅助方法：按字节数截断
-        /// <summary>
-        /// 按UTF-8字节数截断字符串（避免截断半个中文）
-        /// </summary>
-        /// <param name="str">要截断的字符串</param>
-        /// <param name="maxBytes">最大字节数</param>
-        /// <returns>截断后的字符串</returns>
-        private static string TruncateByByteLength(string str, int maxBytes)
-        {
-            if (string.IsNullOrEmpty(str)) return str;
-
-            byte[] bytes = Encoding.UTF8.GetBytes(str);
-            if (bytes.Length <= maxBytes) return str;
-
-            // 从后往前截断，直到字节数≤maxBytes（避免半个中文）
-            for (int i = str.Length - 1; i >= 0; i--)
-            {
-                string truncated = str.Substring(0, i + 1);
-                if (Encoding.UTF8.GetByteCount(truncated) <= maxBytes)
-                {
-                    return truncated;
-                }
-            }
-
-            // 极端情况（单个字符就超字节数），返回空字符串
-            return "";
-        }
-        #endregion
-
-
-
-
-        // 清理路径中的特殊字符（避免创建文件夹失败）
-        public static string SanitizePath(string path)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    path = "其他";
-                }
-
-                // 步骤1：移除话题标签（#xxx 或 #xxx#yyy）
-                //path = Regex.Replace(path, @"#\S+", "", RegexOptions.Compiled);
-
-                // 步骤2：移除表情符号（匹配常见表情Unicode区块）
-                //string emojiPattern = @"[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1E000-\u1EFFF\u2600-\u2B55\u200D]";
-                //path = Regex.Replace(path, emojiPattern, "", RegexOptions.Compiled);
-                path = Regex.Replace(path, @"[^a-zA-Z0-9\u4e00-\u9fa5]", "-");
-                path = path.Replace("--", "-");//避免重复---
-                foreach (var c in Path.GetInvalidFileNameChars())
-                {
-                    path = path.Replace(c, '_');
-                }
-                if (path.Length > 60)
-                {
-                    path = path.Substring(0, 60);
-                }
-                return path.Trim().Replace(" ", "");
-            }
-            catch (Exception ex)
-            {
-                return path;
-            }
+            // 6. 极端情况：截取后为空（如全是非法字符替换后无有效内容），返回默认名
+            return string.IsNullOrWhiteSpace(truncatedName) ? defaultName : truncatedName;
         }
 
 
-        /// <summary>
         /// 检查字符串是否仅包含字母、数字、简体中文（无特殊字符）
         /// </summary>
         /// <param name="input">待检查的字符串</param>

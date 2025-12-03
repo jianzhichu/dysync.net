@@ -125,6 +125,10 @@
               <ShareAltOutlined />
               分享
             </a-button>
+            <a-button type="link" danger @click="handleDelete(record)" :disabled="!record.id">
+              <DeleteOutlined />
+              删除
+            </a-button>
           </a-space>
         </template>
       </template>
@@ -225,7 +229,7 @@ const columns = ref([
     title: '同步类型',
     dataIndex: 'viedoTypeStr',
     align: 'center',
-    width: 150,
+    width: 120,
   },
   {
     title: '博主',
@@ -236,7 +240,7 @@ const columns = ref([
   {
     title: '视频类型',
     dataIndex: 'viedoCate',
-    width: 300,
+    width: 200,
     align: 'center',
   },
   {
@@ -276,7 +280,7 @@ watch(isBatchMode, (isOpen) => {
 
 // 基础状态（优化：删除冗余的 datas 响应式数组）
 const loading = ref(false);
-const showImageViedo = ref(false);
+const showImageViedo = ref(true);
 const dataSource = ref<DataItem[]>([]); // 直接用 ref 数组存储表格数据，减少响应式嵌套
 
 // 查询参数
@@ -306,7 +310,16 @@ const pagination = ref({
   current: 1,
   defaultPageSize: 10,
   total: 0,
+  showSizeChanger: true, // 强制显示「每页显示数量」下拉框（关键修复）
   showTotal: () => `共 ${0} 条`,
+  // showQuickJumper: true, // 显示快速跳转输入框（可选，增强体验）
+  pageSizeOptions: ['10', '20', '50', '100'], // 自定义每页条数选项（可选）
+  showSizeChange: (current, pageSize) => {
+    // 可选：监听每页条数变化，重置当前页为第1页（避免最后一页数据不足的问题）
+    pagination.value.current = 1;
+    pagination.value.defaultPageSize = pageSize;
+    GetRecords();
+  },
 });
 
 // 视频播放相关配置
@@ -450,22 +463,22 @@ const handleTableChange = (paginationObj: any) => {
 };
 
 /** 获取系统配置 */
-const getConfig = () => {
-  useApiStore()
-    .apiGetConfig()
-    .then((res) => {
-      if (res.code === 0) {
-        showImageViedo.value = res.data.downImageVideoFromEnv;
-      } else {
-        message.warning(`获取配置失败: ${res.message}`);
-      }
-      GetRecords();
-    })
-    .catch((error) => {
-      console.error('获取配置失败:', error);
-      message.error('获取配置失败，请稍后重试');
-    });
-};
+// const getConfig = () => {
+//   useApiStore()
+//     .apiGetConfig()
+//     .then((res) => {
+//       if (res.code === 0) {
+//         showImageViedo.value = res.data.downImageVideoFromEnv;
+//       } else {
+//         message.warning(`获取配置失败: ${res.message}`);
+//       }
+//       GetRecords();
+//     })
+//     .catch((error) => {
+//       console.error('获取配置失败:', error);
+//       message.error('获取配置失败，请稍后重试');
+//     });
+// };
 
 /** 视频类型切换事件 */
 const onViedoTypeChanged = () => {
@@ -613,9 +626,9 @@ const handleBatchDelete = () => {
   }
 
   Modal.confirm({
-    title: '确认删除',
-    content: `您确定要删除选中的 ${selectedRowKeys.value.length} 条视频数据吗？此操作不可撤销！`,
-    okText: '确认删除',
+    title: '确认重新下载吗',
+    content: `您确定要重新下载选中的 ${selectedRowKeys.value.length} 条视频数据吗？`,
+    okText: '确认重新下载',
     cancelText: '取消',
     okType: 'danger',
     onOk: async () => {
@@ -753,6 +766,34 @@ const handleShare = (record: DataItem) => {
   }
 };
 
+//视频删除不再下载
+const handleDelete = (record: DataItem) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `您确定要删除这条视频数据吗？此操作不可撤销，以后也不会再下载！！！`,
+    okText: '确认删除',
+    cancelText: '取消',
+    okType: 'danger',
+    onOk: async () => {
+      try {
+        useApiStore()
+          .DeleteVideo(record.id)
+          .then((res) => {
+            if (res.code == 0) {
+              message.success('删除成功,再也不会下载！！！');
+            } else {
+              message.error('删除失败');
+            }
+            GetRecords();
+          });
+      } catch (error) {
+        console.error('删除失败', error);
+        message.error('视频删除失败，请稍后再试');
+      }
+    },
+  });
+};
+
 // 新增：复制视频路径方法
 const copyVideoPath = (path?: string) => {
   if (!path) {
@@ -764,7 +805,8 @@ const copyVideoPath = (path?: string) => {
 
 // -------------------------- 页面初始化 --------------------------
 onMounted(() => {
-  getConfig();
+  // getConfig();
+  GetRecords();
 });
 </script>
 

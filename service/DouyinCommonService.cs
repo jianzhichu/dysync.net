@@ -49,7 +49,7 @@ namespace dy.net.service
                     LogKeepDay = 10,
                     UperSaveTogether = false,//博主视频：true-->每个视频单独一个文件夹 false-->所有视频放在同一个文件夹
                     UperUseViedoTitle = false,//博主视频：true-->使用视频标题作为文件名 false-->使用视频id作为文件名
-                    DownImageVideo = false,//默认不下载图文视频
+                    DownImageVideo = true,//默认下载图文视频
                     DownMp3 = false,
                     DownImage = false,
                     ImageViedoSaveAlone = true,
@@ -99,18 +99,18 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 兼容旧版将之前同步了的我收藏的数据进行更新
+        /// 初始化一些数据，兼容旧版数据结构。
         /// </summary>
         public void UpdateCollectViedoType()
         {
-
+            //更新视频类型字段-兼容老版本
             string sql = @"UPDATE dy_collect_video 
                         SET ViedoType = CASE 
                         WHEN ViedoType = '0' THEN 0 
                         WHEN ViedoType = '1' THEN 1  
                         WHEN ViedoType = '2' THEN 2 
                         WHEN ViedoType = '3' THEN 3
-                        WHEN ViedoType = '4' THEN 4  
+                        WHEN ViedoType = '4' THEN 4
                         ELSE NULL 
                     END;";
 
@@ -119,16 +119,53 @@ namespace dy.net.service
             //更新关注表的IsNoFollowed字段为空的数据为0--兼容老版本-新加的字段
             string followUpdateSql = @"Update  dy_follow SET IsNoFollowed=0 WHERE IsNoFollowed is NULL";
             sqlSugarClient.Ado.ExecuteCommand(followUpdateSql);
-            //var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().ToList();
 
-            //if (collectViedos.Any())
-            //{
-            //    collectViedos.ForEach(x =>
-            //    {
-            //        x.ViedoType = x.;
-            //    });
-            //    sqlSugarClient.Updateable(collectViedos).ExecuteCommand();
-            //}
+            //更新图片视频的合并状态
+            string updateIsMergeVideoSql = @"UPDATE dy_collect_video SET IsMergeVideo = 1 WHERE IsMergeVideo IS NULL and ViedoType='4';";
+            sqlSugarClient.Ado.ExecuteCommand(updateIsMergeVideoSql);
+
+            //更新非图片视频的合并状态
+            string updateNoIsMergeVideoSql = @"UPDATE dy_collect_video SET IsMergeVideo = 0 WHERE IsMergeVideo IS NULL and ViedoType<>'4';";
+            sqlSugarClient.Ado.ExecuteCommand(updateNoIsMergeVideoSql);
+
+            //强制开启去重
+            sqlSugarClient.Updateable<AppConfig>().SetColumns(x => new AppConfig { AutoDistinct = true }).Where(x => !string.IsNullOrWhiteSpace(x.Id)).ExecuteCommand();
+            //重新根据保存路径更新图片视频的类型为喜欢，收藏或关注
+            var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().Where(x=>x.ViedoType==VideoTypeEnum.ImageVideo).ToList();
+            if (collectViedos != null && collectViedos.Any()) 
+            {
+                var cookies= sqlSugarClient.Queryable<DouyinCookie>().ToList();
+                collectViedos.ForEach(x =>
+                {
+                 var ck= cookies.FirstOrDefault(c => c.Id == x.CookieId);
+                    if (ck != null)
+                    {
+
+                        var savePath = x.VideoSavePath;
+                        if (savePath != null)
+                        {
+                            if (savePath.StartsWith(ck.SavePath))
+                            {
+                                x.ViedoType = VideoTypeEnum.dy_collects;
+                            }
+                            else if(savePath.StartsWith(ck.UpSavePath))
+                            {
+                                x.ViedoType = VideoTypeEnum.dy_follows;
+                            }
+                            else if(savePath.StartsWith(ck.FavSavePath))
+                            {
+                                x.ViedoType = VideoTypeEnum.dy_favorite;
+                            }
+                            else
+                            {
+                                x.ViedoType= VideoTypeEnum.dy_collects;
+                            }
+                        }
+                    }
+                });
+                //只更新图片视频的类型
+                sqlSugarClient.Updateable(collectViedos).UpdateColumns(x => new DouyinVideo { ViedoType = x.ViedoType }).IgnoreColumns(true).ExecuteCommand();
+            }
         }
         /// <summary>
         /// 重置所有Cookie的同步状态为0
@@ -148,18 +185,28 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 查询需要下载的所有重下载视频记录
+        /// 查询是否已删除
         /// </summary>
+        /// <param name="videoId"></param>
         /// <returns></returns>
-        public async Task<List<ViedoReDown>> GetAllRedown()
+        public async Task<bool> ExistDeleteVideo(string videoId)
         {
-            return await sqlSugarClient.Queryable<ViedoReDown>().Where(x => x.Status == 0 || x.Status == 2).ToListAsync();
+            var count= await sqlSugarClient.Queryable<DouyinVideoDelete>().Where(x=>x.ViedoId==videoId).CountAsync();
+            return count > 0;
         }
 
-        public async Task<bool> UpdateRedownStatus(List<ViedoReDown> list)
+        /// <summary>
+        /// 新增要删除的视频
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
+        public async Task<bool> AddDeleteVideo(DouyinVideoDelete dto)
         {
-            return await sqlSugarClient.Updateable(list).ExecuteCommandAsync() > 0;
+            dto.Id=IdGener.GetLong().ToString();
+            dto.DeleteTime = DateTime.Now;
+            return sqlSugarClient.Insertable(dto).ExecuteCommand() > 0;
         }
+
         #region 测试创建数据库
 
         ///// <summary>

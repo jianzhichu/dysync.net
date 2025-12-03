@@ -55,11 +55,11 @@ namespace dy.net.service
         /// 
         /// </summary>
         /// <param name="followInfos"></param>
-        /// <param name="myselfUserId"></param>
+        /// <param name="ck"></param>
         /// <returns></returns>
-        public async Task<bool> Sync(List<FollowingsItem> followInfos, string myselfUserId)
+        public async Task<bool> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
         {
-            return await _followRepository.Sync(followInfos, myselfUserId);
+            return await _followRepository.Sync(followInfos, ck);
         }
 
         public async Task<DouyinFollowed> GetByUperId(string uperId,string myUid)

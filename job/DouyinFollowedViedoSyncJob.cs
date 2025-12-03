@@ -16,9 +16,8 @@ namespace dy.net.job
         {
         }
 
-        protected override string JobType => SystemStaticUtil.DY_FOLLOWEDS;
 
-        protected override VideoTypeEnum VideoType => VideoTypeEnum.UperPost;
+        protected override VideoTypeEnum VideoType => VideoTypeEnum.dy_follows;
 
         protected override async Task<List<DouyinCookie>> GetValidCookies()
         {
@@ -56,7 +55,7 @@ namespace dy.net.job
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
         {
             #region 默认使用UP主名称作为文件夹名称，若关注列表中有自定义保存路径则使用自定义路径
-            var authorName = string.IsNullOrWhiteSpace(item.Author?.Nickname) ? "UnknownAuthor" : DouyinFileNameHelper.SanitizePath(item.Author.Nickname);
+            var authorName = string.IsNullOrWhiteSpace(item.Author?.Nickname) ? "UnknownAuthor" : DouyinFileNameHelper.SanitizeLinuxFileName(item.Author.Nickname);
             var folder = Path.Combine(cookie.UpSavePath, authorName);
             if (!string.IsNullOrWhiteSpace(followed.SavePath))
             {
@@ -71,7 +70,7 @@ namespace dy.net.job
             }
             else
             {
-                var sampleName = DouyinFileNameHelper.GenerateFileName(item.Desc, item.AwemeId);
+                var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
                 var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName).Result;
                 var fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
                 return Path.Combine(folder, fileNameFolder);
@@ -115,7 +114,7 @@ namespace dy.net.job
             string fileName;
             if (config?.UperUseViedoTitle ?? false)//优先
             {
-                var sampleName = DouyinFileNameHelper.GenerateFileName(item.Desc, item.AwemeId);
+                var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
                 var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName).Result;
                 fileName = string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{Format}" : $"{existingName}.{Format}";
             }
@@ -130,11 +129,11 @@ namespace dy.net.job
                         Id = item.AwemeId,
                         ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
                         Resolution = $"{Width}×{Height}",
-                        VideoTitle = DouyinFileNameHelper.GenerateFileName(item.Desc, item.AwemeId),
+                        VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId),
                         Author = item.Author.Nickname
                     });
 
-                    fileName= $"{DouyinFileNameHelper.SanitizePath(fullName)}.{Format}";
+                    fileName= $"{DouyinFileNameHelper.SanitizeLinuxFileName(fullName)}.{Format}";
                 }
                 else
                 {
@@ -172,17 +171,17 @@ namespace dy.net.job
             return Path.Combine(cookie.UpSavePath, "author");
         }
 
-        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount)
+        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed)
         {
             if (syncCount > 0)
             {
-                Serilog.Log.Debug($"{JobType}-Cookie-[{cookie.UserName}],本次同步成功{syncCount}条视频");
+                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}],本次共同步成功{syncCount}条视频");
                 cookie.UperSyncd = 1;
                 await douyinCookieService.UpdateAsync(cookie);
             }
             else
             {
-                Serilog.Log.Debug($"{JobType}-Cookie-[{cookie.UserName}],本次没有查询到新的视频");
+                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}]-{(followed == null ? "" : $"{followed.UperName}")},没有可以同步的新视频");
             }
         }
 
@@ -193,12 +192,10 @@ namespace dy.net.job
 
             if (config?.UperUseViedoTitle ?? false)
             {
-                simplifiedTitle = DouyinFileNameHelper.GenerateFileName(item.Desc, item.AwemeId);
+                simplifiedTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
             }
-
             return new VideoEntityDifferences
             {
-                VideoType = VideoTypeEnum.UperPost,
                 VideoTitleSimplify = simplifiedTitle
             };
         }

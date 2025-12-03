@@ -6,7 +6,7 @@ namespace dy.net.model
     /// 重新下载的列表
     /// </summary>
     [SugarTable(TableName = "dy_rd_video")]
-    public class ViedoReDown
+    public class DouyinReDownload
     {
         /// <summary>
         /// 

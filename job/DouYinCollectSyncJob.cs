@@ -15,9 +15,8 @@ namespace dy.net.job
             DouyinCommonService douyinCommonService,DouyinFollowService douyinFollowService,DouyinMergeVideoService douyinMergeVideoService)
             : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService,douyinFollowService, douyinMergeVideoService) { }
 
-        protected override string JobType => SystemStaticUtil.DY_COLLECTS;
-
-        protected override VideoTypeEnum VideoType => VideoTypeEnum.Collect;
+       
+        protected override VideoTypeEnum VideoType => VideoTypeEnum.dy_collects;
 
         protected override async Task BeforeProcessCookies()
         {
@@ -61,34 +60,31 @@ namespace dy.net.job
             return Path.Combine(cookie.SavePath, "author");
         }
 
-        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount)
+        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount,DouyinFollowed followed)
         {
             if (syncCount > 0)
             {
-                Serilog.Log.Debug($"{JobType}-Cookie-[{cookie.UserName}],本次同步成功{syncCount}条视频");
+                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}],本次共同步成功{syncCount}条视频");
                 cookie.CollHasSyncd = 1;
                 await douyinCookieService.UpdateAsync(cookie);
             }
             else
             {
-                Serilog.Log.Debug($"{JobType}-Cookie-[{cookie.UserName}],本次没有查询到新的视频");
+                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}],没有可以同步的新视频");
             }
         }
 
 
         protected override VideoEntityDifferences GetVideoEntityDifferences(DouyinCookie cookie, Aweme item)
         {
-            return new VideoEntityDifferences
-            {
-                VideoType = VideoTypeEnum.Collect,
-            };
+            return new VideoEntityDifferences();
         }
 
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
         {
             var (tag1, _, _) = GetVideoTags(item);
-            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizePath(tag1);
-            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizePath(item.Desc)}@{item.AwemeId}");
+            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1);
+            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc)}@{item.AwemeId}");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             return folder;
         }

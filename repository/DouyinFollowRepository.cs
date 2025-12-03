@@ -93,11 +93,11 @@ namespace dy.net.repository
         /// <param name="followInfos"></param>
         /// <param name="myselfUserId"></param>
         /// <returns></returns>
-        public async Task<bool> Sync(List<FollowingsItem> followInfos, string myselfUserId)
+        public async Task<bool> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
         {
             // 基础参数校验
             if (followInfos == null) followInfos = new List<FollowingsItem>();
-            if (string.IsNullOrWhiteSpace(myselfUserId))
+            if (ck==null || string.IsNullOrWhiteSpace(ck.MyUserId))
             {
                 Serilog.Log.Error("同步关注列表失败：当前用户ID为空");
                 return false;
@@ -107,7 +107,7 @@ namespace dy.net.repository
             {
                 // 1. 查询现有关注列表
                 List<DouyinFollowed> existFollows = await Db.Queryable<DouyinFollowed>()
-                    .Where(x => x.mySelfId == myselfUserId)
+                    .Where(x => x.mySelfId == ck.MyUserId)
                     .Where(x=>!x.IsNoFollowed) //排除手动添加但未关注的用户
                     .ToListAsync() ?? new List<DouyinFollowed>();
 
@@ -161,7 +161,7 @@ namespace dy.net.repository
                         Id = IdGener.GetLong().ToString(),
                         Enterprise = follow.EnterpriseVerifyReason,
                         LastSyncTime = DateTime.UtcNow,
-                        mySelfId = myselfUserId,
+                        mySelfId = ck.MyUserId,
                         SecUid = follow.SecUid,
                         OpenSync = false,
                         UperAvatar = follow.Avatar?.UrlList?.FirstOrDefault() ?? "",
@@ -201,8 +201,6 @@ namespace dy.net.repository
                         Serilog.Log.Error("同步关注列表失败：关注信息更新异常");
                         return false;
                     }
-
-                    Serilog.Log.Debug($"同步关注列表：成功更新{toUpdateFollows.Count}条关注信息（用户ID：{myselfUserId}）");
                 }
 
                 // 6. 分批处理删除（单批200条）
@@ -212,7 +210,7 @@ namespace dy.net.repository
                         async batch =>
                         {
                             var secUids = batch.Select(x => x.SecUid).ToList();
-                            await DeleteAsync(x => x.mySelfId == myselfUserId && secUids.Contains(x.SecUid));
+                            await DeleteAsync(x => x.mySelfId == ck.MyUserId && secUids.Contains(x.SecUid));
                             return true;
                         });
 
@@ -223,12 +221,12 @@ namespace dy.net.repository
                     }
                 }
 
-                Serilog.Log.Debug($"同步关注列表完成（用户ID：{myselfUserId}）：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条，删除{toRemoveFollows.Count}条");
+                Serilog.Log.Debug($"dy_followed_users（{ck.UserName}）关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条，删除{toRemoveFollows.Count}条");
                 return true;
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, $"同步关注列表失败（用户ID：{myselfUserId}）：{ex.Message}");
+                Serilog.Log.Error(ex, $"同步关注列表失败（{ck.UserName}）：{ex.Message}");
                 return false;
             }
         }

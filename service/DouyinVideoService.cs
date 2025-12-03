@@ -22,6 +22,11 @@ namespace dy.net.service
         }
 
 
+        public async Task<bool> DeleteById(string Id)
+        {
+            return await _dyCollectVideoRepository.DeleteByIdAsync(Id);
+        }
+
         public async Task<bool> BatchInsertOrUpdate(List<DouyinVideo> videos)
         {
             // 边界处理：传入列表为空直接返回成功
@@ -99,22 +104,22 @@ namespace dy.net.service
                 CategoryCount = list.Select(x => x.Tag1).Distinct().Count(),
                 VideoCount = list.Count,
                 Categories = Categories,
-                FavoriteCount = list.Count(x => x.ViedoType == VideoTypeEnum.Favorite),
-                CollectCount = list.Count(x => x.ViedoType == VideoTypeEnum.Collect),
-                FollowCount = list.Count(x => x.ViedoType == VideoTypeEnum.UperPost),
-                GraphicVideoCount = list.Count(x => x.ViedoType == VideoTypeEnum.ImageVideo),
+                FavoriteCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_favorite),
+                CollectCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_collects),
+                FollowCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_follows),
+                GraphicVideoCount = list.Count(x => x.IsMergeVideo == 1),
 
                 VideoSizeTotal = ByteToGbConverter.ConvertBytesToGb(list.Sum(x => x.FileSize)),
-                VideoFavoriteSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.Favorite).Sum(x => x.FileSize)),
-                VideoCollectSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.Collect).Sum(x => x.FileSize)),
-                VideoFollowSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.UperPost).Sum(x => x.FileSize)),
-                GraphicVideoSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.ImageVideo).Sum(x => x.FileSize)),
+                VideoFavoriteSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_favorite).Sum(x => x.FileSize)),
+                VideoCollectSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_collects).Sum(x => x.FileSize)),
+                VideoFollowSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_follows).Sum(x => x.FileSize)),
+                GraphicVideoSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.IsMergeVideo == 1).Sum(x => x.FileSize)),
 
                 //TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
             };
             if (data.GraphicVideoSize == "0.00")
             {
-                if (list.Where(x => x.ViedoType == VideoTypeEnum.ImageVideo).Sum(x => x.FileSize) > 0)
+                if (list.Where(x => x.IsMergeVideo == 1).Sum(x => x.FileSize) > 0)
                 {
                     data.GraphicVideoSize = "<0.01";//避免显示0.00误导用户
                 }
@@ -166,6 +171,8 @@ namespace dy.net.service
             return await _dyCollectVideoRepository.GetByIdAsync(id);
         }
 
+
+
         /// <summary>
         /// 重新下载选中的视频
         /// </summary>
@@ -194,7 +201,7 @@ namespace dy.net.service
             }
 
             // 3. 构建重新下载记录（提前准备数据，避免事务内耗时操作）
-            var reDownList = new List<ViedoReDown>();
+            var reDownList = new List<DouyinReDownload>();
             var filePathsToDelete = new List<string>(); // 收集待删除文件路径，统一处理
 
             foreach (var video in videos)
@@ -207,7 +214,7 @@ namespace dy.net.service
                 }
 
                 // 构建重新下载记录
-                reDownList.Add(new ViedoReDown
+                reDownList.Add(new DouyinReDownload
                 {
                     Id = IdGener.GetLong().ToString(),
                     CreateTime = DateTime.UtcNow, // 统一使用UTC时间，避免时区问题
@@ -233,7 +240,7 @@ namespace dy.net.service
                 var transactionResult = await _dyCollectVideoRepository.UseTranAsync(async () =>
                 {
                     // 4.1 批量插入重新下载记录（SqlSugar批量插入效率更高）
-                     _dyCollectVideoRepository.InsertReDowns(reDownList);
+                    _dyCollectVideoRepository.InsertReDowns(reDownList);
                     // 4.2 批量删除原视频记录（使用视频实际存在的ID，避免无效删除）
                     var actualDeleteIds = videos.Select(v => v.Id).ToList();
                     var deleteCount = await _dyCollectVideoRepository.DeleteByIdsAsync(actualDeleteIds); // 建议仓储层提供异步删除方法
@@ -242,75 +249,49 @@ namespace dy.net.service
                     Serilog.Log.Error(e, "数据库事务执行失败：Ids={0}", string.Join(",", videoIds));
                 });
 
-                // 5. 文件夹删除（非事务操作，失败不回滚数据库，可根据业务调整）
-                // 关键：先通过文件路径获取父文件夹，再删除整个文件夹（含子内容）
-                foreach (var filePath in filePathsToDelete)
+                // 5. 文件删除（非事务操作，失败不回滚数据库，可根据业务调整）
+                // 采用异步文件操作，避免同步IO阻塞线程（需.NET 5+支持）
+                foreach (var path in filePathsToDelete)
                 {
                     try
                     {
-                        // 1. 验证文件路径有效性
-                        if (string.IsNullOrWhiteSpace(filePath))
+                        if (File.Exists(path))
                         {
-                            Serilog.Log.Error("文件路径为空，跳过文件夹删除");
-                            continue;
-                        }
-
-                        // 2. 获取文件对应的父文件夹路径（无论文件是否存在，只要路径合法就能拿到父目录）
-                        string parentDirPath = Path.GetDirectoryName(filePath);
-                        if (string.IsNullOrWhiteSpace(parentDirPath))
-                        {
-                            Serilog.Log.Error("无法获取父文件夹路径，文件路径无效：Filepath={0}", filePath);
-                            continue;
-                        }
-
-                        // 3. 验证父文件夹是否存在
-                        if (Directory.Exists(parentDirPath))
-                        {
-                             Directory.Delete(parentDirPath, recursive: true);
-                            Serilog.Log.Debug("文件夹删除成功（含子内容）：ParentDir={0}，关联文件路径={1}", parentDirPath, filePath);
+                            File.Delete(path); // 异步删除，提升并发性能
+                            Serilog.Log.Debug("视频文件删除成功：Path={0}", path);
                         }
                         else
                         {
-                            Serilog.Log.Error("父文件夹不存在，跳过删除：ParentDir={0}，关联文件路径={1}", parentDirPath, filePath);
+                            Serilog.Log.Error("视频文件不存在，跳过删除：Path={0}", path);
                         }
                     }
                     catch (IOException ex)
                     {
-                        Serilog.Log.Error(ex, "文件夹删除失败（IO异常）：Filepath={0}，父文件夹路径={1}", filePath, Path.GetDirectoryName(filePath));
-                    }
-                    catch (UnauthorizedAccessException ex)
-                    {
-                        // 单独捕获权限异常，更精准的日志提示
-                        Serilog.Log.Error(ex, "文件夹删除失败（权限不足）：Filepath={0}，父文件夹路径={1}", filePath, Path.GetDirectoryName(filePath));
-                    }
-                    catch (Exception ex)
-                    {
-                        // 捕获所有其他异常，避免循环中断
-                        Serilog.Log.Error(ex, "文件夹删除失败（未知异常）：Filepath={0}，父文件夹路径={1}", filePath, Path.GetDirectoryName(filePath));
+                        Serilog.Log.Error(ex, "视频文件删除失败：Path={0}", path);
                     }
                 }
 
                 var CookieIds = reDownList.Select(x => x.CookieId).Distinct();
                 foreach (var ck in CookieIds)
                 {
-                    var cookie=  douyinCookieRepository.GetById(ck);
+                    var cookie = douyinCookieRepository.GetById(ck);
                     if (cookie == null)
                         continue;
                     var viedoTypes = videos.Where(x => x.CookieId == ck).Select(x => x.ViedoType).Distinct();
 
-                    if(viedoTypes!=null&& viedoTypes.Any())
+                    if (viedoTypes != null && viedoTypes.Any())
                     {
                         foreach (VideoTypeEnum item in viedoTypes)
                         {
                             switch (item)
                             {
-                                case VideoTypeEnum.Favorite:
+                                case VideoTypeEnum.dy_favorite:
                                     cookie.FavHasSyncd = 0;
                                     break;
-                                case VideoTypeEnum.Collect:
+                                case VideoTypeEnum.dy_collects:
                                     cookie.CollHasSyncd = 0;
                                     break;
-                                case VideoTypeEnum.UperPost:
+                                case VideoTypeEnum.dy_follows:
                                     cookie.UperSyncd = 0;
                                     break;
                                 case VideoTypeEnum.ImageVideo:
@@ -338,7 +319,7 @@ namespace dy.net.service
         /// 获取待重新下载的视频列表
         /// </summary>
         /// <returns></returns>
-        public async Task<List<ViedoReDown>> GetViedoReDowns()
+        public async Task<List<DouyinReDownload>> GetViedoReDowns()
         {
             return await _dyCollectVideoRepository.GetViedoReDowns();
         }
