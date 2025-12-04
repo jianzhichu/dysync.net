@@ -177,15 +177,6 @@ namespace dy.net.job
         protected abstract Task<List<DouyinCookie>> GetValidCookies();
 
         /// <summary>
-        /// 获取关注列表
-        /// </summary>
-        /// <returns></returns>
-        protected virtual Task<List<DouyinFollowed>> GetFollows()
-        {
-            return Task.FromResult(new List<DouyinFollowed>());
-        }
-
-        /// <summary>
         /// 检查指定的Cookie是否有效
         /// </summary>
         /// <param name="cookie">要检查的Cookie</param>
@@ -662,18 +653,18 @@ namespace dy.net.job
                 return null;
             }
 
-            Log.Debug($"{VideoType}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc)}]开始下载...");
+            Log.Debug($"{VideoType}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc,item.AwemeId)}]开始下载...");
             // 随机延迟，模拟人类操作
             await Task.Delay(_random.Next(1, 4) * 1000);
             // 下载视频
             if (!await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies))
             {
-                Log.Error($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc)}]下载失败!!!");
+                Log.Error($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载失败!!!");
                 return null;
             }
             else
             {
-                Log.Debug($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc)}]下载完成.");
+                Log.Debug($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载完成.");
             }
 
             // 下载视频封面
@@ -724,7 +715,7 @@ namespace dy.net.job
                         Log.Error($"{VideoType}-图文视频同步-没有配置图片存储路径，任务终止!!!");
                         return null;
                     }
-                    fileNamefolder = Path.Combine(cookie.ImgSavePath, DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId));
+                    fileNamefolder = Path.Combine(cookie.ImgSavePath, DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId,true));
                 }
                 else
                 {
@@ -762,7 +753,7 @@ namespace dy.net.job
                 var mergeResult = await douyinMergeVideoService.MergeToVideo(cookie.Cookies, AppContext.BaseDirectory, reqParams, savePath, fileNamefolder, config.DownImageVideo, config.DownImage, config.DownMp3);
                 if (!mergeResult)
                 {
-                    Log.Error($"{VideoType}-图文视频-[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc)}]合成失败!!!");
+                    Log.Error($"{VideoType}-图文视频-[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc,item.AwemeId)}]合成失败!!!");
                     return null;
                 }
 
@@ -771,7 +762,7 @@ namespace dy.net.job
                     // 检查合成后的视频文件是否有效
                     if (!File.Exists(savePath) || new FileInfo(savePath).Length <= 0)
                     {
-                        Log.Error($"{VideoType}-图文视频-[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc)}]合成失败!!!");
+                        Log.Error($"{VideoType}-图文视频-[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]合成失败!!!");
                         // 清理无效的文件和文件夹
                         if (Directory.Exists(fileNamefolder))
                         {

@@ -83,8 +83,8 @@ namespace dy.net.job
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
         {
             var (tag1, _, _) = GetVideoTags(item);
-            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1);
-            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc)}@{item.AwemeId}");
+            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1,"",true);
+            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId,true)}");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             return folder;
         }

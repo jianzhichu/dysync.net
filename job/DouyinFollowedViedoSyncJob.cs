@@ -55,7 +55,7 @@ namespace dy.net.job
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
         {
             #region 默认使用UP主名称作为文件夹名称，若关注列表中有自定义保存路径则使用自定义路径
-            var authorName = string.IsNullOrWhiteSpace(item.Author?.Nickname) ? "UnknownAuthor" : DouyinFileNameHelper.SanitizeLinuxFileName(item.Author.Nickname);
+            var authorName = string.IsNullOrWhiteSpace(item.Author?.Nickname) ? "UnknownAuthor" : DouyinFileNameHelper.SanitizeLinuxFileName(item.Author.Nickname,"",true);
             var folder = Path.Combine(cookie.UpSavePath, authorName);
             if (!string.IsNullOrWhiteSpace(followed.SavePath))
             {
@@ -70,7 +70,7 @@ namespace dy.net.job
             }
             else
             {
-                var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
+                var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId,true);
                 var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName).Result;
                 var fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
                 return Path.Combine(folder, fileNameFolder);
@@ -133,7 +133,7 @@ namespace dy.net.job
                         Author = item.Author.Nickname
                     });
 
-                    fileName= $"{DouyinFileNameHelper.SanitizeLinuxFileName(fullName)}.{Format}";
+                    fileName= $"{fullName}.{Format}";
                 }
                 else
                 {

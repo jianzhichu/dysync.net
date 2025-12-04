@@ -15,37 +15,64 @@ namespace dy.net.utils
         /// </summary>
         /// <param name="originalName">原始名称（支持英文、中文、混合字符）</param>
         /// <param name="defaultName">截取后为空时的默认名称（默认 "default"）</param>
+        /// <param name="isfolder">是否是创建文件夹 命名</param>
         /// <returns>符合 Linux 规则的合法名称</returns>
-        public static string SanitizeLinuxFileName(string originalName, string defaultName = "default")
+        public static string SanitizeLinuxFileName(string originalName, string defaultName, bool isfolder = false)
         {
+            string result = string.Empty;
             // 1. 空值处理：直接返回默认名
             if (string.IsNullOrWhiteSpace(originalName))
-                return defaultName.Replace(" ","");
-
-            // 2. 过滤 Linux 非法字符：
-            // - 禁止：/（路径分隔符）、\0（空字符）
-            // - 替换：其他特殊字符（如 :*?"<>|\\ ）为下划线 _，避免创建失败
-            var invalidChars = new[] { '/', '\0', ':', '*', '?', '"', '<', '>', '|', '\\' };
-            string sanitizedName = originalName;
-            foreach (var c in invalidChars)
+                result= defaultName.Replace(" ","");
+            else
             {
-                sanitizedName = sanitizedName.Replace(c, '_');
+                // 2. 过滤 Linux 非法字符：
+                // - 禁止：/（路径分隔符）、\0（空字符）
+                // - 替换：其他特殊字符（如 :*?"<>|\\ ）为下划线 _，避免创建失败
+                var invalidChars = new[] { '/', '\0', ':', '*', '?', '"', '<', '>', '|', '\\' };
+                string sanitizedName = originalName;
+                foreach (var c in invalidChars)
+                {
+                    sanitizedName = sanitizedName.Replace(c, '_');
+                }
+
+                // 3. 计算 UTF-8 字节数，若未超 255 字节，直接返回
+                byte[] utf8Bytes = Encoding.UTF8.GetBytes(sanitizedName);
+                if (utf8Bytes.Length <= 100)
+                    result= sanitizedName.Replace(" ", "");
+                else
+                {
+                    // 4. 超过 255 字节，截取前 255 字节（避免破坏 UTF-8 字符）
+                    byte[] truncatedBytes = new byte[100];
+                    Array.Copy(utf8Bytes, truncatedBytes, 100);
+
+                    // 5. 字节数组转回字符串（自动忽略不完整的尾部字节，避免乱码）
+                    string truncatedName = Encoding.UTF8.GetString(truncatedBytes).TrimEnd('\0').Replace(" ", ""); // 移除可能的空字符
+
+                    // 6. 极端情况：截取后为空（如全是非法字符替换后无有效内容），返回默认名
+                    result= string.IsNullOrWhiteSpace(truncatedName) ? defaultName : truncatedName;
+                }
+                if (isfolder)
+                {
+                    result = KeepChineseLettersAndNumbers(result);
+                }
             }
+                return result;
+        }
 
-            // 3. 计算 UTF-8 字节数，若未超 255 字节，直接返回
-            byte[] utf8Bytes = Encoding.UTF8.GetBytes(sanitizedName);
-            if (utf8Bytes.Length <= 100)
-                return sanitizedName.Replace(" ", ""); ;
 
-            // 4. 超过 255 字节，截取前 255 字节（避免破坏 UTF-8 字符）
-            byte[] truncatedBytes = new byte[100];
-            Array.Copy(utf8Bytes, truncatedBytes, 100);
 
-            // 5. 字节数组转回字符串（自动忽略不完整的尾部字节，避免乱码）
-            string truncatedName = Encoding.UTF8.GetString(truncatedBytes).TrimEnd('\0').Replace(" ",""); // 移除可能的空字符
+        /// 保留字符串中的中文、字母、数字，去除其他所有字符
+        /// </summary>
+        /// <param name="input">原始字符串</param>
+        /// <returns>处理后的字符串</returns>
+        public static string KeepChineseLettersAndNumbers(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input; // 空字符串/Null直接返回，避免异常
 
-            // 6. 极端情况：截取后为空（如全是非法字符替换后无有效内容），返回默认名
-            return string.IsNullOrWhiteSpace(truncatedName) ? defaultName : truncatedName;
+            // 正则表达式：匹配非中文（\u4e00-\u9fa5）、非字母（a-zA-Z）、非数字（0-9）的字符
+            string pattern = @"[^\u4e00-\u9fa5a-zA-Z0-9]";
+            return Regex.Replace(input, pattern, string.Empty);
         }
 
 

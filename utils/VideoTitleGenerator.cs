@@ -33,10 +33,10 @@ namespace dy.net.utils
             {
                 // 普通字段
                 ["Id"] = data.Id.ToString(),
-                ["VideoTitle"] = string.IsNullOrWhiteSpace(data.VideoTitle) ? emptyPlaceholder : data.VideoTitle,
+                ["VideoTitle"] = string.IsNullOrWhiteSpace(DouyinFileNameHelper.KeepChineseLettersAndNumbers(data.VideoTitle)) ? emptyPlaceholder : DouyinFileNameHelper.KeepChineseLettersAndNumbers(data.VideoTitle),
                 ["FileHash"] = string.IsNullOrWhiteSpace(data.FileHash) ? emptyPlaceholder : data.FileHash,
                 ["Resolution"] = string.IsNullOrWhiteSpace(data.Resolution) ? emptyPlaceholder : data.Resolution,
-                ["Author"] = string.IsNullOrWhiteSpace(data.Author) ? emptyPlaceholder : data.Author,
+                ["Author"] = string.IsNullOrWhiteSpace(DouyinFileNameHelper.KeepChineseLettersAndNumbers(data.Author)) ? emptyPlaceholder : DouyinFileNameHelper.KeepChineseLettersAndNumbers(data.Author),
 
                 // 时间字段（支持空值处理）
                 //["SyncTime"] = data.SyncTime.HasValue ? data.SyncTime.Value.ToString(timeFormat) : emptyPlaceholder,
