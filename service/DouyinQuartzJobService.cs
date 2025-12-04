@@ -102,15 +102,15 @@ namespace dy.net.service
 
                 // 3. 只启动第一个任务（collect），后续任务由 Listener 自动触发
                 var firstJobConfigKey = "collect";
-                var startSuccess = await StartJobAsync(firstJobConfigKey, expression);
+                var startSuccess =  await StartJobAsync(firstJobConfigKey, expression);
 
                 if (startSuccess)
                 {
-                    Log.Debug("【任务服务】任务链条启动成功！执行顺序：collect → favorite → followed → follow_user", expression);
+                    Log.Debug($"任务开始执行：collect → favorite → followed → follow_user-->每{expression}分钟执行一次...");
                 }
                 else
                 {
-                    Log.Error("【任务服务】任务链条启动失败（第一个任务 {FirstJob} 启动失败）", firstJobConfigKey);
+                    Log.Error($"任务执行失败（任务 {firstJobConfigKey} 启动失败）");
                 }
                 //启动follow_user--这个与其他几个任务没有依赖关系，所以单独启动
                 await StartJobAsync("follow_user", expression);

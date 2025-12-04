@@ -8,7 +8,10 @@ namespace dy.net.model
     [SugarTable(TableName = "dy_app_config")]
     public class AppConfig
     {
-
+        /// <summary>
+        /// 是否是程序启动时...
+        /// </summary>
+        public bool IsFirstRunning { get; set; }
         /// <summary>
         /// 
         /// </summary>

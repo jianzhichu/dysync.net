@@ -26,11 +26,14 @@ namespace dy.net.job
         /// </summary>
         protected readonly DouyinFollowService _followService;
 
-        public DouyinFollowedUsersSyncJob(DouyinCookieService dyCookieService, DouyinHttpClientService douyinService, DouyinFollowService followService)
+        protected readonly DouyinCommonService douyinCommonService;
+
+        public DouyinFollowedUsersSyncJob(DouyinCookieService dyCookieService, DouyinHttpClientService douyinService, DouyinFollowService followService, DouyinCommonService douyinCommonService)
         {
             _dyCookieService = dyCookieService;
             _douyinService = douyinService;
             _followService = followService;
+            this.douyinCommonService = douyinCommonService;
         }
 
         public async Task Execute(IJobExecutionContext context)
@@ -38,6 +41,7 @@ namespace dy.net.job
             var cookies = await _dyCookieService.GetAllOpendAsync();
             if (cookies != null && cookies.Any())
             {
+                AppConfig conf = douyinCommonService.GetConfig();
 
                 foreach (var ck in cookies)
                 {
@@ -48,37 +52,52 @@ namespace dy.net.job
                     List<FollowingsItem> follows = new List<FollowingsItem>();
                     while (hasmore)
                     {
-                        var data = await _douyinService.SyncMyFollows(count, offset, ck.SecUserId, ck.Cookies, async err =>
+                        try
                         {
-                            if (err.StatusCode != 0)
+                            var data = await _douyinService.SyncMyFollows(count, offset, ck.SecUserId, ck.Cookies, async err =>
                             {
-                                Serilog.Log.Error($"同步用户[{ck.UserName}]关注列表时发生错误，错误信息：{err.StatusMsg}，状态码：{err.StatusCode}");
+                                if (err.StatusCode != 0)
+                                {
+                                    Serilog.Log.Error($"同步用户[{ck.UserName}]关注列表时发生错误，错误信息：{err.StatusMsg}，状态码：{err.StatusCode}");
+                                }
+                                // 如果是未登录错误，则跳出循环
+                                if (err.StatusCode == 8)
+                                {
+                                    hasmore = false;
+                                }
+                                ck.StatusMsg = err.StatusCode == 8 ? "已过期" : "正 常";
+                                ck.StatusCode = err.StatusCode;
+                                await _dyCookieService.UpdateAsync(ck);
+                            });
+
+                            if (data != null)
+                            {
+                                // 绑定我的用户ID--之前没有这个字段
+                                if (string.IsNullOrWhiteSpace(ck.MyUserId))
+                                {
+                                    ck.MyUserId = data.MySelfUserId;
+                                    await _dyCookieService.UpdateAsync(ck);
+                                }
+                                total = data.Total;
+                                hasmore = data.HasMore;
+                                offset = data.Offset.ToString();
+                                if (data.Followings != null && data.Followings.Count > 0)
+                                {
+                                    follows.AddRange(data.Followings);
+                                }
                             }
-                            // 如果是未登录错误，则跳出循环
-                            if (err.StatusCode == 8)
+
+                            // 只有第一次启动时，才进行全部同步
+                            if (!conf.IsFirstRunning)
                             {
                                 hasmore = false;
                             }
-                            ck.StatusMsg = err.StatusCode == 8 ? "已过期" : "正 常";
-                            ck.StatusCode = err.StatusCode;
-                            await _dyCookieService.UpdateAsync(ck);
-                        });
-
-                        if (data != null)
+                        }
+                        catch (Exception ex)
                         {
-                            // 绑定我的用户ID--之前没有这个字段
-                            if (string.IsNullOrWhiteSpace(ck.MyUserId))
-                            {
-                                ck.MyUserId = data.MySelfUserId;
-                                await _dyCookieService.UpdateAsync(ck);
-                            }
-                            total = data.Total;
-                            hasmore = data.HasMore;
-                            offset = data.Offset.ToString();
-                            if (data.Followings != null && data.Followings.Count > 0)
-                            {
-                                follows.AddRange(data.Followings);
-                            }
+                            Serilog.Log.Error($"关注列表同步失败,{ex.Message}");
+                            hasmore = false;
+                            break;
                         }
                     }
                   
@@ -87,8 +106,8 @@ namespace dy.net.job
                         await _followService.Sync(follows, ck );
                     }
 
-                    //Serilog.Log.Debug($"当前Cookie-[{ck.UserName}]，本次同步关注列表完成，当前共关注{total}人。");
                 }
+              await  douyinCommonService.SetConfigNotFirstRunning();
             }
         }
     }

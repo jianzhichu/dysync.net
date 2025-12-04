@@ -18,6 +18,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Net.Security;
 using System.Reflection;
 using System.Text;
 
@@ -171,51 +172,126 @@ namespace dy.net.extension
         }
 
 
+        //public static void AddHttpClients(this IServiceCollection services)
+        //{
+        //    services.AddHttpClient("dy_collect", client =>
+        //    {
+        //        client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
+        //        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
+        //        client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
+        //    });
+
+        //    services.AddHttpClient("dy_follow", client =>
+        //    {
+        //        client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
+        //    });
+
+        //    services.AddHttpClient("dy_favorite", client =>
+        //    {
+        //        client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
+        //    });
+
+        //    services.AddHttpClient("dy_uper", client =>
+        //    {
+        //        client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/MS4wLjABAAAA1zFIBhWG-3qS8MiggDMhyCpqDnvfGYf_mtsdgtBzV7A?from_tab_name=main&showTab=post&vid=7576282367263807451");
+        //    });
+        //    // 配置HttpClient（Startup.cs或Program.cs）
+        //    services.AddHttpClient("dy_download")
+        //        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        //        {
+        //            // 控制并发连接数（根据服务器承受能力调整，建议5-20）
+        //            MaxConnectionsPerServer = 5,
+        //            // 禁用代理自动检测（减少不必要的延迟）
+        //            UseProxy = false,
+        //            // 连接超时（建立连接的超时时间）
+        //            ConnectTimeout = TimeSpan.FromSeconds(60)
+        //        })
+        //        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        //        {
+        //            ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+        //        })
+        //        // 配置客户端默认请求头
+        //        .ConfigureHttpClient(client =>
+        //        {
+        //            client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
+        //            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
+        //            client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
+        //        }); 
+        //}
+
+
+
         public static void AddHttpClients(this IServiceCollection services)
         {
-            services.AddHttpClient("dy_collect", client =>
+            // 通用的忽略SSL证书验证的HttpMessageHandler配置
+            Func<HttpMessageHandler> ignoreSslHandlerFactory = () =>
             {
-                client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
-                client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
-            });
-
-            services.AddHttpClient("dy_follow", client =>
-            {
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
-            });
-
-            services.AddHttpClient("dy_favorite", client =>
-            {
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
-            });
-
-            services.AddHttpClient("dy_uper", client =>
-            {
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/MS4wLjABAAAA1zFIBhWG-3qS8MiggDMhyCpqDnvfGYf_mtsdgtBzV7A?from_tab_name=main&showTab=post&vid=7576282367263807451");
-            });
-            // 配置HttpClient（Startup.cs或Program.cs）
-            services.AddHttpClient("dy_download")
-                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                var handler = new SocketsHttpHandler
                 {
                     // 控制并发连接数（根据服务器承受能力调整，建议5-20）
                     MaxConnectionsPerServer = 5,
                     // 禁用代理自动检测（减少不必要的延迟）
                     UseProxy = false,
                     // 连接超时（建立连接的超时时间）
-                    ConnectTimeout = TimeSpan.FromSeconds(60)
-                })
-                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-                })
-                // 配置客户端默认请求头
+                    ConnectTimeout = TimeSpan.FromSeconds(60),
+                    // 忽略HTTPS证书验证
+                    SslOptions = new SslClientAuthenticationOptions
+                    {
+                        RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+                    }
+                };
+
+                return handler;
+            };
+
+            // 抖音采集客户端
+            services.AddHttpClient("dy_collect", client =>
+            {
+                client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
+                client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
+            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
+
+            // 抖音关注客户端
+            services.AddHttpClient("dy_follow", client =>
+            {
+                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
+            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
+
+            // 抖音收藏客户端
+            services.AddHttpClient("dy_favorite", client =>
+            {
+                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
+            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
+
+            // 抖音UP主客户端
+            services.AddHttpClient("dy_uper", client =>
+            {
+                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/MS4wLjABAAAA1zFIBhWG-3qS8MiggDMhyCpqDnvfGYf_mtsdgtBzV7A?from_tab_name=main&showTab=post&vid=7576282367263807451");
+            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
+
+            // 抖音下载客户端（单独配置，保持原有特性）
+            services.AddHttpClient("dy_download")
+                .ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory)
                 .ConfigureHttpClient(client =>
                 {
                     client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
                     client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
                     client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
-                }); 
+                });
+
+            // 如果你需要兼容旧版.NET（使用HttpClientHandler而非SocketsHttpHandler），可以使用以下配置：
+            // Func<HttpMessageHandler> legacyIgnoreSslHandlerFactory = () =>
+            // {
+            //     var handler = new HttpClientHandler
+            //     {
+            //         ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true,
+            //         MaxConnectionsPerServer = 5,
+            //         UseProxy = false,
+            //         ConnectTimeout = TimeSpan.FromSeconds(60)
+            //     };
+            //     return handler;
+            // };
         }
 
         /// <summary>

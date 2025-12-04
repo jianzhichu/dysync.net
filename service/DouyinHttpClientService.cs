@@ -293,25 +293,18 @@ namespace dy.net.service
             catch (Exception ex)
             {
                 Serilog.Log.Error($"SyncMyFollows error: {ex.Message}");
-                return null;
+                throw;
             }
         }
 
 
-        public async Task<bool> SyncReDown(string awemeId,string cookie)
-        {
-            return false;
-            //有空再研究把.a_bogus算法有问题
-        }
-
-        //AI优化2
+        //
         /// <summary>
         /// 下载文件并保存到本地（支持重试机制，优化批量下载稳定性）
         /// </summary>
         /// <param name="videoUrl">文件地址</param>
         /// <param name="savePath">保存路径</param>
         /// <param name="cookie">请求Cookie</param>
-        /// <param name="httpclientName">HttpClient名称（默认"dy_down1"）</param>
         /// <param name="cancellationToken">取消令牌（用于终止任务）</param>
         /// <param name="streamTimeout">流读取超时时间（默认60秒）</param>
         /// <param name="maxRetryCount">最大重试次数（默认3次）</param>

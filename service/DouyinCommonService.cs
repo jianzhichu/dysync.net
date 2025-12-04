@@ -24,7 +24,6 @@ namespace dy.net.service
         /// <summary>
         /// 初始化并返回配置
         /// </summary>
-        /// <param name="downLoadImage"></param>
         /// <returns></returns>
         public AppConfig InitConfig()
         {
@@ -34,9 +33,10 @@ namespace dy.net.service
                 if (string.IsNullOrWhiteSpace(conf.PriorityLevel))
                 {
                     conf.PriorityLevel = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]";
-                    sqlSugarClient.Updateable(conf).ExecuteCommand();
-                    //兼容旧版本
                 }
+                conf.IsFirstRunning = true;//标记为程序刚启动第一次运行
+                sqlSugarClient.Updateable(conf).ExecuteCommand();
+                //兼容旧版本
                 return conf;
             }
             else
@@ -57,7 +57,8 @@ namespace dy.net.service
                     FullFollowedTitleTemplate = "",
                     FollowedTitleSeparator = "",
                     AutoDistinct = true,//默认开启
-                    PriorityLevel= "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]"
+                    PriorityLevel = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]",
+                    IsFirstRunning = true
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;
@@ -66,6 +67,25 @@ namespace dy.net.service
 
         }
 
+        /// <summary>
+        /// 更新AppConfig的IsFirstRunning属性为fasle
+        /// </summary>
+        /// <returns></returns>
+        public async Task SetConfigNotFirstRunning()
+        {
+            //更新IsFirstRunning为false
+            await sqlSugarClient.Updateable<AppConfig>()
+                .SetColumns(x => x.IsFirstRunning == false)
+                .Where(x => x.IsFirstRunning == true)
+                .ExecuteCommandAsync();
+        }
+
+
+        /// <summary>
+        /// 更新配置
+        /// </summary>
+        /// <param name="config"></param>
+        /// <returns></returns>
 
         public async Task<bool> UpdateConfig(AppConfig config)
         {

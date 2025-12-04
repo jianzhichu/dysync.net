@@ -43,7 +43,7 @@
           </div>
 
           <div class="card-main-content">
-            <div class="avatar-wrapper">
+            <div class="avatar-wrapper" @click="goDouyinUp(item)">
               <a-avatar shape="circle" size="large" :src="item.uperAvatar" v-if="item.uperAvatar" />
               <a-avatar shape="circle" size="large" v-else class="avatar-placeholder">
                 {{ item.uperName.charAt(0) }}
@@ -666,6 +666,10 @@ const handleDeleteItem = (item: FollowItem) => {
       });
     },
   });
+};
+
+const goDouyinUp = (item) => {
+  window.open('https://www.douyin.com/user/' + item.secUid, '_blank', 'noopener noreferrer');
 };
 </script>
 

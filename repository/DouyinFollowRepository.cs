@@ -87,17 +87,18 @@ namespace dy.net.repository
                 .ToListAsync();
         }
 
+
         /// <summary>
         /// 同步关注列表（新增名字和签名变更检测）
         /// </summary>
         /// <param name="followInfos"></param>
-        /// <param name="myselfUserId"></param>
+        /// <param name="ck"></param>
         /// <returns></returns>
         public async Task<bool> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
         {
             // 基础参数校验
             if (followInfos == null) followInfos = new List<FollowingsItem>();
-            if (ck==null || string.IsNullOrWhiteSpace(ck.MyUserId))
+            if (ck == null || string.IsNullOrWhiteSpace(ck.MyUserId))
             {
                 Serilog.Log.Error("同步关注列表失败：当前用户ID为空");
                 return false;
@@ -105,51 +106,51 @@ namespace dy.net.repository
 
             try
             {
-                // 1. 查询现有关注列表
+                // 1. 提取当前批次的SecUid集合（去重）
+                HashSet<string> currentSecUids = followInfos.Select(x => x.SecUid).ToHashSet();
+                if (!currentSecUids.Any())
+                {
+                    Serilog.Log.Debug($"同步关注列表：当前批次无有效数据（{ck.UserName}），直接返回成功");
+                    return true;
+                }
+
+                // 2. 查询当前批次对应的现有记录（仅查需要对比的，减少数据量）
                 List<DouyinFollowed> existFollows = await Db.Queryable<DouyinFollowed>()
                     .Where(x => x.mySelfId == ck.MyUserId)
-                    .Where(x=>!x.IsNoFollowed) //排除手动添加但未关注的用户
+                    .Where(x => !x.IsNoFollowed)
+                    .Where(x => currentSecUids.Contains(x.SecUid)) // 仅查当前批次的SecUid
                     .ToListAsync() ?? new List<DouyinFollowed>();
 
-                // 2. 提取现有和当前的SecUid集合（去重优化）
+                // 3. 拆分：新增（当前批次有，数据库无） + 更新（当前批次有，数据库也有且字段变化）
                 HashSet<string> existSecUids = existFollows.Select(x => x.SecUid).ToHashSet();
-                HashSet<string> currentSecUids = followInfos.Select(x => x.SecUid).ToHashSet();
-
-                // 3. 计算新增、待删除和需要更新的记录
                 var toAddFollows = followInfos.Where(x => !existSecUids.Contains(x.SecUid)).ToList();
-                var toRemoveFollows = existFollows.Where(x => !currentSecUids.Contains(x.SecUid)).ToList();
-
-                // 3.1 筛选需要更新的记录（SecUid存在但名字或签名有变更）
                 var toUpdateFollows = new List<DouyinFollowed>();
+
+                // 3.1 筛选需要更新的记录
                 foreach (var existFollow in existFollows)
                 {
                     var newFollow = followInfos.FirstOrDefault(x => x.SecUid == existFollow.SecUid);
                     if (newFollow == null) continue;
 
-                    // 检查名字或签名是否变更（精确匹配，区分大小写和空格）
+                    // 检查字段是否变更（精确匹配）
                     bool nameChanged = !string.Equals(existFollow.UperName, newFollow.NickName, StringComparison.Ordinal);
                     bool signatureChanged = !string.Equals(existFollow.Signature, newFollow.Signature, StringComparison.Ordinal);
                     bool enterpriseChanged = !string.Equals(existFollow.Enterprise, newFollow.EnterpriseVerifyReason, StringComparison.Ordinal);
-                    bool uperAvatarChanged = !string.Equals(existFollow.UperAvatar, newFollow.Avatar.UrlList?.FirstOrDefault()??"", StringComparison.Ordinal);
-                    //bool uperIdChanged = !string.Equals(existFollow.UperId, newFollow.UperId, StringComparison.Ordinal);
+                    bool uperAvatarChanged = !string.Equals(existFollow.UperAvatar, newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "", StringComparison.Ordinal);
 
-                    if (nameChanged || signatureChanged|| uperAvatarChanged|| enterpriseChanged)
+                    if (nameChanged || signatureChanged || uperAvatarChanged || enterpriseChanged)
                     {
-                        // 构造更新实体（仅赋值变更字段和必要字段）
-                        var updateEntity = new DouyinFollowed
+                        toUpdateFollows.Add(new DouyinFollowed
                         {
-                            Id = existFollow.Id, // 主键必须保留，用于匹配
-                            mySelfId = existFollow.mySelfId,
+                            Id = existFollow.Id, // 主键用于匹配
+                            mySelfId = ck.MyUserId,
                             SecUid = existFollow.SecUid,
-                            UperName = newFollow.NickName, // 新名字
-                            Signature = newFollow.Signature, // 新签名
-                            UperId = newFollow.UperId, // 新的UperId
-                            UperAvatar = newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "", // 新头像
-                            Enterprise = newFollow.EnterpriseVerifyReason, // 新企业认证
+                            UperName = newFollow.NickName,
+                            Signature = newFollow.Signature,
+                            Enterprise = newFollow.EnterpriseVerifyReason,
+                            UperAvatar = newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "",
                             LastSyncTime = DateTime.UtcNow // 更新同步时间
-                                                           // 其他字段（如Enterprise、UperAvatar、OpenSync）保留原有值，无需赋值
-                        };
-                        toUpdateFollows.Add(updateEntity);
+                        });
                     }
                 }
 
@@ -180,19 +181,17 @@ namespace dy.net.repository
                     }
                 }
 
-                // 5. 分批处理更新（适配 SQLSugar 语法：UpdateColumns + WhereColumns）
+                // 5. 分批处理更新（适配SQLSugar语法）
                 if (toUpdateFollows.Any())
                 {
                     bool batchUpdateSuccess = await BatchProcessAsync(toUpdateFollows, 200,
                         async batch =>
                         {
-                            // SQLSugar 正确用法：实体集合更新 + UpdateColumns（指定更新字段） + WhereColumns（指定匹配字段/主键）
-                            int affectedRows = await Db.Updateable(batch) // 传入更新实体集合
-                                .UpdateColumns(x => new { x.UperName, x.Signature, x.LastSyncTime,x.Enterprise,x.UperAvatar}) // 仅更新这3个字段
-                                .WhereColumns(x => x.Id) // 按主键Id匹配现有记录
+                            int affectedRows = await Db.Updateable(batch)
+                                .UpdateColumns(x => new { x.UperName, x.Signature, x.LastSyncTime, x.Enterprise, x.UperAvatar })
+                                .WhereColumns(x => x.Id) // 按主键匹配
                                 .ExecuteCommandAsync();
 
-                            // 受影响行数 > 0 或 批次无数据（正常），返回true；否则返回false
                             return affectedRows >= 0;
                         });
 
@@ -203,25 +202,8 @@ namespace dy.net.repository
                     }
                 }
 
-                // 6. 分批处理删除（单批200条）
-                if (toRemoveFollows.Any())
-                {
-                    bool batchDeleteSuccess = await BatchProcessAsync(toRemoveFollows, 200,
-                        async batch =>
-                        {
-                            var secUids = batch.Select(x => x.SecUid).ToList();
-                            await DeleteAsync(x => x.mySelfId == ck.MyUserId && secUids.Contains(x.SecUid));
-                            return true;
-                        });
-
-                    if (!batchDeleteSuccess)
-                    {
-                        Serilog.Log.Error("同步关注列表失败：取消关注分批删除异常");
-                        return false;
-                    }
-                }
-
-                Serilog.Log.Debug($"dy_followed_users（{ck.UserName}）关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条，删除{toRemoveFollows.Count}条");
+                // 【重要】删除逻辑已移除：增量场景下不能通过批次对比删除，需单独设计取消关注逻辑
+                Serilog.Log.Debug($"dy_followed_users（{ck.UserName}）关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条");
                 return true;
             }
             catch (Exception ex)
@@ -230,6 +212,144 @@ namespace dy.net.repository
                 return false;
             }
         }
+      
+        //public async Task<bool> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
+        //{
+        //    // 基础参数校验
+        //    if (followInfos == null) followInfos = new List<FollowingsItem>();
+        //    if (ck==null || string.IsNullOrWhiteSpace(ck.MyUserId))
+        //    {
+        //        Serilog.Log.Error("同步关注列表失败：当前用户ID为空");
+        //        return false;
+        //    }
+
+        //    try
+        //    {
+        //        // 1. 查询现有关注列表
+        //        List<DouyinFollowed> existFollows = await Db.Queryable<DouyinFollowed>()
+        //            .Where(x => x.mySelfId == ck.MyUserId)
+        //            .Where(x=>!x.IsNoFollowed) //排除手动添加但未关注的用户
+        //            .ToListAsync() ?? new List<DouyinFollowed>();
+
+        //        // 2. 提取现有和当前的SecUid集合（去重优化）
+        //        HashSet<string> existSecUids = existFollows.Select(x => x.SecUid).ToHashSet();
+        //        HashSet<string> currentSecUids = followInfos.Select(x => x.SecUid).ToHashSet();
+
+        //        // 3. 计算新增、待删除和需要更新的记录
+        //        var toAddFollows = followInfos.Where(x => !existSecUids.Contains(x.SecUid)).ToList();
+        //        var toRemoveFollows = existFollows.Where(x => !currentSecUids.Contains(x.SecUid)).ToList();
+
+        //        // 3.1 筛选需要更新的记录（SecUid存在但名字或签名有变更）
+        //        var toUpdateFollows = new List<DouyinFollowed>();
+        //        foreach (var existFollow in existFollows)
+        //        {
+        //            var newFollow = followInfos.FirstOrDefault(x => x.SecUid == existFollow.SecUid);
+        //            if (newFollow == null) continue;
+
+        //            // 检查名字或签名是否变更（精确匹配，区分大小写和空格）
+        //            bool nameChanged = !string.Equals(existFollow.UperName, newFollow.NickName, StringComparison.Ordinal);
+        //            bool signatureChanged = !string.Equals(existFollow.Signature, newFollow.Signature, StringComparison.Ordinal);
+        //            bool enterpriseChanged = !string.Equals(existFollow.Enterprise, newFollow.EnterpriseVerifyReason, StringComparison.Ordinal);
+        //            bool uperAvatarChanged = !string.Equals(existFollow.UperAvatar, newFollow.Avatar.UrlList?.FirstOrDefault()??"", StringComparison.Ordinal);
+        //            //bool uperIdChanged = !string.Equals(existFollow.UperId, newFollow.UperId, StringComparison.Ordinal);
+
+        //            if (nameChanged || signatureChanged|| uperAvatarChanged|| enterpriseChanged)
+        //            {
+        //                // 构造更新实体（仅赋值变更字段和必要字段）
+        //                var updateEntity = new DouyinFollowed
+        //                {
+        //                    Id = existFollow.Id, // 主键必须保留，用于匹配
+        //                    mySelfId = existFollow.mySelfId,
+        //                    SecUid = existFollow.SecUid,
+        //                    UperName = newFollow.NickName, // 新名字
+        //                    Signature = newFollow.Signature, // 新签名
+        //                    UperId = newFollow.UperId, // 新的UperId
+        //                    UperAvatar = newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "", // 新头像
+        //                    Enterprise = newFollow.EnterpriseVerifyReason, // 新企业认证
+        //                    LastSyncTime = DateTime.UtcNow // 更新同步时间
+        //                                                   // 其他字段（如Enterprise、UperAvatar、OpenSync）保留原有值，无需赋值
+        //                };
+        //                toUpdateFollows.Add(updateEntity);
+        //            }
+        //        }
+
+        //        // 4. 分批处理新增（单批200条）
+        //        if (toAddFollows.Any())
+        //        {
+        //            Func<FollowingsItem, DouyinFollowed> mapToDouyinFollowed = follow => new DouyinFollowed
+        //            {
+        //                Id = IdGener.GetLong().ToString(),
+        //                Enterprise = follow.EnterpriseVerifyReason,
+        //                LastSyncTime = DateTime.UtcNow,
+        //                mySelfId = ck.MyUserId,
+        //                SecUid = follow.SecUid,
+        //                OpenSync = false,
+        //                UperAvatar = follow.Avatar?.UrlList?.FirstOrDefault() ?? "",
+        //                UperName = follow.NickName,
+        //                Signature = follow.Signature,
+        //                UperId = follow.UperId
+        //            };
+
+        //            bool batchAddSuccess = await BatchProcessAsync(toAddFollows, 200,
+        //                async batch => await BatchInsert(batch.Select(mapToDouyinFollowed).ToList()));
+
+        //            if (!batchAddSuccess)
+        //            {
+        //                Serilog.Log.Error("同步关注列表失败：新增关注分批插入异常");
+        //                return false;
+        //            }
+        //        }
+
+        //        // 5. 分批处理更新（适配 SQLSugar 语法：UpdateColumns + WhereColumns）
+        //        if (toUpdateFollows.Any())
+        //        {
+        //            bool batchUpdateSuccess = await BatchProcessAsync(toUpdateFollows, 200,
+        //                async batch =>
+        //                {
+        //                    // SQLSugar 正确用法：实体集合更新 + UpdateColumns（指定更新字段） + WhereColumns（指定匹配字段/主键）
+        //                    int affectedRows = await Db.Updateable(batch) // 传入更新实体集合
+        //                        .UpdateColumns(x => new { x.UperName, x.Signature, x.LastSyncTime,x.Enterprise,x.UperAvatar}) // 仅更新这3个字段
+        //                        .WhereColumns(x => x.Id) // 按主键Id匹配现有记录
+        //                        .ExecuteCommandAsync();
+
+        //                    // 受影响行数 > 0 或 批次无数据（正常），返回true；否则返回false
+        //                    return affectedRows >= 0;
+        //                });
+
+        //            if (!batchUpdateSuccess)
+        //            {
+        //                Serilog.Log.Error("同步关注列表失败：关注信息更新异常");
+        //                return false;
+        //            }
+        //        }
+
+        //        // 6. 分批处理删除（单批200条）
+        //        if (toRemoveFollows.Any())
+        //        {
+        //            bool batchDeleteSuccess = await BatchProcessAsync(toRemoveFollows, 200,
+        //                async batch =>
+        //                {
+        //                    var secUids = batch.Select(x => x.SecUid).ToList();
+        //                    await DeleteAsync(x => x.mySelfId == ck.MyUserId && secUids.Contains(x.SecUid));
+        //                    return true;
+        //                });
+
+        //            if (!batchDeleteSuccess)
+        //            {
+        //                Serilog.Log.Error("同步关注列表失败：取消关注分批删除异常");
+        //                return false;
+        //            }
+        //        }
+
+        //        Serilog.Log.Debug($"dy_followed_users（{ck.UserName}）关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条，删除{toRemoveFollows.Count}条");
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Serilog.Log.Error(ex, $"同步关注列表失败（{ck.UserName}）：{ex.Message}");
+        //        return false;
+        //    }
+        //}
 
         /// <summary>
         /// 通用分批处理工具方法
