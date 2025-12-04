@@ -34,7 +34,7 @@
 
 Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，避免遗漏或错误。
 
-有群友为此弄了个小工具，可以一键获取 你抖音的所有需要的信息，地址在这里：https://github.com/kevencs/Douyin-User-Info-Extractor 
+### 有群友为此弄了个小工具，可以一键获取 你抖音的所有需要的信息，地址在这里：https://github.com/kevencs/Douyin-User-Info-Extractor 
 
 ### 1.1 提取抖音 Cookie 
 1. 打开 **抖音网页版** (https://www.douyin.com/) 并登录目标账号；
