@@ -149,7 +149,7 @@ namespace dy.net.Controllers
             var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(k));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var expires = DateTime.Now.AddDays(1);
+            var expires = DateTime.Now.AddDays(7);
 
             var token = new JwtSecurityToken(
                 issuer: IdGener.GetLong().ToString(),
