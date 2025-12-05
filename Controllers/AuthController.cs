@@ -18,9 +18,9 @@ namespace dy.net.Controllers
         private readonly IWebHostEnvironment webHostEnvironment;
 
         private readonly AdminUserService _userService;
-        public AuthController(AdminUserService userService, IWebHostEnvironment webHostEnvironment )
+        public AuthController(AdminUserService userService, IWebHostEnvironment webHostEnvironment)
         {
-          _userService=userService;
+            _userService = userService;
             this.webHostEnvironment = webHostEnvironment;
         }
 
@@ -39,13 +39,15 @@ namespace dy.net.Controllers
         }
 
 
-
-        [Authorize]
+        /// <summary>
+        /// 获取头像
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<IActionResult> GetUserAvatar()
         {
             var user = await _userService.GetUser();
-            return Ok(new { code = 0, error = "", data = new { user?.Avatar, user?.Id,user?.UserName } });
+            return Ok(new { code = 0, error = "", data = new { user?.Avatar, user?.Id, user?.UserName } });
         }
 
         /// <summary>
@@ -85,7 +87,7 @@ namespace dy.net.Controllers
                     {
                         Serilog.Log.Error($"delete file error ,{ex.Message}");
                     }
-                    var update = await _userService.UpdateAvatar( fileName);
+                    var update = await _userService.UpdateAvatar(fileName);
 
                     return Ok(new { code = update ? 0 : -1, erro = update ? "" : "上传失败", data = update ? fileName : "" });
                 }
@@ -136,13 +138,13 @@ namespace dy.net.Controllers
         }
 
 
-        private string GenerateJwtToken(string username)
+        private static string GenerateJwtToken(string username)
         {
             var claims = new[]
             {
-            new Claim(ClaimTypes.Name, username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+                new Claim(ClaimTypes.Name, username),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+             };
             var k = Md5Util.JWT_TOKEN_KEY;
             var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(k));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

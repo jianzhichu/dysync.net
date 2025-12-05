@@ -15,6 +15,7 @@ namespace dy.net.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ConfigController : ControllerBase
     {
         private readonly DouyinCookieService dyCookieService;

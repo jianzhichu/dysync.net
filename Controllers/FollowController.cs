@@ -2,6 +2,7 @@
 using dy.net.model;
 using dy.net.service;
 using dy.net.utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace dy.net.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class FollowController : ControllerBase
     {
         private readonly DouyinFollowService _douyinFollowService;

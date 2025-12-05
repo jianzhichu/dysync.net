@@ -70,7 +70,7 @@ watch(
 watch(
   _value,
   (newMode) => {
-    console.log('mode switched to:', newMode);
+    // console.log('mode switched to:', newMode);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, newMode);
     }

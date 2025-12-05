@@ -39,7 +39,7 @@ export const useAccountStore = defineStore('account', {
           if (response.code === 200 && response.data.code === 0) {
             this.logged = true;
             this.logged2 = true
-            console.log(response)
+            // console.log(response)
             http.setAuthorization(`Bearer ${response.data.token}`, response.data.expires);
             // await useMenuStore().getMenuList();
             return response.data;

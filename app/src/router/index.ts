@@ -9,7 +9,7 @@ const router = createRouter(
     routes,
   }
 );
-console.log(router)
+// console.log(router)
 // 注册导航守卫
 guards.before.forEach(router.beforeEach);
 guards.after.forEach(router.afterEach);

@@ -3,7 +3,8 @@ import createHttp from '@/utils/axiosHttp';
 import { isResponse } from '@/types';
 import NProgress from 'nprogress';
 import { useAccountStore } from '@/store';
-
+import { message } from 'ant-design-vue';
+import router from '@/router'; // 关键：导入路由实例（路径要和实际一致）
 const http = createHttp({
   timeout: 60000,
   baseURL: '/',
@@ -28,21 +29,32 @@ http.interceptors.request.use((req: AxiosRequestConfig) => {
 http.interceptors.response.use(
   (rep: AxiosResponse<String>) => {
     const { data } = rep;
-    // if (data.code != null)
-    //   console.log(data)
-    //   if (data.code === 401) {
-    //   console.log(data)
-    // }
     if (isResponse(data)) {
       return data.code === 0 ? data : Promise.reject(data);
     }
     return Promise.reject({ message: rep.statusText, code: rep.status, data });
   },
   (error) => {
-    // console.log(error)
-    // debugger
     if (error.response.status === 401) {
-      useAccountStore().setLogged(false)
+      const accountStore = useAccountStore();
+      // 1. 清除登录状态
+      accountStore.setLogged(false);
+      // 可选：提示用户登录过期
+      message.warning('登录状态已过期，请重新登录'); // 如使用Element Plus
+
+
+      setTimeout(() => {
+        const redirectPath = router.currentRoute.value.fullPath;
+        router.push({
+          path: '/login',
+          query: { redirect: redirectPath }
+        }).then(() => {
+          console.log('跳转登录页成功');
+        }).catch((err) => {
+          console.error('跳转登录页失败：', err); // 关键！捕获跳转失败的原因
+        });
+      }, 1000);
+
     } else {
       if (error.response && isAxiosResponse(error.response)) {
         return Promise.reject({

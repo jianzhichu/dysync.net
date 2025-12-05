@@ -4,15 +4,12 @@ using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Formatters;
-using Newtonsoft.Json;
-using System.Drawing.Printing;
-using System.Threading.Tasks;
 
 namespace dy.net.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class VideoController : ControllerBase
     {
         private readonly DouyinVideoService dyCollectVideoService;
