@@ -20,5 +20,10 @@ namespace dy.net.model
         public string ViedoId { get; set; }
 
         public DateTime DeleteTime { get; set; }
+
+        [SugarColumn(IsNullable =true,Length =1000)]
+        public string VideoTitle { get; set; }
+        [SugarColumn(IsNullable = true, Length = 1000)]
+        public string VideoSavePath { get; set; }
     }
 }

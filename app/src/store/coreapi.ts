@@ -218,6 +218,14 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  //删除
+  async function GetDeleteViedos() {
+    return http.request<any, Response<any>>('/api/video/vdelete/get', 'get').then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
 
 
   //检查版本
@@ -247,6 +255,7 @@ export const useApiStore = defineStore('coreapi', () => {
   }
 
   return {
+    GetDeleteViedos,
     DelFollow,
     AddFollow,
     CheckTag,

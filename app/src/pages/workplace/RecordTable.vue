@@ -52,10 +52,37 @@
               </a-button>
             </a-space>
           </a-form-item>
+          <!-- 按钮代码 -->
+          <a-form-item class="form-item delete-btn-2-wrapper">
+            <a-button danger @click="handShowDeleteVideos" class="delete-button-2">
+              <ClearOutlined /> <!-- 注意首字母大写，Antd图标命名规范 -->
+              已删除
+            </a-button>
+          </a-form-item>
         </div>
       </a-form>
     </div>
 
+    <!-- 已删除视频-抽屉 -->
+
+    <a-drawer title="已删除视频" size="large" :visible="deleteVideoShow" @close="onDeleteVideoClose">
+      <template #extra>
+      </template>
+      <a-list size="small" bordered :data-source="deleteVideos">
+        <template #renderItem="{item, index}">
+          <a-list-item>
+
+            <span>
+              {{index+1}}. {{ item.videoTitle }}
+            </span>
+
+            <a-button type="text" size="small" class="copy-delete-video-btn" @click="(e) => copyVideoPath(item.videoSavePath)">
+              <CopyOutlined /> 复制
+            </a-button>
+          </a-list-item>
+        </template>
+      </a-list>
+    </a-drawer>
     <!-- 视频播放弹窗 - 保持原有 -->
     <a-modal v-model:visible="isModalOpen" :width="900" :mask-closable="false" :footer="null" @cancel="handleCancel" :body-style="{ padding: '0', overflow: 'hidden', backgroundColor: '#fff' }" :style="{ 
     borderRadius: '8px',
@@ -144,7 +171,14 @@ import dayjs, { Dayjs } from 'dayjs';
 import locale from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import { message, Modal } from 'ant-design-vue';
 import CryptoJS from 'crypto-js';
-import { SearchOutlined, SyncOutlined, ShareAltOutlined } from '@ant-design/icons-vue';
+import {
+  SearchOutlined,
+  SyncOutlined,
+  ShareAltOutlined,
+  ClearOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons-vue';
 
 // 类型定义
 type RangeValue = [Dayjs, Dayjs];
@@ -637,6 +671,24 @@ const handleBatchDelete = () => {
   });
 };
 
+const deleteVideoShow = ref(false);
+const handShowDeleteVideos = () => {
+  deleteVideoShow.value = true;
+  getDeleteViedos();
+};
+
+const deleteVideos = ref([]);
+const getDeleteViedos = () => {
+  useApiStore()
+    .GetDeleteViedos()
+    .then((res) => {
+      deleteVideos.value = res.data;
+    });
+};
+const onDeleteVideoClose = (e) => {
+  deleteVideoShow.value = false;
+};
+
 const reDownload = (param: object) => {
   try {
     loading.value = true;
@@ -889,7 +941,6 @@ onMounted(() => {
 /* 新增：批量操作开关样式 */
 .batch-operation-item {
   margin-left: 20px !important;
-  /* margin-right: 16px !important; */
 }
 
 .batch-switch {
@@ -906,7 +957,6 @@ onMounted(() => {
 .video-type-radio {
   display: flex;
   flex-wrap: wrap;
-  /* gap: 8px; */
 }
 
 .radio-group-item {
@@ -914,10 +964,12 @@ onMounted(() => {
   min-width: 300px;
 }
 
-/* 按钮组样式 */
+/* 按钮组样式 - 关键修改：保持原有布局 */
 .button-group-item {
-  margin-left: auto !important;
+  margin-left: 8px !important; /* 仅保留少量间距，不使用auto */
   margin-right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .button-group {
@@ -928,6 +980,30 @@ onMounted(() => {
 .query-button,
 .sync-button {
   min-width: 100px;
+}
+
+/* 核心修复：操作行布局 - 关键修改 */
+.form-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  /* 移除之前的padding-right，避免影响其他按钮 */
+  padding-right: 0 !important;
+}
+
+/* 已删除按钮容器 - 独立定位，不影响其他按钮 */
+.delete-btn-2-wrapper {
+  margin-left: auto !important; /* 自动靠右，不影响左侧按钮 */
+  margin-right: 0 !important;
+  padding: 0 !important;
+  width: 100px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* 响应式调整：屏幕较小时允许主查询行换行 */
@@ -943,19 +1019,24 @@ onMounted(() => {
 
 @media (max-width: 1200px) {
   .form-actions-row {
-    flex-direction: column;
-    align-items: flex-start !important;
+    flex-wrap: wrap; /* 允许其他元素换行 */
+    min-height: 60px; /* 增大行高 */
   }
   .batch-operation-item {
     margin-left: 20px !important;
     margin-top: 8px !important;
   }
+  /* 响应式下按钮组调整 */
   .button-group-item {
-    margin-left: 0 !important;
-    margin-top: 12px !important;
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
+    margin-left: 20px !important;
+    margin-top: 8px !important;
+  }
+  /* 已删除按钮在小屏幕下换行显示 */
+  .delete-btn-2-wrapper {
+    margin-left: 20px !important;
+    margin-top: 8px !important;
+    margin-right: 0 !important;
+    width: auto !important;
   }
 }
 
@@ -1165,10 +1246,6 @@ onMounted(() => {
   margin-right: 8px !important;
 }
 
-/* :deep(.ant-table-tbody tr:hover td) {
-  background-color: #fafafa !important;
-} */
-
 /* 新增：表格复选框列样式调整 */
 :deep(.ant-table-selection-column) {
   width: 50px !important;
@@ -1252,5 +1329,35 @@ onMounted(() => {
   text-underline-offset: 4px;
   text-decoration-color: #1890ff;
   text-decoration-thickness: 1px;
+}
+
+/* 已删除视频条目样式 */
+.delete-video-text {
+  flex: 1; /* 文本占满剩余空间 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+/* 复制按钮样式 */
+.copy-delete-video-btn {
+  padding: 0 4px !important;
+  height: 24px !important;
+  font-size: 12px !important;
+  color: #1890ff !important;
+}
+
+.copy-delete-video-btn:hover {
+  color: #40a9ff !important;
+  background-color: #f0f9ff !important;
+}
+
+/* 列表项布局调整 */
+:deep(.ant-list-item) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 16px !important;
 }
 </style>

@@ -205,7 +205,7 @@ namespace dy.net.Controllers
         /// <summary>
         /// 删除视频-不再下载
         /// </summary>
-        /// <param name="Id"></param>
+        /// <param name="vid"></param>
         /// <returns></returns>
         [HttpGet("vdelete/{vid}")]
         public async Task<IActionResult> DeleteVideo([FromRoute]string vid)
@@ -227,7 +227,12 @@ namespace dy.net.Controllers
                     if (result)
                     {
                         //加入删除逻辑
-                        await douyinCommonService.AddDeleteVideo(new DouyinVideoDelete { ViedoId = video.AwemeId });
+                        await douyinCommonService.AddDeleteVideo(new DouyinVideoDelete
+                        {
+                            ViedoId = video.AwemeId,
+                            VideoTitle = video.VideoTitle,
+                            VideoSavePath = video.VideoSavePath
+                        });
                         Serilog.Log.Debug($"前面的日志,你错了，这条视频是永久删除..哈哈--{video.VideoTitle}");
 
                         return Ok(new { code = 0, data = true });
@@ -240,6 +245,16 @@ namespace dy.net.Controllers
                 }
               
             }
+        }
+
+        /// <summary>
+        /// 查询已删除视频列表
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("vdelete/get")]
+        public async Task<IActionResult> GetDeleteVideo()
+        {
+            return Ok(new { code = 0, data = await douyinCommonService.GetDouyinDeleteVideos() } );
         }
     }
 }

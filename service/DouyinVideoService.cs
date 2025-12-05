@@ -51,41 +51,41 @@ namespace dy.net.service
                 .ToList();
 
             // 4. 事务包裹：确保插入/更新原子性
-             var transaction = await _dyCollectVideoRepository.UseTranAsync(async () =>
-            {
-                int insertedCount = 0;
-                int updatedCount = 0;
+            var transaction = await _dyCollectVideoRepository.UseTranAsync(async () =>
+           {
+               int insertedCount = 0;
+               int updatedCount = 0;
 
-                // 5. 批量插入新记录
-                if (videosToInsert.Any())
-                {
-                    insertedCount = await _dyCollectVideoRepository.InsertRangeAsync(videosToInsert);
-                }
+               // 5. 批量插入新记录
+               if (videosToInsert.Any())
+               {
+                   insertedCount = await _dyCollectVideoRepository.InsertRangeAsync(videosToInsert);
+               }
 
-                // 6. 批量更新已存在记录（核心逻辑）
-                if (videosToUpdate.Any())
-                {
-                    // 建立AwemeId与待更新数据的映射（O(1)匹配效率）
-                    var updateMap = videosToUpdate.ToDictionary(v => v.AwemeId);
+               // 6. 批量更新已存在记录（核心逻辑）
+               if (videosToUpdate.Any())
+               {
+                   // 建立AwemeId与待更新数据的映射（O(1)匹配效率）
+                   var updateMap = videosToUpdate.ToDictionary(v => v.AwemeId);
 
-                    // 遍历已存在实体，赋值需要更新的字段
-                    List<DouyinVideo> updates= new List<DouyinVideo>();
-                    foreach (var existingVideo in existingVideos)
-                    {
-                        if (updateMap.TryGetValue(existingVideo.AwemeId, out var updateData))
-                        {
-                            existingVideo.VideoSavePath = updateData.VideoSavePath;
-                            existingVideo.VideoCoverSavePath = updateData.VideoCoverSavePath;
-                        }
-                    }
-                    // 批量更新数据库
-                    updatedCount = await _dyCollectVideoRepository.UpdateRangeAsync(existingVideos);
-                }
+                   // 遍历已存在实体，赋值需要更新的字段
+                   List<DouyinVideo> updates = new List<DouyinVideo>();
+                   foreach (var existingVideo in existingVideos)
+                   {
+                       if (updateMap.TryGetValue(existingVideo.AwemeId, out var updateData))
+                       {
+                           existingVideo.VideoSavePath = updateData.VideoSavePath;
+                           existingVideo.VideoCoverSavePath = updateData.VideoCoverSavePath;
+                       }
+                   }
+                   // 批量更新数据库
+                   updatedCount = await _dyCollectVideoRepository.UpdateRangeAsync(existingVideos);
+               }
 
-            }, ex =>
-            {
-                Serilog.Log.Error(ex, "批量插入/更新抖音视频失败，AwemeIds：{AwemeIds}", string.Join(",", allAwemeIds));
-            });
+           }, ex =>
+           {
+               Serilog.Log.Error(ex, "批量插入/更新抖音视频失败，AwemeIds：{AwemeIds}", string.Join(",", allAwemeIds));
+           });
             return transaction;
         }
 
@@ -148,7 +148,6 @@ namespace dy.net.service
             return await _dyCollectVideoRepository.GetPagedAsync(dto);
         }
 
-
         /// <summary>
         /// 关注的博主的视频如果配置为视频标题作为文件名，生成文件名
         /// </summary>
@@ -170,8 +169,6 @@ namespace dy.net.service
         {
             return await _dyCollectVideoRepository.GetByIdAsync(id);
         }
-
-
 
         /// <summary>
         /// 重新下载选中的视频
@@ -314,14 +311,6 @@ namespace dy.net.service
             }
         }
 
-
-        /// <summary>
-        /// 获取待重新下载的视频列表
-        /// </summary>
-        /// <returns></returns>
-        public async Task<List<DouyinReDownload>> GetViedoReDowns()
-        {
-            return await _dyCollectVideoRepository.GetViedoReDowns();
-        }
+      
     }
 }

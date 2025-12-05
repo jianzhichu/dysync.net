@@ -227,6 +227,17 @@ namespace dy.net.service
             return sqlSugarClient.Insertable(dto).ExecuteCommand() > 0;
         }
 
+        /// <summary>
+        /// 查询已删除视频列表
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<DouyinVideoDelete>> GetDouyinDeleteVideos()
+        {
+            return await sqlSugarClient.Queryable<DouyinVideoDelete>()
+                .ToListAsync();
+        }
+
+
         #region 测试创建数据库
 
         ///// <summary>
