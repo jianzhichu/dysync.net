@@ -9,7 +9,6 @@ namespace dy.net.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class VideoController : ControllerBase
     {
         private readonly DouyinVideoService dyCollectVideoService;
@@ -24,6 +23,7 @@ namespace dy.net.Controllers
         /// 分页查询收藏视频
         /// </summary>
         /// <param name="dto"></param>
+        [Authorize]
         [HttpPost("paged")]
         public async Task<IActionResult> GetPagedAsync(DouyinVideoPageRequestDto dto)
         {
@@ -45,6 +45,7 @@ namespace dy.net.Controllers
         /// 查询统计数据
         /// </summary>
         /// <returns></returns>
+        [Authorize]
         [HttpGet("statics")]
         public async Task<IActionResult> GetStaticsAsync()
         {
@@ -61,6 +62,7 @@ namespace dy.net.Controllers
         /// </summary>
         /// <param name="vid"></param>
         /// <returns></returns>
+        [AllowAnonymous]
         [HttpGet("play/{vid}")]
         public async Task<IActionResult> StreamVideo([FromRoute] string vid)
         {
