@@ -226,7 +226,7 @@ namespace dy.net.service
                 // 不合成视频，直接返回成功
                 if (!mergeImg2Viedo)
                 {
-                    Log.Debug("不合成视频，直接返回成功");
+                    Log.Debug($"根据系统配置设置不下载图文视频-[{outputVideoPath}],{(downImage?"下载图片":"不下载图片")},{(downMp3?"下载音频":"不下载音频")}");
                     return true;
                 }
 
@@ -261,7 +261,7 @@ namespace dy.net.service
                         if (rawAudios.Length == 0)
                         {
                             rawAudios= new string[] { Path.Combine(AppContext.BaseDirectory,"mp3", "silent_10.mp3") };
-                            Log.Debug("未检测到音频，使用默认静音音频-无声");
+                            Log.Debug("版权原因无法下载音频，使用默认无声音频文件");
                         }
 
                         string resultPath = await ffmpegHelper.CreateVideoFromImagesAndAudioAsync(

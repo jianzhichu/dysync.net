@@ -194,6 +194,7 @@ interface DataItem {
   authorId?: string;
   videoSavePath: string;
   createTimeStr?: string; // 发布时间
+  isMergeVideo?: boolean;
 }
 
 interface QuaryParam {
@@ -522,8 +523,8 @@ const onViedoTypeChanged = () => {
 // -------------------------- 视频播放相关方法 --------------------------
 /** 点击视频标题播放 */
 const handleVideoClick = (record: DataItem) => {
-  if (!record.id) {
-    message.warning('该视频暂无播放地址');
+  if (record.isMergeVideo && record.videoSavePath.length == 0) {
+    message.warning('图文视频配置：不下载视频，所有没有可播放的视频');
     return;
   }
   // 保存当前视频信息

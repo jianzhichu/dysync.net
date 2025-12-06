@@ -134,6 +134,11 @@ namespace dy.net.job
                 Log.Debug($"{VideoType}-未获取到系统配置，任务终止!!!");
                 return;
             }
+            if(VideoType== VideoTypeEnum.dy_follows )
+            {
+                Log.Debug($"{VideoType}-系统配置未启用关注同步，任务终止!!!");
+                return;
+            }
 
             // 2. 从配置中获取每页请求数量--固定18
             //if (config.BatchCount > 0)
@@ -407,11 +412,16 @@ namespace dy.net.job
             foreach (var item in data.AwemeList)
             {
 
+                if(!item.Desc.Contains("致敬先烈"))
+                {
+                    continue;
+                }
+
                 //判断视频是否是强制删除且不再下载的视频
                 var deleteVideo = await douyinCommonService.ExistDeleteVideo(item.AwemeId);
                 if (deleteVideo)
                 {
-                    Log.Debug($"{VideoType}-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
+                    //Log.Debug($"{VideoType}-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
                     continue;
                 }
 
@@ -757,6 +767,9 @@ namespace dy.net.job
                     return null;
                 }
 
+
+                // 获取不带扩展名的完整路径
+                string fullPathWithoutExtension = Path.Combine(Path.GetDirectoryName(savePath),Path.GetFileNameWithoutExtension(savePath) );
                 if (config.DownImageVideo)
                 {
                     // 检查合成后的视频文件是否有效
@@ -773,9 +786,10 @@ namespace dy.net.job
                         return null;
                     }
                 }
-                else
-                {
+                else {
+                    savePath = "";
                 }
+
 
                 // 下载视频封面（使用第一张图片作为封面）
                 await DownVideoCover(imageUrls.FirstOrDefault(), fileNamefolder, cookie, item, config);
@@ -793,7 +807,7 @@ namespace dy.net.job
                     {
                         Width = reqParams.VideoWidth,
                         Height = reqParams.VideoHeight,
-                        DataSize = new FileInfo(savePath).Length // 合成视频的文件大小
+                        DataSize = string.IsNullOrWhiteSpace(savePath) || !File.Exists(savePath) ? 0 : new FileInfo(savePath).Length // 合成视频的文件大小
                     }
                 };
 

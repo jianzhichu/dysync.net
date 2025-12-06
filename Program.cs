@@ -197,7 +197,7 @@ ____/   _|_)_____/   _|  _| \_|\____|
                 // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
 
-                if (!isDevelopment)
+                //if (!isDevelopment)
                 {
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();

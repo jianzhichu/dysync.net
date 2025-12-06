@@ -82,7 +82,7 @@
       <div class="form-section" v-if="downImgVideo">
         <h3 class="section-title">图文视频</h3>
 
-        <a-form-item has-feedback label="图文视频合成" name="DownImageVideo" :wrapper-col="{ span: 6 }">
+        <a-form-item has-feedback label="下载图文视频" name="DownImageVideo" :wrapper-col="{ span: 6 }">
           <a-switch v-model:checked="formState.DownImageVideo" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -94,7 +94,7 @@
           <a-switch v-model:checked="formState.DownMp3" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用后，将额外下载音频文件</span>
+            <span>启用后，将单独下载音频文件</span>
           </div>
         </a-form-item>
 
@@ -102,7 +102,7 @@
           <a-switch v-model:checked="formState.DownImage" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用后，将额外下载所有图片文件</span>
+            <span>启用后，将单独下载所有图片文件</span>
           </div>
         </a-form-item>
 
