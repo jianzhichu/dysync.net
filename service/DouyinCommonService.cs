@@ -5,6 +5,7 @@ using dy.net.utils;
 using SqlSugar;
 using System.Reflection;
 using System.Threading.Tasks;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace dy.net.service
 {
@@ -91,31 +92,15 @@ namespace dy.net.service
         {
 
             var cc = await sqlSugarClient.Queryable<AppConfig>().FirstAsync(x => x.Id == config.Id);
-
             if (cc == null)
                 return false;
 
             else
             {
-                cc.Cron = config.Cron;
-                cc.BatchCount = config.BatchCount;
-                cc.DownImageVideo = config.DownImageVideo;
-                cc.UperSaveTogether = config.UperSaveTogether;
-                cc.UperUseViedoTitle = config.UperUseViedoTitle;
-                cc.LogKeepDay = config.LogKeepDay;
-                cc.DownMp3 = config.DownMp3;
-                cc.DownImage = config.DownImage;
-                cc.FollowedTitleTemplate = config.FollowedTitleTemplate;
-                cc.FullFollowedTitleTemplate= config.FullFollowedTitleTemplate;
-                cc.ImageViedoSaveAlone = config.ImageViedoSaveAlone;
-                cc.FollowedTitleSeparator = config.FollowedTitleSeparator;
-                cc.AutoDistinct = config.AutoDistinct;
-                cc.PriorityLevel = config.PriorityLevel;
+                int update = await sqlSugarClient.Updateable(config).ExecuteCommandAsync();
+                return update > 0;
             }
 
-            int update = await sqlSugarClient.Updateable(cc).ExecuteCommandAsync();
-
-            return update > 0;
         }
 
         /// <summary>
