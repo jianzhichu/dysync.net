@@ -1270,6 +1270,10 @@ namespace dy.net.dto
         /// </summary>
         [JsonProperty("url_list")]
         public List<string> UrlList { get; set; }
+
+
+        [JsonProperty("video")]
+        public Video DynamicVideo { get; set; }
         /// <summary>
         /// 
         /// </summary>

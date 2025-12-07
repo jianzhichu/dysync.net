@@ -82,7 +82,12 @@ namespace dy.net.model
         /// 去重优先级配置，json字符串格式存储
         /// </summary>
         [SugarColumn(Length = 500, IsNullable = true)]
-        public string PriorityLevel { get; set; }// = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]";
+        public string PriorityLevel { get; set; }
+
+        /// <summary>
+        /// 是否下载动态图视频
+        /// </summary>
+        public bool DownDynamicVideo { get; set; }
     }
 
 }

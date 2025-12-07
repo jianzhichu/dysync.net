@@ -105,7 +105,13 @@
             <span>启用后，将单独下载所有图片文件</span>
           </div>
         </a-form-item>
-
+        <a-form-item has-feedback label="下载动态视频" name="DownImage" :wrapper-col="{ span: 6 }">
+          <a-switch v-model:checked="formState.DownDynamicVideo" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>针对有些视频是多个视频生成的，实际是分为多个视频，启用后将会分别下载多个视频，名字带_001,002这样</span>
+          </div>
+        </a-form-item>
         <a-form-item has-feedback label="是否统一存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 10 }">
           <a-switch v-model:checked="formState.ImageViedoSaveAlone" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
@@ -222,6 +228,7 @@ interface FormState {
   FullFollowedTitleTemplate: string; // 新增：完整模板字符串（自动生成）
   AutoDistinct: boolean;
   PriorityLevel: string;
+  DownDynamicVideo: boolean;
 }
 
 // 表单初始数据
@@ -242,6 +249,7 @@ const formState: UnwrapRef<FormState> = reactive({
   FullFollowedTitleTemplate: '', // 初始为空
   AutoDistinct: false,
   PriorityLevel: '',
+  DownDynamicVideo: false,
 });
 
 // 实时计算完整模板（可选：让用户实时预览，提交时无需重复计算）
@@ -318,6 +326,7 @@ const getConfig = () => {
           ImageViedoSaveAlone: res.data.imageViedoSaveAlone,
           AutoDistinct: res.data.autoDistinct,
           PriorityLevel: res.data.priorityLevel,
+          DownDynamicVideo: res.data.downDynamicVideo,
         });
 
         // downImgVideo.value = res.data.downImageVideoFromEnv;

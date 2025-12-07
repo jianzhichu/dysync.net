@@ -1,6 +1,6 @@
 ﻿namespace dy.net.utils
 {
-    public class ByteToGbConverter
+    public class DouyinFileUtils
     {
         /// <summary>
         /// 将字节数转换为GB（采用二进制换算：1GB = 1024^3 Byte）
@@ -54,6 +54,25 @@
             {
                 return $"获取宿主机总磁盘空间失败：{ex.Message}";
             }
+        }
+
+        /// <summary>
+        /// 极简版：计算多个文件的总大小（字节）
+        /// </summary>
+        /// <param name="filePaths">文件路径列表</param>
+        /// <returns>总字节数</returns>
+        public static long GetTotalFileSize(List<string> filePaths)
+        {
+            long totalSize = 0;
+            foreach (var path in filePaths)
+            {
+                // 仅判断文件是否存在，存在则累加大小
+                if (File.Exists(path))
+                {
+                    totalSize += new FileInfo(path).Length;
+                }
+            }
+            return totalSize;
         }
     }
 }

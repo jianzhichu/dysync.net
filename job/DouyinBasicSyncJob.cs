@@ -134,11 +134,7 @@ namespace dy.net.job
                 Log.Debug($"{VideoType}-未获取到系统配置，任务终止!!!");
                 return;
             }
-            if(VideoType== VideoTypeEnum.dy_follows )
-            {
-                Log.Debug($"{VideoType}-系统配置未启用关注同步，任务终止!!!");
-                return;
-            }
+          
 
             // 2. 从配置中获取每页请求数量--固定18
             //if (config.BatchCount > 0)
@@ -151,10 +147,9 @@ namespace dy.net.job
             var cookies = await GetValidCookies();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug($"{VideoType}-无有效Cookie，任务终止!!!");
+                Log.Debug($"{VideoType}-无有效的Cookie，任务终止!!!");
                 return;
             }
-
             Log.Debug($"{VideoType}-共发现{cookies.Count}个Cookie，同步任务即将开始...");
 
             // 6. 遍历每个有效的Cookie，执行同步操作
@@ -411,12 +406,11 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-
-                if(!item.Desc.Contains("致敬先烈"))
-                {
-                    continue;
-                }
-
+                //if (!item.Desc.Contains("人生苦短"))
+                ////if (!item.Desc.Contains("如果你也喜欢"))
+                //{
+                //    continue;
+                //}
                 //判断视频是否是强制删除且不再下载的视频
                 var deleteVideo = await douyinCommonService.ExistDeleteVideo(item.AwemeId);
                 if (deleteVideo)
@@ -434,7 +428,7 @@ namespace dy.net.job
                 {
                     continue;
                 }
-
+                //如果存在，但是因为去重规则，选择的最高优先级变更了，需要删除原来的，重新下载。
                 if (exitVideo!=null) {
                    await douyinVideoService.DeleteById(exitVideo.Id);
                 }
@@ -451,12 +445,62 @@ namespace dy.net.job
                 if (video != null)
                     videos.Add(video);
 
-                // 如果配置了下载图片视频，则处理图片集并合成视频
+
+                // 处理图文视频
                 if (config.DownImageVideo || config.DownMp3 || config.DownImage)
                 {
-                    var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
-                    if (mergevideo != null)
-                        videos.Add(mergevideo);
+                    //处理多个视频-组合的图文视频--类似动图。
+
+                    if (config.DownDynamicVideo)
+                    {
+                        List<string> dynamicVideoUrls = new List<string>();
+                        if (item.Images != null&& item.Images.Count > 0)
+                        {
+                            foreach (var img in item.Images)
+                            {
+                                if (img.DynamicVideo != null&& img.DynamicVideo.BitRate!=null&& img.DynamicVideo.BitRate.Count>0)
+                                {
+                                    foreach (var btv in img.DynamicVideo.BitRate)
+                                    {
+                                        var payAddr = btv.PlayAddr;
+                                        if(payAddr != null&& payAddr.UrlList!=null&&payAddr.UrlList.Count>0)
+                                        {
+                                            dynamicVideoUrls.Add(payAddr.UrlList.FirstOrDefault(x => x.StartsWith("https://www.douyin.com/aweme/v1/play")));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        //说明这个是图文视频里面的动态视频拼接的。。。
+                        if (dynamicVideoUrls.Count > 0)
+                        {
+                            var dynamicVideo = await ProcessDynamicVideo(dynamicVideoUrls, cookie, item, data, config);
+                            if (dynamicVideo != null)
+                            {
+                                videos.Add(dynamicVideo);
+                                Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideo.DynamicVideos.Count()}个视频...");
+                            }
+                            else
+                            {
+                                Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载失败...");
+                            }
+                        }
+                        else
+                        {
+                            var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
+                            if (mergevideo != null)
+                                videos.Add(mergevideo);
+                        }
+                    }
+                    else
+                    {
+                        var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
+                        if (mergevideo != null)
+                            videos.Add(mergevideo);
+                    }
+
+
                 }
             }
             return videos;
@@ -625,7 +669,7 @@ namespace dy.net.job
         }
 
         /// <summary>
-        /// 处理单个视频
+        /// 处理单个视频--正常的收藏喜欢关注的 视频
         /// 负责下载视频、封面、头像，生成NFO文件，创建视频实体等
         /// </summary>
         /// <param name="cookie">用户Cookie</param>
@@ -664,19 +708,24 @@ namespace dy.net.job
             }
 
             Log.Debug($"{VideoType}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc,item.AwemeId)}]开始下载...");
-            // 随机延迟，模拟人类操作
+            // 随机延迟
             await Task.Delay(_random.Next(1, 4) * 1000);
+
             // 下载视频
             if (!await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies))
             {
                 Log.Error($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载失败!!!");
-                return null;
+                
+                (bool flowControl, DouyinVideo value) = await SwitchOtherUrlAddressDown(cookie, item, videoUrl, savePath);
+                if (!flowControl)
+                {
+                    return value;
+                }
             }
             else
             {
                 Log.Debug($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载完成.");
             }
-
             // 下载视频封面
             await DownVideoCover(item, saveFolder, cookie, config);
             // 下载作者头像
@@ -685,6 +734,131 @@ namespace dy.net.job
             await GenerateNfoFile(saveFolder, item, avatarUrl, cookie, config);
             // 创建视频实体
             return CreateVideoEntity(cookie, item, v, savePath, saveFolder, tag1, tag2, tag3, avatarSavePath, avatarUrl, data);
+        }
+
+
+
+
+
+        protected async Task<DouyinVideo> ProcessDynamicVideo(List<string> dynamicUrls,DouyinCookie cookie, Aweme item, DouyinVideoInfo data, AppConfig config, DouyinFollowed followed = null)
+        {
+         
+
+            // 获取视频标签
+            var (tag1, tag2, tag3) = GetVideoTags(item);
+            // 创建保存文件夹
+            var saveFolder = CreateSaveFolder(cookie, item, config, followed);
+            // 获取视频文件名
+            var fileName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)+".mp4";
+            // 拼接视频保存路径
+            var savePath = Path.Combine(saveFolder, fileName);
+
+            Log.Debug($"{VideoType}-动态视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]开始下载...");
+            // 随机延迟
+            int i = 1;
+
+            List<string> dynamicSavePaths = new List<string>();
+            foreach (var dynamicUrl in dynamicUrls)
+            {
+                // 下载动态视频
+                var dynamicSavePath = savePath.Replace(".mp4", $"_00{i}.mp4");
+
+                // 如果文件已存在，跳过
+                if (File.Exists(dynamicSavePath))
+                {
+                    //Log.Debug($"{VideoType}-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
+                    dynamicSavePaths.Add(dynamicSavePath);
+                    continue;
+                }
+
+                if (!await douyinHttpClientService.DownloadAsync(dynamicUrl, dynamicSavePath, cookie.Cookies))
+                {
+                    Log.Error($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]-00{i},下载失败!!!");
+                }
+                else
+                {
+                    dynamicSavePaths.Add(dynamicSavePath);
+                    i++;
+                    Log.Debug($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]-00{i},下载完成.");
+                }
+                await Task.Delay(_random.Next(1, 4) * 1000);
+            }
+
+
+            //// 下载视频封面
+            //await DownVideoCover(item, saveFolder, cookie, config);
+            //// 下载作者头像
+            //var (avatarSavePath, avatarUrl) = await DownAuthorAvatar(cookie, item);
+            //// 生成NFO文件
+            //await GenerateNfoFile(saveFolder, item, avatarUrl, cookie, config);
+            // 创建视频实体
+            // 为合成的视频创建一个“虚拟”的BitRate对象，以便复用CreateVideoEntity方法
+            var virtualBitRate = new VideoBitRate
+            {
+                PlayAddr = new PlayAddr
+                {
+                    Width = item?.Images?.FirstOrDefault()?.Width ?? 0,
+                    Height = item?.Images?.FirstOrDefault()?.Height ?? 0,
+                    DataSize = DouyinFileUtils.GetTotalFileSize(dynamicSavePaths)  // 合成视频的文件大小
+                }
+            };
+            return CreateVideoEntity(cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault(), saveFolder, tag1, tag2, tag3,"", "", data,dynamicSavePaths);
+        }
+
+
+   
+
+
+
+
+
+        /// <summary>
+        /// 寻找其他视频地址下载...
+        /// </summary>
+        /// <param name="cookie"></param>
+        /// <param name="item"></param>
+        /// <param name="videoUrl"></param>
+        /// <param name="savePath"></param>
+        /// <returns></returns>
+        private async Task<(bool flowControl, DouyinVideo value)> SwitchOtherUrlAddressDown(DouyinCookie cookie, Aweme item, string videoUrl, string savePath)
+        {
+            Log.Debug($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}],正在尝试切换其他地址再次重新下载...");
+            var otherUrls = new List<string>();
+
+            foreach (var bit in item.Video.BitRate)
+            {
+                if (bit == null)
+                {
+                    continue;
+                }
+                var payUrls = bit.PlayAddr;
+
+                if (payUrls == null || payUrls.UrlList == null || payUrls.UrlList.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (var payurl in payUrls.UrlList)
+                {
+                    if (payurl == videoUrl)//   排除最开始下载失败的视频地址
+                        continue;
+                    otherUrls.Add(payurl);
+                }
+            }
+
+            if (otherUrls.Count > 0)
+            {
+                Log.Debug($"{VideoType}-额外找到{otherUrls.Count}个视频地址，即将再次开始下载...");
+                var result2 = await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies, otherUrls);
+                Log.Debug($"{VideoType}-尝试多个地址后，下载成功,{savePath}");
+            }
+            else
+            {
+                Log.Error($"{VideoType}-确实没有可以下载的视频链接2," + item.Desc);
+                return (flowControl: false, value: null);
+            }
+
+            return (flowControl: true, value: null);
         }
 
         /// <summary>
@@ -1042,14 +1216,15 @@ namespace dy.net.job
         /// <param name="avatarSavePath">作者头像保存路径</param>
         /// <param name="avatarUrl">作者头像URL</param>
         /// <param name="data">视频信息对象</param>
+        /// <param name="dynamicVideos">动态视频</param>
         /// <returns>创建的视频实体对象</returns>
         private DouyinVideo CreateVideoEntity(
             DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string saveFolder,
-            string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfo data)
+            string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfo data,List<string> dynamicVideos=null)
         {
             var diffs = GetVideoEntityDifferences(cookie, item);
 
-            return new DouyinVideo
+            var video= new DouyinVideo
             {
                 ViedoType = VideoType,
                 AwemeId = item.AwemeId,
@@ -1075,6 +1250,11 @@ namespace dy.net.job
                 DyUserId = item.AuthorUserId == 0 ? item.Author?.Uid : item.AuthorUserId.ToString(),
                 CookieId = cookie.Id
             };
+            if (dynamicVideos != null && dynamicVideos.Count > 0)
+            {
+                video.DynamicVideos = JsonConvert.SerializeObject(dynamicVideos);
+            }
+            return video;
         }
 
         #endregion

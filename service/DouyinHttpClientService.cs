@@ -2,11 +2,14 @@
 using dy.net.utils;
 using NetTaste;
 using Newtonsoft.Json;
+using Serilog;
 using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection.PortableExecutable;
+using System.Text.Json;
+using System.Threading.Tasks.Dataflow;
 
 namespace dy.net.service
 {
@@ -15,8 +18,6 @@ namespace dy.net.service
         public static readonly string DouYinApi = "https://www.douyin.com/aweme/v1/web/aweme";
         // 随机数生成器（避免重复实例化，保证随机性）
         private readonly IHttpClientFactory _clientFactory;
-        // 下载信号量锁：初始计数1，最大并发1（同时只能一个下载任务）
-        private readonly SemaphoreSlim _downloadSemaphore = new SemaphoreSlim(1, 1);
         public DouyinHttpClientService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
@@ -271,6 +272,7 @@ namespace dy.net.service
                                 Serilog.Log.Error($"SyncMyFollows error: {err.StatusMsg}");
                                 callBack(err);
                             }
+                            Serilog.Log.Error($"SyncMyFollows error: 关注列表为空 :{data}");
                         }
                         else
                         {
@@ -305,6 +307,7 @@ namespace dy.net.service
         /// <param name="videoUrl">文件地址</param>
         /// <param name="savePath">保存路径</param>
         /// <param name="cookie">请求Cookie</param>
+        /// <param name="otherUrls">其他下载地址</param>
         /// <param name="cancellationToken">取消令牌（用于终止任务）</param>
         /// <param name="streamTimeout">流读取超时时间（默认60秒）</param>
         /// <param name="maxRetryCount">最大重试次数（默认3次）</param>
@@ -314,6 +317,7 @@ namespace dy.net.service
             string videoUrl,
             string savePath,
             string cookie,
+            List<string> otherUrls=null,
             CancellationToken cancellationToken = default,
             TimeSpan? streamTimeout = null,
             int maxRetryCount = 3,
@@ -323,14 +327,24 @@ namespace dy.net.service
             int retryCount = 0;
             var retryDelay = initialRetryDelay ?? TimeSpan.FromSeconds(1); // 初始延迟1秒
             streamTimeout ??= TimeSpan.FromSeconds(60); // 流读取超时默认60秒
-
+            if (otherUrls != null) {
+                maxRetryCount = otherUrls.Count;
+            }
             while (true)
             {
                 try
                 {
-                    // 执行单次下载逻辑（提取为内部方法，避免代码重复）
-                    return await TryDownloadOnceAsync(
-                        videoUrl, savePath, cookie, cancellationToken, streamTimeout.Value);
+                    if (otherUrls != null&& retryCount>0) {
+                        return await TryDownloadOnceAsync(
+                          otherUrls[retryCount], savePath, cookie, cancellationToken, streamTimeout.Value);
+                    }
+                    else
+                    {
+                        return await TryDownloadOnceAsync(
+                            videoUrl, savePath, cookie, cancellationToken, streamTimeout.Value);
+                    }
+               
+                    
                 }
                 catch (Exception ex) when (IsRetryableException(ex) && retryCount < maxRetryCount)
                 {
@@ -604,6 +618,97 @@ namespace dy.net.service
                 }
             }
         }
+
+
+
+
+
+        /// <summary>
+        /// 快速检测目标URL是否返回403 Forbidden状态码
+        /// </summary>
+        /// <param name="url">目标地址</param>
+        /// <returns>true=403状态，false=非403状态，null=请求异常</returns>
+        public  async Task<bool> PayUrlIsOKAsync(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
+            {
+                Serilog.Log.Error("URL格式无效");
+                return false;
+            }
+
+            try
+            {
+                // 使用Head请求仅获取响应头，提升效率
+                using var request = new HttpRequestMessage(HttpMethod.Head, url);
+                using var _httpClient = _clientFactory.CreateClient("dy_download");
+                using var response = await _httpClient.SendAsync(
+                    request
+                );
+
+                // 直接判断状态码是否为403
+                bool isOk = response.StatusCode == HttpStatusCode.OK;
+
+                Log.Debug($"URL: {url} | 状态码: {(int)response.StatusCode} ({response.StatusCode})");
+                return isOk;
+            }
+            catch (HttpRequestException ex)
+            {
+                // 处理HTTP请求异常（如连接失败、DNS解析错误等）
+                Serilog.Log.Error($"请求异常: {ex.Message}");
+                return false;
+            }
+            catch (TaskCanceledException ex)
+            {
+                // 处理超时异常
+                Serilog.Log.Error($"请求超时: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                // 其他异常
+                Serilog.Log.Error($"未知异常: {ex.Message}");
+                return false;
+            }
+        }
+
+
+
+        /// <summary>
+        /// 串行逐个检测URL，找到第一个「非403/404且请求成功」的URL立即终止并返回
+        /// </summary>
+        /// <param name="urls">待检测URL列表</param>
+        /// <returns>第一个符合条件的URL（null=所有URL都是403/404，或全部请求失败）</returns>
+        public async Task<string> CheckPayUrlIsOKAsync(List<string> urls)
+        {
+            // 逐个遍历URL，串行检测
+            foreach (var url in urls)
+            {
+                try
+                {
+                    // 跳过无效URL
+                    if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
+                    {
+                        Log.Error($"URL格式无效：{url}，跳过检测");
+                        continue;
+                    }
+                    // 检测当前URL是否为403/404
+                    bool isOk = await PayUrlIsOKAsync(url);
+
+                    // 核心判断：请求成功且不是403/404 → 立即返回该URL
+                    if (isOk)
+                    {
+                        Log.Debug($"✅ 找到可以下载的地址：{url}...");
+                        return url;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, $"检查下载地址 {url} 时发生异常，继续检查下一个");
+                }
+            }
+            return null;
+        }
+
 
     }
 }

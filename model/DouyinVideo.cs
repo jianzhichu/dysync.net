@@ -70,7 +70,7 @@ namespace dy.net.model
         /// <summary>
         /// 视频地址（解析会有多个取第一个）
         /// </summary>
-        [SugarColumn(Length =0200,IsNullable =true)]
+        [SugarColumn(Length =2000,IsNullable =true)]
         public string VideoUrl { get; set; }
         /// <summary>
         /// 视频下载后保存路径
@@ -149,5 +149,10 @@ namespace dy.net.model
 
         [SugarColumn(IsIgnore = true)]
         public string ViedoCate =>(string.IsNullOrWhiteSpace(Tag1) ? "" : Tag1) + "/" + (string.IsNullOrWhiteSpace(Tag2) ? "" : Tag2);
+
+
+        // 普通字符串字段，显式标记为 SQLite TEXT 类型
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1)]
+        public string DynamicVideos { get; set; }
     }
 }

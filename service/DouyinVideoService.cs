@@ -109,11 +109,11 @@ namespace dy.net.service
                 FollowCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_follows),
                 GraphicVideoCount = list.Count(x => x.IsMergeVideo == 1),
 
-                VideoSizeTotal = ByteToGbConverter.ConvertBytesToGb(list.Sum(x => x.FileSize)),
-                VideoFavoriteSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_favorite).Sum(x => x.FileSize)),
-                VideoCollectSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_collects).Sum(x => x.FileSize)),
-                VideoFollowSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_follows).Sum(x => x.FileSize)),
-                GraphicVideoSize = ByteToGbConverter.ConvertBytesToGb(list.Where(x => x.IsMergeVideo == 1).Sum(x => x.FileSize)),
+                VideoSizeTotal = DouyinFileUtils.ConvertBytesToGb(list.Sum(x => x.FileSize)),
+                VideoFavoriteSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_favorite).Sum(x => x.FileSize)),
+                VideoCollectSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_collects).Sum(x => x.FileSize)),
+                VideoFollowSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_follows).Sum(x => x.FileSize)),
+                GraphicVideoSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.IsMergeVideo == 1).Sum(x => x.FileSize)),
 
                 //TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
             };
