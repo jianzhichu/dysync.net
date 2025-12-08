@@ -51,6 +51,57 @@ namespace dy.net.service
         {
             return await _followRepository.GetPagedAsync(dto);
         }
+
+        /// <summary>
+        /// 获取所有手动添加的非关注者
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<DouyinFollowed>> GetHandFollows()
+        {
+            return await _followRepository.GetListAsync(x=>x.IsNoFollowed);
+        }
+        /// <summary>
+        /// 导入非关注
+        /// </summary>
+        /// <param name="douyinFolloweds"></param>
+        /// <returns></returns>
+        public async Task<bool> AddHandFollows(List<DouyinFollowed> douyinFolloweds)
+        {
+            if (douyinFolloweds == null || !douyinFolloweds.Any()) return false;
+
+            var ids = douyinFolloweds.Select(x => x.Id).Distinct().ToList();
+            var existingFolloweds = await _followRepository.GetListAsync(x => ids.Contains(x.Id));
+
+            var toAddList = douyinFolloweds
+                .Where(x => !existingFolloweds.Any(e => e.Id == x.Id))
+                .ToList();
+
+            // 批量更新：先整理需要更新的实体
+            var toUpdateEntities = new List<DouyinFollowed>();
+            foreach (var updateItem in douyinFolloweds)
+            {
+                var existingItem = existingFolloweds.FirstOrDefault(e => e.Id == updateItem.Id);
+                if (existingItem != null)
+                {
+                    toUpdateEntities.Add(updateItem);
+                }
+            }
+
+            int operateCount = 0;
+            // 批量新增
+            if (toAddList.Any())
+            {
+                operateCount += await _followRepository.InsertRangeAsync(toAddList);
+            }
+            // 批量更新
+            if (toUpdateEntities.Any())
+            {
+                await _followRepository.UpdateRangeAsync(toUpdateEntities);
+                operateCount += toUpdateEntities.Count;
+            }
+
+            return operateCount > 0;
+        }
         /// <summary>
         /// 
         /// </summary>

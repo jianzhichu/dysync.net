@@ -220,7 +220,25 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
 
+  //导出配置
+  async function ExportConf() {
+    return http.request<any, Response<any>>('/api/config/exportConf', 'get').then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
+  //导入配置
+  async function ImportConf(param: object) {
+    return http.request<any, Response<any>>('/api/config/importConf', 'post_json', param).then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
   return {
+    ExportConf,
+    ImportConf,
     GetDeleteViedos,
     DelFollow,
     AddFollow,

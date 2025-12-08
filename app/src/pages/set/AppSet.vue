@@ -1,23 +1,24 @@
 <template>
-  <a-card :bordered="false" :body-style="{ padding: '20px' }">
+  <a-card :bordered="false" :body-style="{ padding: '10px' }">
     <a-form :model="formState" :label-col="labelCol" :rules="rules" :wrapper-col="wrapperCol" ref="formRef" label-align="right">
+      <!-- 原有所有表单内容保持不变 -->
       <!-- 任务调度配置 -->
       <div class="form-section">
         <h3 class="section-title">任务调度</h3>
 
-        <a-form-item has-feedback label="同步周期（分钟）" name="Cron" :wrapper-col="{ span: 6}" style="margin-left:30px">
+        <a-form-item has-feedback label="同步周期（分钟）" name="Cron" :wrapper-col="{ span: 20}" style="margin-left:30px">
           <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="15" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>同步任务的执行间隔，最小15分钟，建议使用默认值</span>
+            <span>同步任务执行间隔，最小15分钟，建议使用默认值</span>
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="每次同步上限" name="BatchCount" :wrapper-col="{ span:10}" style="margin-left:30px">
+        <a-form-item has-feedback label="每次同步上限" name="BatchCount" :wrapper-col="{ span:20}" style="margin-left:30px">
           <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大30)" :min="10" :max="30" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>每次同步获取的条数，范围10-30条（建议使用默认值18,抖音默认的分页大小）</span>
+            <span>每次最大下载数量：10-30</span>
           </div>
         </a-form-item>
       </div>
@@ -30,7 +31,7 @@
           <a-switch v-model:checked="formState.UperUseViedoTitle" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用后，关注的视频文件名将直接使用原视频标题，否则使用模板生成,如果既没有模板也没有开启，则系统默认使用视频Id作为文件名。</span>
+            <span>启用用原标题，未启用用模板；无模板则默认用视频Id</span>
           </div>
         </a-form-item>
 
@@ -38,7 +39,7 @@
           <a-switch v-model:checked="formState.UperSaveTogether" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>默认是按博主名字创建文件夹存储，启用后，关注的视频直接存放在根目录。</span>
+            <span>默认按博主名建文件夹，启用后直接存映射目录根目录</span>
           </div>
         </a-form-item>
 
@@ -47,11 +48,7 @@
           <a-select v-model:value="formState.FollowedTitleTemplate" :options="template_options" mode="multiple" size="middle" placeholder="请选择占位符组合"></a-select>
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>
-              选择生成文件名的占位符，顺序即为文件名顺序（需配合分隔符使用）<br />
-              <strong class="text-gray-700">占位符说明：</strong>
-              {Id}=视频ID、{VideoTitle}=视频标题、{ReleaseTime}=发布时间、{Author}=博主名称、{FileHash}=文件哈希、{Resolution}=分辨率
-            </span>
+            <span>选择文件名占位符（顺序为文件名顺序，需配合分隔符）<br /><strong class="text-gray-700">占位符：</strong>{Id}=视频ID、{VideoTitle}=标题、{ReleaseTime}=发布时间、{Author}=博主名、{FileHash}=文件哈希、{Resolution}=分辨率</span>
           </div>
         </a-form-item>
 
@@ -81,16 +78,24 @@
 
       <div class="form-section" v-if="downImgVideo">
         <h3 class="section-title">图文视频</h3>
-
-        <a-form-item has-feedback label="下载图文视频" name="DownImageVideo" :wrapper-col="{ span: 6 }">
+        <a-form-item has-feedback label="是否单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.ImageViedoSaveAlone" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>
+              开启：图文视频统一存入抖音授权 Cookie 配置的目录，且需提前配置该存储路径。关闭：按类型分别存入对应文件夹（如收藏视频存入收藏视频目录）
+            </span>
+          </div>
+        </a-form-item>
+        <a-form-item has-feedback label="下载图文视频" name="DownImageVideo" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownImageVideo" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用后，图文视频将合成为视频文件下载</span>
+            <span>启用后，会将图片合成为视频文件下载</span>
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="额外下载音频" name="DownMp3" :wrapper-col="{ span: 6 }">
+        <a-form-item has-feedback label="下载音频文件" name="DownMp3" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownMp3" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -98,36 +103,28 @@
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="额外下载图片" name="DownImage" :wrapper-col="{ span: 6 }">
+        <a-form-item has-feedback label="下载图片文件" name="DownImage" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownImage" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>启用后，将单独下载所有图片文件</span>
           </div>
         </a-form-item>
-        <a-form-item has-feedback label="下载动态视频" name="DownImage" :wrapper-col="{ span: 6 }">
+        <a-form-item has-feedback label="下载动态视频" name="DownImage" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownDynamicVideo" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>针对有些视频是多个视频生成的，实际是分为多个视频，启用后将会分别下载多个视频，名字带_001,002这样</span>
           </div>
         </a-form-item>
-        <a-form-item has-feedback label="是否统一存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 10 }">
-          <a-switch v-model:checked="formState.ImageViedoSaveAlone" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>
-              启用后，所有图文视频统一存储到 Cookie(抖音授权) 设置的目录。<br />否则，按类型存储到对应文件夹（比如视频属于收藏的视频，则存储到收藏视频的目录）
-            </span>
-          </div>
-        </a-form-item>
+
       </div>
 
       <!-- 系统配置 -->
       <div class="form-section">
-        <h3 class="section-title">其他配置</h3>
+        <h3 class="section-title">去重配置</h3>
 
-        <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先等级" name="PriorityLevel" :wrapper-col="{ span: 8 }">
+        <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先等级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
           <!-- Tag 拖拽容器 -->
           <div class="tag-drag-container">
             <!-- Tag 拖拽容器（绑定 ref 供 Sortable 初始化） -->
@@ -146,13 +143,13 @@
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="日志保留（天数）" name="LogKeepDay" :wrapper-col="{ span: 6 }" style="margin-left:30px">
+        <!-- <a-form-item has-feedback label="日志保留（天数）" name="LogKeepDay" :wrapper-col="{ span: 6 }" style="margin-left:30px">
           <a-input-number v-model:value="formState.LogKeepDay" placeholder="请输入保留天数" :min="1" :max="90" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>系统运行日志的保留天数，范围1-90天，过期自动清理</span>
           </div>
-        </a-form-item>
+        </a-form-item> -->
         <!-- <a-form-item has-feedback label="是否自动去重" name="AutoDistinct" :wrapper-col="{ span: 10 }">
           <a-switch v-model:checked="formState.AutoDistinct" disabled />
           <div class="flex items-start mt-1 text-sm text-gray-500">
@@ -179,6 +176,26 @@
       </a-form-item>
     </a-form>
   </a-card>
+
+  <!-- 配置导入导出悬浮按钮（优化布局+动画） -->
+  <div class="config-float-btn-container">
+    <!-- 主按钮 -->
+    <a-button class="main-float-btn" type="primary" shape="circle">
+      <tool-outlined />
+    </a-button>
+
+    <!-- 子按钮容器（新增：绝对定位向上展开） -->
+    <div class="float-sub-btn-wrapper">
+      <a-button class="sub-float-btn export-btn" type="default" shape="circle" @click="exportConfig" tooltip="导出配置">
+        <cloud-download-outlined />
+      </a-button>
+      <a-button class="sub-float-btn import-btn" type="default" shape="circle" @click="triggerImportFile" tooltip="导入配置">
+        <cloud-upload-outlined />
+      </a-button>
+    </div>
+
+    <input ref="importFileInput" type="file" accept=".json" class="import-file-input" @change="handleImportFile">
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -191,7 +208,16 @@ import { useApiStore } from '@/store';
 import { message } from 'ant-design-vue';
 import { Sortable } from 'sortablejs';
 
-import { InfoCircleOutlined, SaveOutlined, CheckOutlined } from '@ant-design/icons-vue';
+import {
+  InfoCircleOutlined,
+  SaveOutlined,
+  CheckOutlined,
+  // 新增图标
+  SettingOutlined,
+  UpOutlined,
+  DownloadOutlined,
+  UploadOutlined,
+} from '@ant-design/icons-vue';
 
 // 表单引用
 const formRef = ref<FormInstance>();
@@ -209,6 +235,10 @@ const template_options = [
 // 状态定义
 const componentDisabled = ref(true);
 const downImgVideo = ref(true);
+
+// 新增：悬浮菜单相关状态
+const floatMenuVisible = ref(false);
+const importFileInput = ref<HTMLInputElement | null>(null);
 
 // 表单数据结构（新增 FullFollowedTitleTemplate 字段）
 interface FormState {
@@ -450,6 +480,97 @@ const onCancel = () => {
     formState.FullFollowedTitleTemplate = computeFullTemplate.value;
   }
 };
+
+const importOrexportConf = ref();
+// 新增：导出配置
+const exportConfig = () => {
+  try {
+    useApiStore()
+      .ExportConf()
+      .then((res) => {
+        if (res.code == 0) {
+          importOrexportConf.value = res.data;
+
+          // 转换为JSON字符串并格式化
+          const jsonStr = JSON.stringify(importOrexportConf.value, null, 2);
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+
+          // 创建下载链接
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `配置及手动关注列表备份_${new Date().getTime()}.json`;
+          document.body.appendChild(a);
+          a.click();
+
+          // 清理
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          message.success('导出配置及手动关注列表导出成功');
+          floatMenuVisible.value = false;
+        }
+      })
+      .catch((x) => {
+        console.log(x);
+      });
+  } catch (error) {
+    console.error('导出配置及手动关注列表失败:', error);
+    message.error('导出配置及手动关注列表，请稍后重试');
+  }
+};
+
+// 新增：触发导入文件选择
+const triggerImportFile = () => {
+  if (importFileInput.value) {
+    importFileInput.value.click();
+  }
+};
+
+// 新增：处理导入文件
+const handleImportFile = (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  // 验证文件类型
+  if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+    message.error('请选择JSON格式的配置文件');
+    target.value = '';
+    return;
+  }
+
+  // 读取文件内容
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      const content = event.target?.result as string;
+      const importData = JSON.parse(content);
+      useApiStore()
+        .ImportConf(importData)
+        .then((res) => {
+          if (res.code == 0) {
+            message.success('配置及手动关注列表导入成功,下次运行会按新的配置规则运行。');
+            floatMenuVisible.value = false;
+            getConfig();
+          } else {
+            message.error(`配置及手动关注列表导入失败`);
+          }
+        });
+    } catch (error) {
+      console.error('解析配置文件失败:', error);
+      message.error(`配置及手动关注列表导入失败：${(error as Error).message}`);
+    } finally {
+      // 清空文件选择
+      target.value = '';
+    }
+  };
+
+  reader.readAsText(file);
+};
 </script>
 
 <style lang='less' scoped>
@@ -550,5 +671,76 @@ const onCancel = () => {
 .sortable-tag:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+// 1. 悬浮按钮容器（恢复固定定位，作为子按钮的定位基准）
+.config-float-btn-container {
+  position: fixed; // 关键：恢复固定定位，确保在页面右下角
+  right: 30px;
+  bottom: 100px;
+  z-index: 1000;
+  width: 60px; // 与主按钮宽度一致，确保居中
+  height: auto; // 自适应高度，不限制子按钮展开
+
+  &:hover {
+    cursor: default;
+  }
+}
+
+// 2. 子按钮容器（修正定位，基于父容器居中）
+.float-sub-btn-wrapper {
+  position: absolute;
+  bottom: 70px; // 主按钮高度（60px）+ 间距（10px），向上展开
+  left: 50%;
+  transform: translateX(-50%); // 水平居中
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+// 其他样式（主按钮、子按钮）保持不变
+.main-float-btn {
+  width: 60px;
+  height: 60px;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: scale(1.05); // 移除多余的 translateX(-50%)
+  }
+}
+
+.sub-float-btn {
+  width: 50px;
+  height: 50px;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transform: translateY(10px) scale(0.9); // 仅保留垂直偏移，水平居中由父容器控制
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.export-btn {
+    transition-delay: 0.08s;
+  }
+
+  &.import-btn {
+    transition-delay: 0.16s;
+  }
+}
+
+.config-float-btn-container:hover .sub-float-btn {
+  opacity: 1;
+  transform: translateY(0) scale(1); // 恢复正常位置
+}
+
+.import-file-input {
+  display: none;
+}
+
+// 修复子按钮tooltip显示
+:deep(.ant-tooltip) {
+  z-index: 1001 !important;
 }
 </style>

@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Quartz.Util;
+using System.Text;
+using System.Text.Json;
 using System.Xml.Linq;
 using static Dm.net.buffer.ByteArrayBuffer;
 
@@ -33,8 +35,55 @@ namespace dy.net.Controllers
         }
 
 
+        /// <summary>
+        /// 导出配置
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("exportConf")]
+        public async Task<IActionResult> ExportConf()
+        {
+           
+                // 1. 组装导出数据
+                var dto = new AppConfigImportDto()
+                {
+                    follows = await douyinFollowService.GetHandFollows(),
+                    conf = commonService.GetConfig()
+                };
+
+            return Ok(new { code = 0, data = dto });
+
+        }
 
 
+        /// <summary>
+        /// 导入配置
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
+        [HttpPost("importConf")]
+        public async Task<IActionResult> ImportConf(AppConfigImportDto  dto)
+        {
+                if (dto == null)
+                    return BadRequest("json数据为空");
+
+                var follows = dto.follows;
+                if (follows != null && follows.Count > 0)
+                {
+                    var add = await douyinFollowService.AddHandFollows(follows);
+                    if (add)
+                        Serilog.Log.Debug("关注列表导入成功");
+                }
+
+                var conf = dto.conf;
+                if (conf != null)
+                {
+                    var update = await commonService.UpdateConfig(conf);
+                    if (update)
+                        Serilog.Log.Debug("配置导入成功");
+                }
+
+                return Ok(new {code=0,data=true});
+        }
         /// <summary>
         /// 分页查询
         /// </summary>
@@ -50,9 +99,9 @@ namespace dy.net.Controllers
                 data = new
                 {
                     data = list,
-                    total=totalCount,
-                    pageIndex= dto.PageIndex,
-                    pageSize= dto.PageSize
+                    total = totalCount,
+                    pageIndex = dto.PageIndex,
+                    pageSize = dto.PageSize
                 }
             }
            );
@@ -66,7 +115,7 @@ namespace dy.net.Controllers
         [HttpGet("list")]
         public async Task<IActionResult> GetAllList()
         {
-            var follows= await douyinFollowService.GetGroupByCookieAsync();
+            var follows = await douyinFollowService.GetGroupByCookieAsync();
             return Ok(new { code = 0, data = follows });
         }
         /// <summary>
@@ -75,14 +124,14 @@ namespace dy.net.Controllers
         [HttpPost("add")]
         public async Task<IActionResult> AddAsync([FromBody] DouyinCookie dyUserCookies)
         {
-           
+
             var result = await dyCookieService.Add(dyUserCookies);
             if (result)
             {
                 await ReStartJob();
                 return Ok(new { code = 0 });
             }
-            return BadRequest(new { code=-1, message = "添加失败" });
+            return BadRequest(new { code = -1, message = "添加失败" });
         }
 
         /// <summary>
@@ -94,7 +143,7 @@ namespace dy.net.Controllers
 
             if (dyUserCookies.Id == "0")
             {
-                dyUserCookies.Id=IdGener.GetLong().ToString();
+                dyUserCookies.Id = IdGener.GetLong().ToString();
                 var result = await dyCookieService.Add(dyUserCookies);
                 if (result)
                 {
@@ -103,7 +152,8 @@ namespace dy.net.Controllers
                 }
                 return BadRequest(new { code = -1, message = "添加失败" });
             }
-            else {
+            else
+            {
                 var result = await dyCookieService.UpdateAsync(dyUserCookies);
                 if (result)
                 {
@@ -112,7 +162,7 @@ namespace dy.net.Controllers
                 }
                 return BadRequest(new { code = -1, message = "更新失败" });
             }
-           
+
         }
 
         /// <summary>
@@ -121,8 +171,9 @@ namespace dy.net.Controllers
         [HttpGet("delete")]
         public async Task<IActionResult> DeleteAsync(string id)
         {
-            var count = await dyCookieService.DeleteByIdsAsync(new List<string> { id});
-            if (count > 0) {
+            var count = await dyCookieService.DeleteByIdsAsync(new List<string> { id });
+            if (count > 0)
+            {
                 await ReStartJob();
             }
             return Ok(new { code = 0, deletedCount = count });
@@ -131,7 +182,7 @@ namespace dy.net.Controllers
         [HttpGet("GetConfig")]
         public IActionResult GetConfig()
         {
-            var data =  commonService.GetConfig();
+            var data = commonService.GetConfig();
             return Ok(new { code = 0, data = data });
         }
 
@@ -139,7 +190,8 @@ namespace dy.net.Controllers
         public async Task<IActionResult> UpdateConfig(AppConfig config)
         {
             var data = await commonService.UpdateConfig(config);
-            if (data) {
+            if (data)
+            {
                 await ReStartJob();
             }
             return Ok(new { code = 0, data = data });
@@ -153,17 +205,18 @@ namespace dy.net.Controllers
         //[Authorize]
         public async Task<IActionResult> ExecuteJobNow()
         {
-            var config =  commonService.GetConfig();
-            if (config!=null)
-            await quartzJobService.InitOrReStartAllJobs(config.Cron.ToString());
-            return Ok(new { code =  0 , error =  ""  });
+            var config = commonService.GetConfig();
+            if (config != null)
+                await quartzJobService.InitOrReStartAllJobs(config.Cron.ToString());
+            return Ok(new { code = 0, error = "" });
         }
 
 
-        private async Task ReStartJob() {
-            var config= commonService.GetConfig();
-            if (config!=null)
-             quartzJobService.InitOrReStartAllJobs(config.Cron.ToString());
+        private async Task ReStartJob()
+        {
+            var config = commonService.GetConfig();
+            if (config != null)
+                quartzJobService.InitOrReStartAllJobs(config.Cron.ToString());
             //避免前端等待
         }
         /// <summary>
@@ -173,13 +226,13 @@ namespace dy.net.Controllers
         [HttpGet("mytag")]
         public async Task<IActionResult> GetMyTag()
         {
-            return Ok(new { code = 0, data =Appsettings.Get("tagName") });
+            return Ok(new { code = 0, data = Appsettings.Get("tagName") });
         }
 
         [HttpGet("checktag")]
         public async Task<IActionResult> CheckTag()
         {
-            var data =await DouyinHttpHelper.GetTenImage(Appsettings.Get("tagName"));
+            var data = await DouyinHttpHelper.GetTenImage(Appsettings.Get("tagName"));
             if (data.IsSuccessStatusCode)
             {
                 var content = await data.Content.ReadAsStringAsync();
