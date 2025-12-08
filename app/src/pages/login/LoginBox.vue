@@ -158,6 +158,7 @@ async function login(params: LoginFormProps) {
   try {
     const res = await accountStore.login(params.username, params.password);
     emit('success', params);
+    console.log(res);
     message.success('登录成功！');
   } catch (e: any) {
     // emit('failure', e.message, e.data);

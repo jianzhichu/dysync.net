@@ -127,7 +127,7 @@ namespace dy.net.Controllers
 
                         var tokenString = GenerateJwtToken(user.UserName);
 
-                        return Ok(new { code = 0, erro = "", token = tokenString, expires = 24 * 60 * 60 * 1000 });
+                        return Ok(new { code = 0, erro = "", token = tokenString, expires = 24 * 60 * 60 * 1000,data=user.UserName });
                     }
                     else
                     {

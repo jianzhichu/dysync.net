@@ -42,19 +42,10 @@ const dynamicinitRoute =
 const InitGuard: NavigationGuard = function (to, from) {
 
   if (to.fullPath != '/login') {
-    useApiStore()
-      .apiCheckInitStatus()
-      .then((res) => {
-        // console.log(to.fullPath)
-        if (res.code === 0) {
-        } else {
-          if (!router.hasRoute('login')) {
-            router.addRoute(dynamicinitRoute)
-          }
-          router.push('/login')
-          // return '/init'
-        }
-      });
+    if (!router.hasRoute('login')) {
+      router.addRoute(dynamicinitRoute)
+    }
+    router.push('/login')
   }
 };
 

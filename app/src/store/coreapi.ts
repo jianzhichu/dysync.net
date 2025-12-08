@@ -28,43 +28,9 @@ import { Response } from '@/types';
 // }
 
 export const useApiStore = defineStore('coreapi', () => {
-  //检查是否已经初始化过了
-  async function apiCheckInitStatus() {
 
-    return { code: 0 }
-    // const initStatus = localStorage.getItem('ddns-init');
-    // if (initStatus && initStatus === '1') {
-    //   return { code: 0 }
-    // } else {
-    //   return http
-    //     .request<any, Response<any>>('/api/init/Check', 'GET')
-    //     .then((res) => {
-    //       // console.log(res)
-    //       if (res.data.code === 0) {
-    //         // localStorage.setItem('ddns-init', '1')
-    //       }
-    //       return res.data;
-    //     })
-    //     .finally(() => {
 
-    //     });
-    // }
-  }
 
-  //初始化系统配置
-  async function apiInit(request: object) {
-    console.log(request)
-    return http
-      .request<any, Response<any>>('/api/init/Init', 'post_json', request)
-      .then((res) => {
-        // console.log(res)
-
-        return res.data;
-      })
-      .finally(() => {
-
-      });
-  }
   //获取配置
   async function apiGetConfig() {
     return http
@@ -261,8 +227,6 @@ export const useApiStore = defineStore('coreapi', () => {
     CheckTag,
     deleteCookie,
     UpdateConfig,
-    apiCheckInitStatus,
-    apiInit,
     apiGetConfig,
     apiUpdateConfig,
     apiGetLogs,

@@ -215,7 +215,6 @@ interface FormState {
   Cron: number;
   Id: string;
   BatchCount: number;
-  DownImageVideoFromEnv: boolean;
   DownImageVideo: boolean;
   UperSaveTogether: boolean;
   UperUseViedoTitle: boolean;
@@ -240,7 +239,6 @@ const formState: UnwrapRef<FormState> = reactive({
   UperUseViedoTitle: false,
   UperSaveTogether: false,
   DownImageVideo: false,
-  DownImageVideoFromEnv: false,
   DownMp3: false,
   DownImage: false,
   ImageViedoSaveAlone: true,
@@ -313,7 +311,6 @@ const getConfig = () => {
           Cron: res.data.cron,
           Id: res.data.id,
           BatchCount: res.data.batchCount,
-          DownImageVideoFromEnv: res.data.downImageVideoFromEnv,
           DownImageVideo: res.data.downImageVideo,
           UperUseViedoTitle: res.data.uperUseViedoTitle,
           UperSaveTogether: res.data.uperSaveTogether,
@@ -329,7 +326,6 @@ const getConfig = () => {
           DownDynamicVideo: res.data.downDynamicVideo,
         });
 
-        // downImgVideo.value = res.data.downImageVideoFromEnv;
         tagData.value = JSON.parse(res.data.priorityLevel);
       } else {
         message.error(res.erro || '获取配置失败', 8);

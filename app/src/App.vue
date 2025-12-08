@@ -81,19 +81,10 @@ const user = reactive({
 
 onMounted(() => {
   useApiStore()
-    .apiCheckInitStatus()
+    .apiUserInfo()
     .then((res) => {
       if (res.code === 0) {
-        // useApiStore()
-        //   .apiUserInfo()
-        //   .then((res) => {
-        //     if (res.code === 0 && res.code !== '') {
-        //       if (res.data.avatar && res.data.avatar != null) {
-        //         user.avatar = `/upload/${res.data.avatar}`;
-        //       }
-        //       user.name = res.data.userName;
-        //     }
-        //   });
+        user.name = res.data?.userName;
       }
     });
 });
