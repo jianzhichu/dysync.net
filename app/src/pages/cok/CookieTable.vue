@@ -10,6 +10,24 @@ import { message } from 'ant-design-vue';
 
 import { StarOutlined, StarFilled, StarTwoTone } from '@ant-design/icons-vue';
 const columns = ref([]);
+columns.value = [
+  {
+    title: 'Cookie名称',
+    dataIndex: 'userName',
+    width: 180,
+  },
+  { title: '状态', dataIndex: 'status', width: 180 },
+  { title: '收藏路径', dataIndex: 'savePath' },
+  { title: '喜欢路径', dataIndex: 'favSavePath' },
+  { title: '博主路径', dataIndex: 'upSavePath' },
+  { title: '图文视频', dataIndex: 'imgSavePath' },
+  { title: 'Cookie', dataIndex: 'cookies' },
+  { title: '有效状态', dataIndex: 'statusMsg' },
+  // { title: '博主信息', dataIndex: 'upSecUserIds' },
+  // { title: '自己', dataIndex: 'secUserId' },
+  { title: '操作', dataIndex: 'edit', width: 200 },
+  // { title: 'id', dataIndex: 'id', width: 200, hiden: false },
+];
 
 // 定义数组中单个对象的类型：包含uper和uid字段（可选字符串类型，根据实际需求调整是否可选）
 interface UpSecUserIdItem {
@@ -233,66 +251,9 @@ const rowCount = 4;
 
 // 组件挂载时获取配置
 onMounted(() => {
-  getConfig();
+  GetRecords();
 });
-const downImgVideo = ref(false);
-
-// 获取配置数据
-const getConfig = () => {
-  useApiStore()
-    .apiGetConfig()
-    .then((res) => {
-      if (res.code === 0) {
-        downImgVideo.value = res.data.downImageVideoFromEnv;
-        if (!res.data.downImageVideoFromEnv) {
-          columns.value = [
-            {
-              title: 'Cookie名称',
-              dataIndex: 'userName',
-              width: 180,
-            },
-            { title: '同步状态', dataIndex: 'status', width: 180 },
-            { title: '收藏路径', dataIndex: 'savePath' },
-            { title: '喜欢路径', dataIndex: 'favSavePath' },
-            { title: '博主路径', dataIndex: 'upSavePath' },
-            { title: 'Cookie', dataIndex: 'cookies' },
-            { title: '有效状态', dataIndex: 'statusMsg' },
-            // { title: '博主信息', dataIndex: 'upSecUserIds' },
-            // { title: '自己', dataIndex: 'secUserId' },
-            { title: '操作', dataIndex: 'edit', width: 200 },
-            // { title: 'id', dataIndex: 'id', width: 200, hiden: false },
-          ];
-        } else {
-          columns.value = [
-            {
-              title: 'Cookie名称',
-              dataIndex: 'userName',
-              width: 180,
-            },
-            { title: '状态', dataIndex: 'status', width: 180 },
-            { title: '收藏路径', dataIndex: 'savePath' },
-            { title: '喜欢路径', dataIndex: 'favSavePath' },
-            { title: '博主路径', dataIndex: 'upSavePath' },
-            { title: '图文视频', dataIndex: 'imgSavePath' },
-            { title: 'Cookie', dataIndex: 'cookies' },
-            { title: '有效状态', dataIndex: 'statusMsg' },
-            // { title: '博主信息', dataIndex: 'upSecUserIds' },
-            // { title: '自己', dataIndex: 'secUserId' },
-            { title: '操作', dataIndex: 'edit', width: 200 },
-            // { title: 'id', dataIndex: 'id', width: 200, hiden: false },
-          ];
-        }
-        GetRecords();
-      } else {
-        // message.error(res.erro || '获取配置失败', 8);
-        console.error('获取配置失败:');
-      }
-    })
-    .catch((error) => {
-      console.error('获取配置失败:', error);
-      // message.error('获取配置失败，请稍后重试', 8);
-    });
-};
+const downImgVideo = ref(true);
 </script>
 <template>
   <a-modal :title="form._isNew ? '新增' : '编辑'" v-model:visible="showModal" @ok="submit" @cancel="cancel" width="1000px">
@@ -364,7 +325,7 @@ const getConfig = () => {
           </div>
         </a-form-item-rest>
       </a-form-item> -->
-      <a-form-item label="图文的存储路径" name="imgSavePath" v-if="downImgVideo">
+      <a-form-item label="图文的存储路径" name="imgSavePath">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.imgSavePath" style="flex: 1;" />
           <a-tooltip title="同步图文视频必填！！！">

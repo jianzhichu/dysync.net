@@ -152,7 +152,7 @@ namespace dy.net.model
 
 
         // 普通字符串字段，显式标记为 SQLite TEXT 类型
-        [SugarColumn(ColumnDataType = "TEXT", Length = -1)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1,IsNullable =true)]    
         public string DynamicVideos { get; set; }
     }
 }
