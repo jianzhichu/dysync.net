@@ -57,7 +57,7 @@ namespace dy.net.job
             #region 默认使用UP主名称作为文件夹名称，若关注列表中有自定义保存路径则使用自定义路径
             var authorName = string.IsNullOrWhiteSpace(item.Author?.Nickname) ? "UnknownAuthor" : DouyinFileNameHelper.SanitizeLinuxFileName(item.Author.Nickname,"",true);
             var folder = Path.Combine(cookie.UpSavePath, authorName);
-            if (!string.IsNullOrWhiteSpace(followed.SavePath))
+            if (followed != null && !string.IsNullOrWhiteSpace(followed.SavePath)) 
             {
                 folder = Path.Combine(cookie.UpSavePath, followed.SavePath);
             }
