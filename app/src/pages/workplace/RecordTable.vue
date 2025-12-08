@@ -497,24 +497,6 @@ const handleTableChange = (paginationObj: any) => {
   GetRecords();
 };
 
-/** 获取系统配置 */
-// const getConfig = () => {
-//   useApiStore()
-//     .apiGetConfig()
-//     .then((res) => {
-//       if (res.code === 0) {
-//         showImageViedo.value = res.data.downImageVideoFromEnv;
-//       } else {
-//         message.warning(`获取配置失败: ${res.message}`);
-//       }
-//       GetRecords();
-//     })
-//     .catch((error) => {
-//       console.error('获取配置失败:', error);
-//       message.error('获取配置失败，请稍后重试');
-//     });
-// };
-
 /** 视频类型切换事件 */
 const onViedoTypeChanged = () => {
   GetRecords();
