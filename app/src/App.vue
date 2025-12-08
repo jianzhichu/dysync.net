@@ -1,6 +1,6 @@
 <template>
   <ThemeProvider is-root v-bind="themeConfig" :apply-style="false">
-    <stepin-view system-name="抖小云" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo.png">
+    <stepin-view system-name="抖小云" :class="`${contentClass}`" :user="user" :navMode="navigation" :useTabs="useTabs" :themeList="themeList" v-model:show-setting="showSetting" v-model:theme="theme" @themeSelect="configTheme" logo-src="@/assets/logo.png" v-model:collapsed="open">
       <template #headerActions>
         <HeaderActions @showSetting="showSetting = true" />
       </template>
