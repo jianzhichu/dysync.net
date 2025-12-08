@@ -97,8 +97,8 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 | 镜像标签          | 架构           |
 | ----------------- | -------------- |
-| `beta_1.8.3`      | x86_64 (amd64) |
-| `arm_1.8.3`       | ARM64          |
+| `beta_1.8.5`      | x86_64 (amd64) |
+| `arm_1.8.5`       | ARM64          |
 
 ### 最新镜像查看
 [镜像列表](http://nas.synology2023.online:10108/api/docker/dysync/1)
@@ -116,7 +116,7 @@ docker run -d --restart=always \
   -v /opt/dysync/uper:/app/uper \
   -p 10103:10101 \
   --name dysync2025 \
-  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.8.3
+  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.8.5
 # 注意：-p 后面的容器端口,可以用环境变量类似：ASPNETCORE_URLS = http://+:10108 指定
 ```
 
@@ -130,7 +130,7 @@ version: '3.8'
 
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.8.3
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.8.5
     container_name: dysync2025  # 容器名称
     restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
@@ -206,5 +206,7 @@ services:
 12. ✅ 关注列表支持新增，非关注的博主
 
 13. ✅ 增加永久删除功能，删除后，以后不会再同步该视频
+
+14. ✅ 增加配置项及关注列表（手动添加部分）导出导入功能
 
 
