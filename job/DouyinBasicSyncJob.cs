@@ -422,15 +422,15 @@ namespace dy.net.job
                 //判断是否存在视频，是否根据去重规则进行去重处理。。
                 // 1. 查询数据库中是否已存在该视频（通过 AwemeId 唯一标识）
                 var exitVideo = await douyinVideoService.GetByAwemeId(item.AwemeId);
-             
+
                 bool Goon = await AutoDistinct(config, item, cookie, exitVideo);
                 if (!Goon)
                 {
                     continue;
                 }
                 //如果存在，但是因为去重规则，选择的最高优先级变更了，需要删除原来的，重新下载。
-                if (exitVideo!=null) {
-                   await douyinVideoService.DeleteById(exitVideo.Id);
+                if (exitVideo != null) {
+                    await douyinVideoService.DeleteById(exitVideo.Id);
                 }
                 var uper = await douyinFollowService.GetByUperId(item.AuthorUserId.ToString(), cookie.MyUserId);
                 if (uper != null)
@@ -444,63 +444,52 @@ namespace dy.net.job
                 var video = await ProcessSingleVideo(cookie, item, data, config, followed);
                 if (video != null)
                     videos.Add(video);
+                else{
 
-
-                // 处理图文视频
-                if (config.DownImageVideo || config.DownMp3 || config.DownImage)
-                {
                     //处理多个视频-组合的图文视频--类似动图。
-
-                    if (config.DownDynamicVideo)
+                    List<string> dynamicVideoUrls = new List<string>();
+                    // 当需要下载动态视频时，获取其他URL
+                    if (config.DownDynamicVideo && item.Images != null && item.Images.Count > 0)
                     {
-                        List<string> dynamicVideoUrls = new List<string>();
-                        if (item.Images != null&& item.Images.Count > 0)
+                        foreach (var img in item.Images)
                         {
-                            foreach (var img in item.Images)
+                            if (img.DynamicVideo?.BitRate?.Count > 0)
                             {
-                                if (img.DynamicVideo != null&& img.DynamicVideo.BitRate!=null&& img.DynamicVideo.BitRate.Count>0)
+                                foreach (var btv in img.DynamicVideo.BitRate)
                                 {
-                                    foreach (var btv in img.DynamicVideo.BitRate)
-                                    {
-                                        var payAddr = btv.PlayAddr;
-                                        if(payAddr != null&& payAddr.UrlList!=null&&payAddr.UrlList.Count>0)
-                                        {
-                                            dynamicVideoUrls.Add(payAddr.UrlList.FirstOrDefault(x => x.StartsWith("https://www.douyin.com/aweme/v1/play")));
-                                        }
-                                    }
+                                    var targetUrl = btv.PlayAddr?.UrlList?.FirstOrDefault(x => x.StartsWith("https://www.douyin.com/aweme/v1/play"));
+                                    if (targetUrl != null)
+                                        dynamicVideoUrls.Add(targetUrl);
                                 }
                             }
                         }
+                    }
 
-                        //说明这个是图文视频里面的动态视频拼接的。。。
-                        if (dynamicVideoUrls.Count > 0)
+                    // 处理核心逻辑
+                    if (config.DownDynamicVideo && dynamicVideoUrls.Count > 0)
+                    {
+                        // 处理动态视频
+                        var dynamicVideo = await ProcessDynamicVideo(dynamicVideoUrls, cookie, item, data, config);
+                        if (dynamicVideo != null)
                         {
-                            var dynamicVideo = await ProcessDynamicVideo(dynamicVideoUrls, cookie, item, data, config);
-                            if (dynamicVideo != null)
-                            {
-                                videos.Add(dynamicVideo);
-                                Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideo.DynamicVideos.Count()}个视频...");
-                            }
-                            else
-                            {
-                                Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载失败...");
-                            }
+                            videos.Add(dynamicVideo);
+                            Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideo.DynamicVideos.Count()}个视频...");
                         }
                         else
+                        {
+                            Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载失败...");
+                        }
+                    }
+                    else
+                    {
+                        // 统一处理图文视频逻辑
+                        if (config.DownImageVideo || config.DownMp3 || config.DownImage)
                         {
                             var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
                             if (mergevideo != null)
                                 videos.Add(mergevideo);
                         }
                     }
-                    else
-                    {
-                        var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
-                        if (mergevideo != null)
-                            videos.Add(mergevideo);
-                    }
-
-
                 }
             }
             return videos;
