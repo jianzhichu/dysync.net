@@ -3,54 +3,78 @@
     <login-box class="shadow-lg" @success="onLoginSuccess" @failure="onLoginFail" />
   </div>
 </template>
+
 <script lang="ts" setup>
 import LoginBox from './LoginBox.vue';
 import { useRouter } from 'vue-router';
-// import http from '@/store/http';
+import { message } from 'ant-design-vue';
+
 const router = useRouter();
 
 function onLoginSuccess() {
   router.push('/dashboard');
 }
-import { message } from 'ant-design-vue';
 
-function onLoginFail(status, res) {
-  console.log(res);
-  if (res.code === 0) {
-  } else {
-    message.error(res.erro, 5);
-  }
+function onLoginFail(reason: string, fields: any) {
+  console.log('登录失败:', reason, fields);
+  message.error(reason || '登录失败，请重试', 5);
 }
 </script>
+
 <style scoped lang="less">
 .login {
   height: 100vh;
-  // 与深色登录框搭配的渐变背景
+  min-height: -webkit-fill-available; /* 适配iOS安全区域 */
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  position: relative;
+  overflow: hidden; /* 防止装饰元素溢出 */
+  padding: 20px 0; /* 移动端上下内边距，避免卡片贴边 */
 
-  // 可以添加一些装饰性背景元素
+  // 装饰性背景元素 - 移动端适配尺寸
   &::before {
     content: '';
     position: absolute;
-    width: 400px;
-    height: 400px;
+    width: 280px;
+    height: 280px;
     border-radius: 50%;
     background: rgba(54, 191, 250, 0.1);
-    top: 20%;
-    left: 15%;
-    filter: blur(80px);
+    top: 15%;
+    left: 5%;
+    filter: blur(60px);
+    @media (min-width: 768px) {
+      width: 400px;
+      height: 400px;
+      top: 20%;
+      left: 15%;
+      filter: blur(80px);
+    }
   }
 
   &::after {
     content: '';
     position: absolute;
-    width: 300px;
-    height: 300px;
+    width: 220px;
+    height: 220px;
     border-radius: 50%;
     background: rgba(54, 191, 250, 0.08);
-    bottom: 10%;
-    right: 10%;
-    filter: blur(60px);
+    bottom: 5%;
+    right: 5%;
+    filter: blur(40px);
+    @media (min-width: 768px) {
+      width: 300px;
+      height: 300px;
+      bottom: 10%;
+      right: 10%;
+      filter: blur(60px);
+    }
+  }
+}
+
+/* 适配iOS安全区域 */
+@supports (bottom: env(safe-area-inset-bottom)) {
+  .login {
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-top: env(safe-area-inset-top);
   }
 }
 </style>

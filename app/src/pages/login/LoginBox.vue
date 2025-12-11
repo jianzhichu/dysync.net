@@ -1,78 +1,70 @@
 <template>
-  <div class="login-page min-h-screen flex items-center justify-center  p-4 md:p-8">
-    <ThemeProvider :color="{ 
-      middle: { 'bg-base': '#fff' },
-      primary: { DEFAULT: '#4f46e5', hover: '#4338ca' }
-    }">
-      <!-- 登录卡片 -->
-      <div class="login-box rounded-2xl  shadow-lg p-8 md:p-10 max-w-md w-full border border-gray-200 transition-all duration-500 hover:shadow-xl transform hover:-translate-y-1">
-        <!-- 顶部Logo区域 -->
-        <div class="flex flex-col items-center mb-8">
-          <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <img src="/public/logo.png">
+  <ThemeProvider :color="{ 
+    middle: { 'bg-base': '#fff' },
+    primary: { DEFAULT: '#4f46e5', hover: '#4338ca' }
+  }">
+    <!-- 登录卡片 - 移动端全屏 + PC端保留原宽度 -->
+    <div class="login-box rounded-2xl shadow-lg p-6 md:p-8 lg:p-10 max-w-md w-full border border-gray-200 transition-all duration-500 hover:shadow-xl transform hover:-translate-y-1 mx-auto" style="box-sizing: border-box; max-width: 90vw;">
+      <!-- 顶部Logo区域 - 边框圈精准贴合Logo内容 -->
+      <div class="flex flex-col items-center mb-6 md:mb-8">
+        <div class="w-30 h-30 md:w-36 md:h-36 bg-primary/10 rounded-full flex items-center justify-center mb-4 md:mb-5">
+          <!-- 缩小边框容器尺寸，适配img实际内容 style="border: 1.5px solid rgba(79, 70, 229, 0.2); border-radius: 50%;"-->
+          <div class="w-24 h-24 md:w-28 h-28 rounded-full flex items-center justify-center">
+            <img src="/logo.png" alt="抖小云logo" class="w-18 h-18 md:w-20 h-20 object-contain" />
           </div>
-          <h2 class="third-title text-2xl font-bold text-gray-800 tracking-tight">抖小云</h2>
+        </div>
+        <h2 class="third-title text-xl md:text-2xl font-bold text-gray-800 tracking-tight">抖小云</h2>
+      </div>
+
+      <a-form :model="form" :wrapperCol="{ span: 24 }" @finish="login" class="login-form w-full text-gray-700">
+        <!-- 用户名输入框 -->
+        <a-form-item :required="true" name="username" class="mb-4 md:mb-5" :validate-status="usernameStatus">
+          <a-input v-model:value="form.username" autocomplete="new-username" placeholder="请输入用户名" class="login-input h-[46px] md:h-[50px] rounded-lg bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary focus:bg-white text-base transition-all duration-300 focus:ring-2 focus:ring-primary/20" style="padding: 0 12px;">
+            <template #prefix>
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-gray-400 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </template>
+          </a-input>
+        </a-form-item>
+
+        <!-- 密码输入框 -->
+        <a-form-item :required="true" name="password" class="mb-2" :validate-status="passwordStatus">
+          <a-input v-model:value="form.password" autocomplete="new-password" placeholder="请输入密码" class="login-input h-[46px] md:h-[50px] rounded-lg bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary focus:bg-white text-base transition-all duration-300 focus:ring-2 focus:ring-primary/20" :type="showPassword ? 'text' : 'password'" style="padding: 0 12px;">
+            <template #prefix>
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-gray-400 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </template>
+            <!-- 密码显示/隐藏图标 -->
+            <template #suffix>
+              <div class="w-8 h-8 flex items-center justify-center" @click="showPassword = !showPassword">
+                <EyeOutlined v-if="showPassword" class="text-gray-400 hover:text-primary cursor-pointer transition-colors duration-300 text-lg" aria-label="隐藏密码" />
+                <EyeInvisibleOutlined v-else class="text-gray-400 hover:text-primary cursor-pointer transition-colors duration-300 text-lg" aria-label="显示密码" />
+              </div>
+            </template>
+          </a-input>
+        </a-form-item>
+
+        <!-- 记住密码 -->
+        <div class="flex items-center justify-between mb-5 md:mb-6 px-1">
+          <a-form-item class="mb-0">
+            <a-checkbox v-model:checked="rememberPassword" class="text-gray-600 hover:text-primary transition-colors duration-300 cursor-pointer">
+              <span class="text-xs md:text-sm">记住密码</span>
+            </a-checkbox>
+          </a-form-item>
         </div>
 
-        <a-form :model="form" :wrapperCol="{ span: 24 }" @finish="login" class="login-form w-full text-gray-700">
-          <!-- 用户名输入框 -->
-          <a-form-item :required="true" name="username" class="mb-5" :validate-status="usernameStatus">
-            <a-input v-model:value="form.username" autocomplete="new-username" placeholder="请输入用户名" class="login-input h-[50px] rounded-lg bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary focus:bg-white text-base transition-all duration-300 focus:ring-2 focus:ring-primary/20">
-              <template #prefix>
-                <svg class="w-5 h-5 text-gray-400 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-              </template>
-            </a-input>
-          </a-form-item>
-
-          <!-- 密码输入框 -->
-          <a-form-item :required="true" name="password" class="mb-2" :validate-status="passwordStatus">
-            <a-input v-model:value="form.password" autocomplete="new-password" placeholder="请输入密码" class="login-input h-[50px] rounded-lg bg-gray-50 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-primary focus:bg-white text-base transition-all duration-300 focus:ring-2 focus:ring-primary/20" :type="showPassword ? 'text' : 'password'">
-              <template #prefix>
-                <svg class="w-5 h-5 text-gray-400 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-              </template>
-              <!-- 密码显示/隐藏图标 -->
-              <template #suffix>
-                <EyeOutlined v-if="showPassword" @click="showPassword = !showPassword" class="text-gray-400 hover:text-primary cursor-pointer transition-colors duration-300 text-lg" aria-label="隐藏密码" />
-                <EyeInvisibleOutlined v-else @click="showPassword = !showPassword" class="text-gray-400 hover:text-primary cursor-pointer transition-colors duration-300 text-lg" aria-label="显示密码" />
-              </template>
-            </a-input>
-          </a-form-item>
-
-          <!-- 记住密码与忘记密码 -->
-          <div class="flex items-center justify-between mb-6 px-1">
-            <a-form-item class="mb-0">
-              <a-checkbox v-model:checked="rememberPassword" class="text-gray-600 hover:text-primary transition-colors duration-300 cursor-pointer">
-                <span class="text-sm">记住密码</span>
-              </a-checkbox>
-            </a-form-item>
-            <!-- <a href="#" class="text-primary hover:text-primary/80 text-sm font-medium transition-colors duration-300" @click.prevent="handleForgotPassword">
-              忘记密码？
-            </a> -->
-          </div>
-
-          <!-- 登录按钮 -->
-          <a-button htmlType="submit" class="h-[52px] w-full rounded-lg transition-all duration-300 hover:bg-primary/90 bg-primary border-primary text-white text-base font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0" type="primary" :loading="loading">
-            <span v-if="!loading">登录</span>
-            <span v-else>登录中...</span>
-          </a-button>
-
-          <!-- 注册入口 -->
-          <!-- <div class="text-center mt-6 text-gray-500 text-sm">
-            还没有账号？
-            <a href="#" class="text-primary hover:text-primary/80 font-medium transition-colors duration-300 ml-1" @click.prevent="handleRegister">
-              立即注册
-            </a>
-          </div> -->
-        </a-form>
-      </div>
-    </ThemeProvider>
-  </div>
+        <!-- 登录按钮 -->
+        <a-button htmlType="submit" class="h-[48px] md:h-[52px] w-full rounded-lg transition-all duration-300 hover:bg-primary/90 bg-primary border-primary text-white text-base font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0" type="primary" :loading="loading" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+          <span v-if="!loading">登录</span>
+          <span v-else>登录中...</span>
+        </a-button>
+      </a-form>
+    </div>
+  </ThemeProvider>
 </template>
 
 <script lang="ts" setup>
@@ -90,6 +82,10 @@ const rememberPassword = ref(false);
 const loading = ref(false);
 
 // 表单状态（用于输入框验证反馈）
+const form = reactive({
+  username: '',
+  password: '',
+});
 const usernameStatus = computed(() => (form.username ? 'success' : ''));
 const passwordStatus = computed(() => (form.password ? 'success' : ''));
 
@@ -97,11 +93,6 @@ export interface LoginFormProps {
   username: string;
   password: string;
 }
-
-const form = reactive<LoginFormProps>({
-  username: '',
-  password: '',
-});
 
 const emit = defineEmits<{
   (e: 'success', fields: LoginFormProps): void;
@@ -161,8 +152,8 @@ async function login(params: LoginFormProps) {
     console.log(res);
     message.success('登录成功！');
   } catch (e: any) {
-    // emit('failure', e.message, e.data);
-    message.error(e.data.erro || '登录失败，请重试');
+    emit('failure', e.message || '登录失败', params);
+    message.error(e.data?.erro || '登录失败，请重试');
   } finally {
     loading.value = false;
   }
@@ -181,15 +172,85 @@ function handleRegister() {
 </script>
 
 <style scoped>
-/* 页面基础样式 */
-.login-page {
+/* 全局布局适配 - 替代原外层容器的样式 */
+:root {
+  -webkit-text-size-adjust: 100%; /* 禁止iOS文本缩放 */
+  -webkit-font-smoothing: antialiased; /* 优化字体渲染 */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* 全局居中布局 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+/* 登录卡片核心样式 */
+.login-box {
+  box-sizing: border-box;
+  touch-action: manipulation; /* 优化触摸性能 */
+  /* 移动端全屏，PC端保留原max-w-md（默认28rem/448px）+ 90vw限制 */
+}
+
+/* 移动端适配（<768px） */
+@media (max-width: 767.98px) {
+  body {
+    padding: 0;
+  }
+  .login-box {
+    max-width: 100vw !important; /* 移动端全屏 */
+    min-height: 100vh;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 20px 16px !important;
+    padding-top: 20vh !important; /* 移动端垂直居中 */
+  }
+  .third-title {
+    font-size: 1.25rem !important;
+  }
+  ::v-deep(.ant-input) {
+    font-size: 14px; /* 移动端字体适配 */
+  }
+}
+
+/* 小屏手机额外适配 */
+@media (max-width: 480px) {
+  .login-box {
+    padding-top: 15vh !important;
+  }
+}
+
+/* PC端样式（保留原有宽度，仅调小最大宽度） */
+@media (min-width: 768px) {
+  body {
+    padding: 8px;
+  }
+  .login-box {
+    /* 原宽度是 min(448px, 90vw)，现调整为更小的数值，比如 380px（可根据需求修改） */
+    max-width: min(340px, 90vw) !important;
+    min-height: auto !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+    padding-top: 0 !important;
+  }
 }
 
 /* 输入框聚焦动画优化 */
+::v-deep(.ant-input) {
+  box-sizing: border-box;
+}
 ::v-deep(.ant-input:focus) {
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
   border-color: #4f46e5 !important;
+  outline: none; /* 移除默认轮廓 */
 }
 
 /* 复选框样式优化 */
@@ -197,29 +258,26 @@ function handleRegister() {
   background-color: #4f46e5 !important;
   border-color: #4f46e5 !important;
 }
-
 ::v-deep(.ant-checkbox:hover .ant-checkbox-inner) {
   border-color: #4f46e5 !important;
+}
+::v-deep(.ant-checkbox) {
+  transform: scale(0.9); /* 移动端复选框适当缩小 */
 }
 
 /* 按钮样式优化 */
 ::v-deep(.ant-btn-primary) {
   background-color: #4f46e5 !important;
   border-color: #4f46e5 !important;
+  box-sizing: border-box;
 }
-
 ::v-deep(.ant-btn-primary:hover) {
   background-color: #4338ca !important;
   border-color: #4338ca !important;
 }
-
 ::v-deep(.ant-btn-primary:focus) {
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3) !important;
-}
-
-/* 分割线样式优化 */
-::v-deep(.ant-divider) {
-  background-color: #e5e7eb !important;
+  outline: none;
 }
 
 /* 加载状态动画优化 */
@@ -227,24 +285,15 @@ function handleRegister() {
   margin-right: 8px !important;
 }
 
-/* 响应式调整 */
-@media (max-width: 375px) {
-  .login-box {
-    padding: 60px 20px !important;
-  }
-
-  .third-title {
-    font-size: 1.5rem !important;
-  }
+/* 防止点击闪烁和触摸高亮 */
+* {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
 }
 
 /* 平滑滚动 */
 html {
   scroll-behavior: smooth;
-}
-
-/* 防止点击闪烁 */
-* {
-  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden; /* 防止移动端横向滚动 */
 }
 </style>

@@ -1,0 +1,999 @@
+<template>
+  <div class="stats-dashboard-mobile">
+    <div class="dashboard-container">
+      <!-- 看板 Tab 内容 -->
+      <div v-if="activeTab === 'dashboard'" class="tab-content">
+        <!-- 仅显示核心统计概览（无底部详细数据） -->
+        <section class="stats-overview">
+          <!-- 总视频数卡片 -->
+          <div class="stat-card primary-card main-card">
+            <div class="stat-header">
+              <div class="header-left">
+                <span class="stat-meta">视频总数</span>
+                <div class="stat-value">{{ totalVideos }}</div>
+              </div>
+              <div class="stat-icon video-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-subitems">
+              <div class="subitem" :title="`我喜欢的视频数: ${favoriteCount}`">
+                <div class="subitem-icon like-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                </div>
+                <span class="subitem-meta">我喜欢的</span>
+                <span class="subitem-value">{{ favoriteCount }}</span>
+              </div>
+              <div class="subitem" :title="`我收藏的视频数: ${collectCount}`">
+                <div class="subitem-icon collect-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <span class="subitem-meta">我收藏的</span>
+                <span class="subitem-value">{{ collectCount }}</span>
+              </div>
+              <div class="subitem" :title="`我关注的视频数: ${followCount}`">
+                <div class="subitem-icon follow-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                  </svg>
+                </div>
+                <span class="subitem-meta">我关注的</span>
+                <span class="subitem-value">{{ followCount }}</span>
+              </div>
+              <div class="subitem" :title="`图文视频数: ${graphicVideoCount}`">
+                <div class="subitem-icon graphic-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </div>
+                <span class="subitem-meta">图文视频</span>
+                <span class="subitem-value">{{ graphicVideoCount }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 总占用空间卡片 -->
+          <div class="stat-card secondary-card main-card">
+            <div class="stat-header">
+              <div class="header-left">
+                <span class="stat-meta">空间总计</span>
+                <div class="stat-value">{{ fileSizeTotal }} <span class="unit">G</span></div>
+              </div>
+              <div class="stat-icon size-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 12H2v8h20v-8z" />
+                  <path d="M6 18h.01" />
+                  <path d="M10 18h.01" />
+                </svg>
+              </div>
+            </div>
+            <div class="stat-subitems">
+              <div class="subitem" :title="`喜欢的视频占用: ${favoriteSize}G`">
+                <div class="subitem-icon like-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                </div>
+                <span class="subitem-meta">喜欢占用</span>
+                <span class="subitem-value">{{ favoriteSize }} <span class="unit">G</span></span>
+              </div>
+              <div class="subitem" :title="`收藏的视频占用: ${collectSize}G`">
+                <div class="subitem-icon collect-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <span class="subitem-meta">收藏占用</span>
+                <span class="subitem-value">{{ collectSize }} <span class="unit">G</span></span>
+              </div>
+              <div class="subitem" :title="`关注的视频占用: ${followSize}G`">
+                <div class="subitem-icon follow-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                  </svg>
+                </div>
+                <span class="subitem-meta">关注占用</span>
+                <span class="subitem-value">{{ followSize }} <span class="unit">G</span></span>
+              </div>
+              <div class="subitem" :title="`图文视频占用: ${graphicVideoSize}G`">
+                <div class="subitem-icon graphic-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </div>
+                <span class="subitem-meta">图文占用</span>
+                <span class="subitem-value">{{ graphicVideoSize }} <span class="unit">G</span></span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 日志 Tab 内容 -->
+      <div v-if="activeTab === 'log'" class="tab-content log-tab">
+        <div class="log-header">
+          <h2 class="log-title">系统日志</h2>
+          <div class="log-filter">
+            <button class="filter-btn" :class="{ active: logFilter === 'all' }" @click="logFilter = 'all'">
+              全部
+            </button>
+            <button class="filter-btn" :class="{ active: logFilter === 'debug' }" @click="logFilter = 'debug'">
+              DEBUG
+            </button>
+            <button class="filter-btn" :class="{ active: logFilter === 'error' }" @click="logFilter = 'error'">
+              ERROR
+            </button>
+          </div>
+        </div>
+
+        <div class="log-list">
+          <div v-for="(log,index) in filteredLogs" :key="index" class="log-item" :class="log.type.toLowerCase()" @click="openLogDetail(log)">
+            <div class="log-item-header">
+              <span class="log-type" :class="log.type.toLowerCase()">
+                {{ log.type }}
+              </span>
+              <span class="log-time">{{formatShowDate(log?.date)  }}</span>
+            </div>
+            <!-- <div class="log-message">{{ log.message }}</div> -->
+            <div class="log-file">{{ log.fileName }}</div>
+          </div>
+
+          <div v-if="filteredLogs.length === 0" class="empty-log">
+            暂无{{ logFilter === 'all' ? '' : logFilter.toUpperCase() }}类型日志
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部导航菜单 -->
+    <div class="bottom-nav">
+      <div class="nav-item" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="3 11 12 2 21 11 12 20 3 11"></polygon>
+          <line x1="12" y1="2" x2="12" y2="20"></line>
+        </svg>
+        <span>看板</span>
+      </div>
+      <div class="nav-item" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <span>日志</span>
+      </div>
+    </div>
+
+    <!-- 日志详情弹窗 -->
+    <div v-if="showLogModal" class="log-modal-mask" @click="closeLogModal">
+      <div class="log-modal-content" @click.stop>
+        <!-- 弹窗头部 -->
+        <div class="log-modal-header">
+          <div class="header-left">
+            <span class="modal-type-tag" :class="currentLog?.type.toLowerCase()">
+              {{ currentLog?.type }}
+            </span>
+            <span class="modal-date">{{ formatShowDate(currentLog?.date) }}</span>
+          </div>
+          <button class="close-btn" @click="closeLogModal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 弹窗内容 -->
+        <div class="log-modal-body">
+          <div class="file-name">{{ currentLog?.fileName }}</div>
+          <pre class="log-content">{{ logContent || '加载日志内容中...' }}</pre>
+        </div>
+
+        <!-- 弹窗底部 -->
+        <div class="log-modal-footer">
+          <button class="copy-btn" @click="copyLogContent" :disabled="!logContent">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            复制日志
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import { ref, onMounted, computed } from 'vue';
+import { useApiStore } from '@/store';
+import { message } from 'ant-design-vue';
+
+// 类型接口
+interface Author {
+  name: string;
+  count: number;
+  icon: string;
+}
+interface Category {
+  name: string;
+  count: number;
+  color: string;
+  icon: string;
+}
+
+interface LogItem {
+  id: string;
+  type: 'DEBUG' | 'ERROR';
+  time: string;
+  message: string;
+  file: string;
+  date: string;
+  fileName: string;
+}
+
+// 状态管理（仅保留核心数据）
+const totalVideos = ref<number>(0);
+const fileSizeTotal = ref<string>('0.00');
+const favoriteCount = ref<number>(0);
+const collectCount = ref<number>(0);
+const followCount = ref<number>(0);
+const graphicVideoCount = ref<number>(0);
+const favoriteSize = ref<string>('0.00');
+const collectSize = ref<string>('0.00');
+const followSize = ref<string>('0.00');
+const graphicVideoSize = ref<string>('0.00');
+
+// 导航相关状态
+const activeTab = ref<string>('dashboard');
+const logFilter = ref<string>('all');
+const logs = ref<LogItem[]>([]);
+
+// 弹窗相关状态
+const showLogModal = ref<boolean>(false);
+const currentLog = ref<LogItem | null>(null);
+const logContent = ref<string>('');
+
+// 过滤后的日志列表
+const filteredLogs = computed(() => {
+  if (logFilter.value === 'all') {
+    return logs.value;
+  }
+  return logs.value.filter((log) => log.type.toLowerCase() === logFilter.value);
+});
+
+// 组件名称
+defineOptions({ name: 'StatsDashboardMobile' });
+
+// 加载核心数据
+onMounted(() => {
+  loadDashboardData();
+  loadLogData();
+});
+
+const loadDashboardData = async () => {
+  try {
+    const res = await useApiStore().VideoStatics();
+    totalVideos.value = res.data.videoCount;
+    fileSizeTotal.value = res.data.videoSizeTotal || '0.00';
+    favoriteCount.value = res.data.favoriteCount;
+    collectCount.value = res.data.collectCount;
+    followCount.value = res.data.followCount || 0;
+    graphicVideoCount.value = res.data.graphicVideoCount || 0;
+    favoriteSize.value = res.data.videoFavoriteSize || '0.00';
+    collectSize.value = res.data.videoCollectSize || '0.00';
+    followSize.value = res.data.videoFollowSize || '0.00';
+    graphicVideoSize.value = res.data.graphicVideoSize || '0.00';
+  } catch (err) {
+    console.error('加载移动端仪表盘数据失败：', err);
+  }
+};
+
+// 加载日志数据（模拟接口，实际项目中替换为真实接口）
+const loadLogData = async () => {
+  try {
+    // 模拟日志数据，实际项目中替换为真实接口调用
+    useApiStore()
+      .MobileLogs()
+      .then((res) => {
+        if (res.code == 0) {
+          logs.value = res.data;
+        }
+      });
+  } catch (err) {
+    console.error('加载日志数据失败：', err);
+  }
+};
+
+// 打开日志详情弹窗
+const openLogDetail = (log: LogItem) => {
+  currentLog.value = log;
+  showLogModal.value = true;
+  // 加载日志详情内容
+  loadLogDetailContent(log);
+};
+
+// 关闭日志详情弹窗
+const closeLogModal = () => {
+  showLogModal.value = false;
+  currentLog.value = null;
+  logContent.value = '';
+};
+
+// 加载日志详情内容
+const loadLogDetailContent = (log: LogItem) => {
+  try {
+    const type = log.type.toLowerCase();
+    const date = log.date;
+    const requestParams = `type=${type}&date=${date}`;
+
+    useApiStore()
+      .apiGetLogs(requestParams)
+      .then((logContentStr: string) => {
+        // 处理时间戳，仅保留时分秒
+        const formattedLog = formatLogTime(logContentStr);
+        const lines = formattedLog.split('\n'); // 将文本按换行符分割为行数组
+        const reversedLines = lines.reverse(); // 对行数组进行倒序操作
+        const reversedText = reversedLines.join('\n'); // 将行数组重新连接为一个字符串
+        logContent.value = reversedText;
+      })
+      .catch((err) => {
+        console.error('加载日志详情失败：', err);
+        logContent.value = '日志内容加载失败，请重试';
+      });
+  } catch (err) {
+    console.error('加载日志详情失败：', err);
+    logContent.value = '日志内容加载失败，请重试';
+  }
+};
+
+// 格式化日期显示（20251211 → 2025-12-11）
+const formatShowDate = (dateStr?: string) => {
+  if (!dateStr || dateStr.length !== 8) return dateStr || '';
+  return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+};
+
+// 处理日志时间戳，仅保留时分秒
+const formatLogTime = (logContent: string) => {
+  const timeRegex = /\d{4}-\d{2}-\d{2} (\d{2}:\d{2}:\d{2})\.\d+ \+08:00/g;
+  return logContent.replace(timeRegex, '$1');
+};
+
+// 复制日志内容
+const copyLogContent = () => {
+  if (!logContent.value) {
+    message.warn('暂无日志内容可复制');
+    return;
+  }
+
+  // 移动端复制兼容
+  if (navigator.clipboard) {
+    navigator.clipboard
+      .writeText(logContent.value)
+      .then(() => message.success('日志内容已复制到剪贴板'))
+      .catch(() => {
+        fallbackCopyTextToClipboard(logContent.value);
+      });
+  } else {
+    fallbackCopyTextToClipboard(logContent.value);
+  }
+};
+
+// 复制降级方案
+const fallbackCopyTextToClipboard = (text: string) => {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.top = '0';
+  textArea.style.left = '0';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    const successful = document.execCommand('copy');
+    const msg = successful ? '日志内容已复制到剪贴板' : '复制失败，请手动复制';
+    message.success(msg);
+  } catch (err) {
+    console.error('Fallback: Oops, unable to copy', err);
+    message.error('复制失败，请手动复制');
+  }
+
+  document.body.removeChild(textArea);
+};
+</script>
+
+<style scoped>
+/* 移动端专属样式 */
+.stats-dashboard-mobile {
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: #333333;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 80px; /* 为底部导航留出空间 */
+  position: relative;
+}
+.dashboard-container {
+  width: 100%;
+  padding: 0 15px;
+  box-sizing: border-box;
+  flex: 1;
+  overflow-y: auto;
+}
+.tab-content {
+  width: 100%;
+  height: 100%;
+}
+.stats-overview {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.main-card {
+  padding: 20px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+  background: #fff;
+}
+.main-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+}
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-meta {
+  font-size: 14px;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 500;
+}
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.unit {
+  font-size: 18px;
+  color: #444444;
+  font-weight: 500;
+}
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-color: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+}
+.secondary-card .stat-icon {
+  background-color: rgba(33, 150, 243, 0.15);
+  color: #2196f3;
+}
+.stat-subitems {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  cursor: default;
+}
+.subitem:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+  border-color: #e0e0e0;
+}
+.subitem-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-color: rgba(233, 30, 99, 0.1);
+  color: #e91e63;
+}
+.collect-icon {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+.follow-icon {
+  background-color: rgba(156, 39, 176, 0.1);
+  color: #9c27b0;
+}
+.graphic-icon {
+  background-color: rgba(255, 159, 64, 0.1);
+  color: #d9091a;
+}
+.subitem-meta {
+  font-size: 13px;
+  color: #666666;
+  font-weight: 500;
+  flex: 1;
+}
+.subitem-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222222;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.subitem-value .unit {
+  font-size: 12px;
+  color: #555555;
+  font-weight: 500;
+}
+.primary-card {
+  border-top: 3px solid #4caf50;
+}
+.secondary-card {
+  border-top: 3px solid #2196f3;
+}
+
+/* 底部导航样式 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #ffffff;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  color: #666666;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.nav-item.active {
+  color: #4caf50;
+}
+.nav-item span {
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+.nav-item svg {
+  transition: all 0.2s ease;
+}
+.nav-item.active svg {
+  transform: scale(1.1);
+}
+
+/* 日志 Tab 样式 */
+.log-tab {
+  padding: 10px 0;
+}
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 5px;
+}
+.log-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+.log-filter {
+  display: flex;
+  gap: 8px;
+}
+.filter-btn {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #666666;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.filter-btn.active {
+  background-color: #4caf50;
+  color: #ffffff;
+  border-color: #4caf50;
+}
+.filter-btn:hover:not(.active) {
+  border-color: #cccccc;
+  color: #333333;
+}
+
+/* 日志列表样式 */
+.log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.log-item {
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.log-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.log-item.debug {
+  border-left: 4px solid #2196f3;
+}
+.log-item.error {
+  border-left: 4px solid #f44336;
+}
+.log-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.log-type {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.log-type.debug {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+}
+.log-type.error {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+.log-time {
+  font-size: 11px;
+  color: #999999;
+}
+.log-message {
+  font-size: 14px;
+  color: #333333;
+  font-weight: 500;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.log-file {
+  font-size: 12px;
+  color: #666666;
+}
+.empty-log {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999999;
+  font-size: 14px;
+}
+
+/* 日志详情弹窗样式 */
+.log-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.log-modal-content {
+  width: 100%;
+  max-width: 500px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.log-modal-header {
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-type-tag {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.modal-type-tag.debug {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+}
+.modal-type-tag.error {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+.modal-date {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+.close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+.close-btn:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+.log-modal-body {
+  padding: 10px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.file-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 5px;
+  /* padding-bottom: 8px; */
+  border-bottom: 1px solid #f0f0f0;
+}
+.log-content {
+  flex: 1;
+  margin: 0;
+  padding: 5px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  overflow-y: auto;
+  overflow-x: auto;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  color: #333;
+}
+.log-modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+}
+.copy-btn {
+  padding: 8px 16px;
+  background-color: #4caf50;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+.copy-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+.copy-btn:hover:not(:disabled) {
+  background-color: #43a047;
+}
+
+/* 夜间模式 */
+html.dark-mode .stats-dashboard-mobile {
+  background-color: #1a1a2e;
+  color: #eaeaea;
+  padding-bottom: 80px;
+}
+html.dark-mode .main-card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 30, 50, 0.9);
+}
+html.dark-mode .stat-subitems {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+html.dark-mode .subitem {
+  background: rgba(40, 40, 65, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+html.dark-mode .subitem:hover {
+  background: rgba(40, 40, 65, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+html.dark-mode .stat-meta {
+  color: #b0b0c3;
+}
+html.dark-mode .stat-value {
+  color: #ffffff;
+}
+html.dark-mode .unit {
+  color: #d0d0d0;
+}
+html.dark-mode .stat-icon {
+  background-color: rgba(76, 175, 80, 0.25);
+}
+html.dark-mode .secondary-card .stat-icon {
+  background-color: rgba(33, 150, 243, 0.25);
+}
+html.dark-mode .subitem-meta {
+  color: #c0c0d3;
+}
+html.dark-mode .subitem-value {
+  color: #ffffff;
+}
+html.dark-mode .subitem-value .unit {
+  color: #b0b0c3;
+}
+html.dark-mode .subitem-icon {
+  background-color: rgba(233, 30, 99, 0.2);
+}
+html.dark-mode .collect-icon {
+  background-color: rgba(255, 152, 0, 0.2);
+}
+html.dark-mode .follow-icon {
+  background-color: rgba(156, 39, 176, 0.2);
+}
+html.dark-mode .graphic-icon {
+  background-color: rgba(255, 159, 64, 0.2);
+}
+
+/* 夜间模式 - 底部导航 */
+html.dark-mode .bottom-nav {
+  background-color: #16213e;
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+html.dark-mode .nav-item {
+  color: #b0b0c3;
+}
+html.dark-mode .nav-item.active {
+  color: #4caf50;
+}
+
+/* 夜间模式 - 日志样式 */
+html.dark-mode .log-title {
+  color: #ffffff;
+}
+html.dark-mode .filter-btn {
+  background-color: #1f4068;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+}
+html.dark-mode .filter-btn.active {
+  background-color: #4caf50;
+  color: #ffffff;
+  border-color: #4caf50;
+}
+html.dark-mode .log-item {
+  background-color: rgba(30, 30, 50, 0.9);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+html.dark-mode .log-message {
+  color: #eaeaea;
+}
+html.dark-mode .log-file {
+  color: #c0c0d3;
+}
+html.dark-mode .empty-log {
+  color: #808099;
+}
+
+/* 夜间模式 - 弹窗样式 */
+html.dark-mode .log-modal-content {
+  background-color: #1e1e3f;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+html.dark-mode .log-modal-header,
+html.dark-mode .log-modal-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+html.dark-mode .modal-date {
+  color: #c0c0d3;
+}
+html.dark-mode .file-name {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+html.dark-mode .log-content {
+  background-color: #2a2a4a;
+  color: #eaeaea;
+}
+html.dark-mode .close-btn {
+  color: #c0c0d3;
+}
+html.dark-mode .close-btn:hover {
+  background-color: #2a2a4a;
+  color: #ffffff;
+}
+
+.ant-message {
+  z-index: 10000 !important;
+}
+</style>

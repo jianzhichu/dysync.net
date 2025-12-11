@@ -14,6 +14,18 @@ const routes: RouteRecordRaw[] = [
     children: null,
     component: () => import('@/pages/login'),
   },
+  {
+    path: '/',
+    name: 'mobile',
+    redirect: '/mobile',
+    meta: {
+      title: '登录',
+      renderMenu: false,
+      icon: 'CreditCardOutlined',
+    },
+    children: null,
+    component: () => import('@/pages/mobile/MobileDashboard.vue'),
+  },
   // {
   //   path: '/',
   //   name: 'init',
@@ -26,6 +38,7 @@ const routes: RouteRecordRaw[] = [
   //   children: null,
   //   component: () => import('@/pages/init'),
   // },
+
   {
     path: '/front',
     name: '前端',
@@ -45,7 +58,18 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@/pages/login'),
       },
-
+      {
+        path: '/mobile',
+        name: 'mobile',
+        meta: {
+          icon: 'LoginOutlined',
+          view: 'blank',
+          target: '_blank',
+          cacheable: false,
+        },
+        children: null,
+        component: () => import('@/pages/mobile/MobileDashboard.vue'),
+      },
       // {
       //   path: '/init',
       //   name: '初始化',

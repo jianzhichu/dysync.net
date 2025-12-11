@@ -236,7 +236,27 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+
+  //移动端获取日志列表
+  async function MobileLogs() {
+    return http.request<any, Response<any>>('/api/logs/list', 'get').then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
+
+  //移动端获取日志详情
+  async function LogDetail(type: string, date: string) {
+    return http.request<any, Response<any>>('/api/logs/content?type=' + type + "&Date=" + date, 'get').then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
   return {
+    LogDetail,
+    MobileLogs,
     ExportConf,
     ImportConf,
     GetDeleteViedos,

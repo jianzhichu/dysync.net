@@ -45,6 +45,18 @@ const typeChange = (e) => {
   loadLogs();
 };
 const mIfrm = ref<any>(null);
+
+// 核心：处理日志时间戳，移除 .xxx +08:00 部分
+const formatLogTime = (logContent: string) => {
+  // 正则匹配：2025-12-11 18:41:39.624 +08:00 格式，捕获前面的日期时间部分
+  // 正则解释：
+  // (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) 捕获 年-月-日 时:分:秒
+  // \.\d+ \+08:00 匹配 .毫秒 +时区 部分
+  const timeRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d+ \+08:00/g;
+
+  // 替换匹配到的内容，只保留捕获的日期时间部分
+  return logContent.replace(timeRegex, '$1');
+};
 onMounted(() => {
   // console.log(mIfrm.value);
   loadLogs();
@@ -54,6 +66,7 @@ const loadLogs = () => {
     .apiGetLogs(iframeUrl.value)
     .then((log) => {
       // console.log(log);
+      log = formatLogTime(log);
       const lines = log.split('\n'); // 将文本按换行符分割为行数组
       const reversedLines = lines.reverse(); // 对行数组进行倒序操作
       const reversedText = reversedLines.join('\n'); // 将行数组重新连接为一个字符串

@@ -34,7 +34,7 @@ const { logout } = useAccountStore();
 const showPersonalDrawer = ref<boolean>(false);
 const personalRef = ref(null);
 const emailRef = ref(null);
-const open = ref(true);
+const open = ref(false);
 
 const showSetting = ref(false);
 const router = useRouter();
@@ -116,6 +116,9 @@ onMounted(() => {
   .system-name {
     color: #722ed1 !important;
     margin-left: 0em !important;
+  }
+  .ant-tabs-extra-content {
+    display: none !important;
   }
 }
 
