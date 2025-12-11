@@ -176,6 +176,12 @@ services:
 ![输入图片说明](docs/player.png)
 
 ![输入图片说明](docs/follows.png)
+
+![输入图片说明](docs/mobile-home.png)
+
+![输入图片说明](docs/mobile-log.png)
+
+![输入图片说明](docs/mobile-logdetail.png)
 ## 🚀 5. 已有功能与计划
 
 
@@ -208,5 +214,7 @@ services:
 13. ✅ 增加永久删除功能，删除后，以后不会再同步该视频
 
 14. ✅ 增加配置项及关注列表（手动添加部分）导出导入功能
+
+15. ✅ 增加移动端（主要统计数据和日志）
 
 
