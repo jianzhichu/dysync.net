@@ -177,7 +177,9 @@ services:
 
 ![输入图片说明](docs/follows.png)
 
-![输入图片说明](docs/mobile-home.png) ![输入图片说明](docs/mobile-log.png) ![输入图片说明](docs/mobile-logdetail.jpg)
+<img src="docs/mobile-home.png" alt="输入图片说明" style="width:32%;"/>
+<img src="docs/mobile-log.png" alt="输入图片说明" style="width:32%;"/>
+<img src="docs/mobile-logdetail.jpg" alt="输入图片说明" style="width:32%;"/>
 
 ## 🚀 5. 已有功能与计划
 
