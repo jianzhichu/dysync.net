@@ -181,7 +181,7 @@ services:
 
 ![输入图片说明](docs/mobile-log.png)
 
-![输入图片说明](docs/mobile-logdetail.png)
+![输入图片说明](docs/mobile-logdetail.jpg)
 ## 🚀 5. 已有功能与计划
 
 
