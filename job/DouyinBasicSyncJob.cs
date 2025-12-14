@@ -69,10 +69,16 @@ namespace dy.net.job
 
         #region 私有字段
 
-        /// <summary>
-        /// 是否下载图片并合成视频
-        /// </summary>
-        //private bool _downImageVideo;
+        // 类级别静态字段：映射视频类型与同步完成状态判断逻辑（复用+易维护）
+        private static readonly Dictionary<VideoTypeEnum, Func<DouyinCookie, bool>> _syncStatusCheckMap = new()
+        {
+            [VideoTypeEnum.dy_favorite] = cookie => cookie.FavHasSyncd == 1,
+            [VideoTypeEnum.dy_collects] = cookie => cookie.CollHasSyncd == 1,
+            [VideoTypeEnum.dy_follows] = cookie => cookie.UperSyncd == 1,
+            [VideoTypeEnum.ImageVideo] = cookie => cookie.UperSyncd == 1
+                                                  && cookie.CollHasSyncd == 1
+                                                  && cookie.FavHasSyncd == 1
+        };
 
         #endregion
 
@@ -378,20 +384,53 @@ namespace dy.net.job
                 // 保存视频信息到数据库
                 syncCount += await SaveVideos(videos);
 
-                //当syncCount达到上限时，跳出循环
-                if (config.BatchCount > 0 && syncCount >= config.BatchCount)
+                // 5. 检查批次上限，若满足条件则终止循环（核心优化：抽离为方法）
+                if (IsSyncLimitReached(cookie, config, syncCount))
                 {
-                    Log.Debug($"{VideoType}-Cookie[{cookie.UserName}]本次同步达到上限{config.BatchCount}，停止同步!!!");
-                    break;
+                    break; 
                 }
-
-                // 随机延迟，模拟人类操作，避免请求过快
+                //随机等待
                 await Task.Delay(_random.Next(5, 10) * 1000);
             }
 
             return (syncCount, cursor, hasMore);
         }
 
+
+
+
+        /// <summary>
+        /// 检查是否达到同步批次上限且满足状态条件，需要终止循环
+        /// </summary>
+        /// <param name="cookie">抖音Cookie</param>
+        /// <param name="config">同步配置</param>
+        /// <param name="syncCount">已同步数量</param>
+        /// <returns>是否需要终止循环</returns>
+        private bool IsSyncLimitReached(DouyinCookie cookie, AppConfig config, int syncCount)
+        {
+            // 基础条件：未配置批次上限 或 未达到上限 → 不终止
+            if (config?.BatchCount <= 0 || syncCount < config.BatchCount)
+            {
+                return false;
+            }
+
+      
+            // 获取当前视频类型对应的状态判断逻辑
+            if (!_syncStatusCheckMap.TryGetValue(VideoType, out var isSyncCompleted))
+            {
+                //Log.Debug($"[{VideoType}]无匹配的同步状态判断规则，不终止循环");
+                return false;
+            }
+
+            // 状态满足则记录日志并返回「终止循环」
+            if (isSyncCompleted.Invoke(cookie))
+            {
+                Log.Debug($"{VideoType}-Cookie[{cookie.UserName}]本次同步达到上限{config.BatchCount}，停止同步!!!");
+                return true;
+            }
+
+            return false;
+        }
         /// <summary>
         /// 处理视频列表
         /// 遍历视频列表，分别处理每个视频和图片集

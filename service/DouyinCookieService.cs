@@ -22,6 +22,10 @@ namespace dy.net.service
             return _cookieRepository.GetAllCookies(whereExpression);
         }
 
+        public Task<List<DouyinCookie>> GetAllAsync()
+        {
+            return _cookieRepository.GetAllAsync();
+        }
 
         public async Task<bool> Add(DouyinCookie dyUserCookies)
         {
@@ -84,6 +88,13 @@ namespace dy.net.service
             return await _cookieRepository.DeleteByIdsAsync(ids.Cast<object>());
         }
 
+
+        public async Task<bool> ImportCookies(List<DouyinCookie> cookies)
+        {
+            await _cookieRepository.DeleteAsync(x => !string.IsNullOrWhiteSpace(x.Id));
+            await _cookieRepository.InsertRangeAsync(cookies);
+            return true;
+        }
 
     }
 }

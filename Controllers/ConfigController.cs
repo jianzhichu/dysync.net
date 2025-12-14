@@ -25,13 +25,15 @@ namespace dy.net.Controllers
         private readonly DouyinCommonService commonService;
         private readonly DouyinQuartzJobService quartzJobService;
         private readonly DouyinFollowService douyinFollowService;
+        private readonly DouyinCookieService douyinCookieService;
 
-        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService, DouyinQuartzJobService quartzJobService, DouyinFollowService douyinFollowService)
+        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService, DouyinQuartzJobService quartzJobService, DouyinFollowService douyinFollowService, DouyinCookieService douyinCookieService)
         {
             this.dyCookieService = dyCookieService;
             this.commonService = commonService;
             this.quartzJobService = quartzJobService;
             this.douyinFollowService = douyinFollowService;
+            this.douyinCookieService = douyinCookieService;
         }
 
 
@@ -42,13 +44,14 @@ namespace dy.net.Controllers
         [HttpGet("exportConf")]
         public async Task<IActionResult> ExportConf()
         {
-           
-                // 1. 组装导出数据
-                var dto = new AppConfigImportDto()
-                {
-                    follows = await douyinFollowService.GetHandFollows(),
-                    conf = commonService.GetConfig()
-                };
+
+            // 1. 组装导出数据
+            var dto = new AppConfigImportDto()
+            {
+                follows = await douyinFollowService.GetHandFollows(),
+                conf = commonService.GetConfig(),
+                cookies = await douyinCookieService.GetAllAsync()
+            };
 
             return Ok(new { code = 0, data = dto });
 
@@ -79,8 +82,20 @@ namespace dy.net.Controllers
                 {
                     var update = await commonService.UpdateConfig(conf);
                     if (update)
-                        Serilog.Log.Debug("配置导入成功");
+                        Serilog.Log.Debug("系统配置导入成功");
                 }
+            var cookies = dto.cookies;
+
+            if (cookies != null && cookies.Count > 0)
+            {
+                var importCookies=await douyinCookieService.ImportCookies(cookies);
+                if (importCookies)
+                {
+                    Serilog.Log.Debug("抖音Cookie配置导入成功");
+                }
+            }
+
+
 
                 return Ok(new {code=0,data=true});
         }

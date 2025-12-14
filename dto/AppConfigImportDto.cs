@@ -8,5 +8,7 @@ namespace dy.net.dto
         public List<DouyinFollowed> follows { get; set; }
 
         public AppConfig conf { get; set; }
+
+        public List<DouyinCookie> cookies { get; set; }
     }
 }
