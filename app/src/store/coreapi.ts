@@ -254,7 +254,17 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+
+  //TOP
+  async function TopVideo(param: number) {
+    return http.request<any, Response<any>>('/api/Video/top' + param, 'get').then(r => {
+      return r.data;
+    }).finally(() => {
+
+    });
+  }
   return {
+    TopVideo,
     LogDetail,
     MobileLogs,
     ExportConf,

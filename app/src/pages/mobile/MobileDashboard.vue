@@ -5,12 +5,17 @@
       <div v-if="activeTab === 'dashboard'" class="tab-content">
         <!-- 仅显示核心统计概览（无底部详细数据） -->
         <section class="stats-overview">
-          <!-- 总视频数卡片 -->
+          <!-- 合并后的总视频数和空间总计卡片（保留原有移动端样式） -->
           <div class="stat-card primary-card main-card">
             <div class="stat-header">
               <div class="header-left">
-                <span class="stat-meta">视频总数</span>
-                <div class="stat-value">{{ totalVideos }}</div>
+                <span class="stat-meta">视频统计</span>
+                <div class="stat-value">
+                  <div class="combined-values">
+                    <span class="video-count">{{ totalVideos }}</span>
+                    <span class="size-count">({{ fileSizeTotal }}G)</span>
+                  </div>
+                </div>
               </div>
               <div class="stat-icon video-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -20,25 +25,25 @@
               </div>
             </div>
             <div class="stat-subitems">
-              <div class="subitem" :title="`我喜欢的视频数: ${favoriteCount}`">
+              <div class="subitem" :title="`我喜欢的视频数: ${favoriteCount} (占用: ${favoriteSize}G)`">
                 <div class="subitem-icon like-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                   </svg>
                 </div>
                 <span class="subitem-meta">我喜欢的</span>
-                <span class="subitem-value">{{ favoriteCount }}</span>
+                <span class="subitem-value">{{ favoriteCount }} <span class="unit">({{ favoriteSize }}G)</span></span>
               </div>
-              <div class="subitem" :title="`我收藏的视频数: ${collectCount}`">
+              <div class="subitem" :title="`我收藏的视频数: ${collectCount} (占用: ${collectSize}G)`">
                 <div class="subitem-icon collect-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                   </svg>
                 </div>
                 <span class="subitem-meta">我收藏的</span>
-                <span class="subitem-value">{{ collectCount }}</span>
+                <span class="subitem-value">{{ collectCount }} <span class="unit">({{ collectSize }}G)</span></span>
               </div>
-              <div class="subitem" :title="`我关注的视频数: ${followCount}`">
+              <div class="subitem" :title="`我关注的视频数: ${followCount} (占用: ${followSize}G)`">
                 <div class="subitem-icon follow-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -48,9 +53,9 @@
                   </svg>
                 </div>
                 <span class="subitem-meta">我关注的</span>
-                <span class="subitem-value">{{ followCount }}</span>
+                <span class="subitem-value">{{ followCount }} <span class="unit">({{ followSize }}G)</span></span>
               </div>
-              <div class="subitem" :title="`图文视频数: ${graphicVideoCount}`">
+              <div class="subitem" :title="`图文视频数: ${graphicVideoCount} (占用: ${graphicVideoSize}G)`">
                 <div class="subitem-icon graphic-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -59,74 +64,44 @@
                   </svg>
                 </div>
                 <span class="subitem-meta">图文视频</span>
-                <span class="subitem-value">{{ graphicVideoCount }}</span>
+                <span class="subitem-value">{{ graphicVideoCount }} <span class="unit">({{ graphicVideoSize }}G)</span></span>
               </div>
             </div>
           </div>
 
-          <!-- 总占用空间卡片 -->
+          <!-- 新增 Top Videos 列表（使用原有移动端卡片样式体系） -->
           <div class="stat-card secondary-card main-card">
             <div class="stat-header">
               <div class="header-left">
-                <span class="stat-meta">空间总计</span>
-                <div class="stat-value">{{ fileSizeTotal }} <span class="unit">G</span></div>
+                <span class="stat-meta">最新同步</span>
+                <!-- <div class="stat-value">TOP {{ topVideos.length }}</div> -->
               </div>
               <div class="stat-icon size-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 12H2v8h20v-8z" />
-                  <path d="M6 18h.01" />
-                  <path d="M10 18h.01" />
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                 </svg>
               </div>
             </div>
-            <div class="stat-subitems">
-              <div class="subitem" :title="`喜欢的视频占用: ${favoriteSize}G`">
-                <div class="subitem-icon like-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                  </svg>
+            <div class="stat-subitems video-list-container">
+              <div v-for="(video, index) in topVideos" :key="index" class="subitem video-item" :title="video.title">
+                <!-- <div class="subitem-icon video-list-icon">
+                  <span class="video-index">{{ index + 1 }}</span>
+                </div> -->
+                <div class="video-info">
+                  <span class="subitem-meta video-title">{{ video.title }}</span>
+                  <span class="subitem-value video-time">{{ formatVideoTime(video.time) }}</span>
                 </div>
-                <span class="subitem-meta">喜欢占用</span>
-                <span class="subitem-value">{{ favoriteSize }} <span class="unit">G</span></span>
               </div>
-              <div class="subitem" :title="`收藏的视频占用: ${collectSize}G`">
-                <div class="subitem-icon collect-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                </div>
-                <span class="subitem-meta">收藏占用</span>
-                <span class="subitem-value">{{ collectSize }} <span class="unit">G</span></span>
-              </div>
-              <div class="subitem" :title="`关注的视频占用: ${followSize}G`">
-                <div class="subitem-icon follow-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="8.5" cy="7" r="4"></circle>
-                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                  </svg>
-                </div>
-                <span class="subitem-meta">关注占用</span>
-                <span class="subitem-value">{{ followSize }} <span class="unit">G</span></span>
-              </div>
-              <div class="subitem" :title="`图文视频占用: ${graphicVideoSize}G`">
-                <div class="subitem-icon graphic-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                </div>
-                <span class="subitem-meta">图文占用</span>
-                <span class="subitem-value">{{ graphicVideoSize }} <span class="unit">G</span></span>
+              <div v-if="topVideos.length === 0" class="empty-video-list">
+                暂无热门视频数据
               </div>
             </div>
           </div>
         </section>
       </div>
 
-      <!-- 日志 Tab 内容 -->
+      <!-- 日志 Tab 内容（完全保留原有样式） -->
       <div v-if="activeTab === 'log'" class="tab-content log-tab">
         <div class="log-header">
           <h2 class="log-title">系统日志</h2>
@@ -151,7 +126,6 @@
               </span>
               <span class="log-time">{{formatShowDate(log?.date)  }}</span>
             </div>
-            <!-- <div class="log-message">{{ log.message }}</div> -->
             <div class="log-file">{{ log.fileName }}</div>
           </div>
 
@@ -162,7 +136,7 @@
       </div>
     </div>
 
-    <!-- 底部导航菜单 -->
+    <!-- 底部导航菜单（完全保留原有样式） -->
     <div class="bottom-nav">
       <div class="nav-item" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -183,10 +157,9 @@
       </div>
     </div>
 
-    <!-- 日志详情弹窗 -->
+    <!-- 日志详情弹窗（完全保留原有样式） -->
     <div v-if="showLogModal" class="log-modal-mask" @click="closeLogModal">
       <div class="log-modal-content" @click.stop>
-        <!-- 弹窗头部 -->
         <div class="log-modal-header">
           <div class="header-left">
             <span class="modal-type-tag" :class="currentLog?.type.toLowerCase()">
@@ -202,13 +175,11 @@
           </button>
         </div>
 
-        <!-- 弹窗内容 -->
         <div class="log-modal-body">
           <div class="file-name">{{ currentLog?.fileName }}</div>
           <pre class="log-content">{{ logContent || '加载日志内容中...' }}</pre>
         </div>
 
-        <!-- 弹窗底部 -->
         <div class="log-modal-footer">
           <button class="copy-btn" @click="copyLogContent" :disabled="!logContent">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
@@ -251,6 +222,13 @@ interface LogItem {
   fileName: string;
 }
 
+// 新增 TopVideo 类型接口
+interface TopVideoItem {
+  title: string;
+  time: string;
+  [key: string]: any; // 其他字段
+}
+
 // 状态管理（仅保留核心数据）
 const totalVideos = ref<number>(0);
 const fileSizeTotal = ref<string>('0.00');
@@ -273,6 +251,9 @@ const showLogModal = ref<boolean>(false);
 const currentLog = ref<LogItem | null>(null);
 const logContent = ref<string>('');
 
+// Top Videos 相关状态
+const topVideos = ref<TopVideoItem[]>([]);
+
 // 过滤后的日志列表
 const filteredLogs = computed(() => {
   if (logFilter.value === 'all') {
@@ -288,6 +269,7 @@ defineOptions({ name: 'StatsDashboardMobile' });
 onMounted(() => {
   loadDashboardData();
   loadLogData();
+  TopVideo(); // 加载热门视频数据
 });
 
 const loadDashboardData = async () => {
@@ -311,7 +293,6 @@ const loadDashboardData = async () => {
 // 加载日志数据（模拟接口，实际项目中替换为真实接口）
 const loadLogData = async () => {
   try {
-    // 模拟日志数据，实际项目中替换为真实接口调用
     useApiStore()
       .MobileLogs()
       .then((res) => {
@@ -324,11 +305,42 @@ const loadLogData = async () => {
   }
 };
 
+// 加载热门视频数据
+const TopVideo = () => {
+  useApiStore()
+    .TopVideo(5)
+    .then((res) => {
+      if (res.code == 0) {
+        topVideos.value = res.data;
+      }
+    });
+};
+
+// 格式化视频时间显示（适配移动端显示）
+const formatVideoTime = (timeStr?: string) => {
+  if (!timeStr) return '未知时间';
+
+  // 移动端适配的时间格式化
+  if (!isNaN(Number(timeStr))) {
+    const date = new Date(Number(timeStr));
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
+      .getDate()
+      .toString()
+      .padStart(2, '0')}`;
+  }
+
+  // 如果是8位数字日期（20251219）
+  if (timeStr.length === 8 && /^\d+$/.test(timeStr)) {
+    return `${timeStr.slice(0, 4)}-${timeStr.slice(4, 6)}-${timeStr.slice(6, 8)}`;
+  }
+
+  return timeStr;
+};
+
 // 打开日志详情弹窗
 const openLogDetail = (log: LogItem) => {
   currentLog.value = log;
   showLogModal.value = true;
-  // 加载日志详情内容
   loadLogDetailContent(log);
 };
 
@@ -349,11 +361,10 @@ const loadLogDetailContent = (log: LogItem) => {
     useApiStore()
       .apiGetLogs(requestParams)
       .then((logContentStr: string) => {
-        // 处理时间戳，仅保留时分秒
         const formattedLog = formatLogTime(logContentStr);
-        const lines = formattedLog.split('\n'); // 将文本按换行符分割为行数组
-        const reversedLines = lines.reverse(); // 对行数组进行倒序操作
-        const reversedText = reversedLines.join('\n'); // 将行数组重新连接为一个字符串
+        const lines = formattedLog.split('\n');
+        const reversedLines = lines.reverse();
+        const reversedText = reversedLines.join('\n');
         logContent.value = reversedText;
       })
       .catch((err) => {
@@ -378,14 +389,13 @@ const formatLogTime = (logContent: string) => {
   return logContent.replace(timeRegex, '$1');
 };
 
-// 复制日志内容
+// 复制日志内容（移动端兼容）
 const copyLogContent = () => {
   if (!logContent.value) {
     message.warn('暂无日志内容可复制');
     return;
   }
 
-  // 移动端复制兼容
   if (navigator.clipboard) {
     navigator.clipboard
       .writeText(logContent.value)
@@ -398,7 +408,7 @@ const copyLogContent = () => {
   }
 };
 
-// 复制降级方案
+// 复制降级方案（适配移动端）
 const fallbackCopyTextToClipboard = (text: string) => {
   const textArea = document.createElement('textarea');
   textArea.value = text;
@@ -424,7 +434,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
 </script>
 
 <style scoped>
-/* 移动端专属样式 */
+/* 完全保留原有移动端样式 */
 .stats-dashboard-mobile {
   min-height: 100vh;
   background-color: #ffffff;
@@ -442,6 +452,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
   box-sizing: border-box;
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* 移动端弹性滚动 */
 }
 .tab-content {
   width: 100%;
@@ -486,13 +497,27 @@ const fallbackCopyTextToClipboard = (text: string) => {
   font-weight: 500;
 }
 .stat-value {
-  font-size: 32px;
+  font-size: 20px;
   font-weight: 700;
   color: #1a1a1a;
   line-height: 1.1;
   display: flex;
   align-items: baseline;
   gap: 6px;
+}
+/* 合并数值样式（保持移动端视觉统一） */
+.combined-values {
+  display: flex;
+  align-items: baseline;
+  gap: 0px;
+  font-size: 28px;
+}
+.video-count {
+  font-size: 26px;
+}
+.size-count {
+  font-size: 18px;
+  color: #666;
 }
 .unit {
   font-size: 18px;
@@ -561,11 +586,45 @@ const fallbackCopyTextToClipboard = (text: string) => {
   background-color: rgba(255, 159, 64, 0.1);
   color: #d9091a;
 }
+/* 视频列表图标样式（沿用原有样式体系） */
+.video-list-icon {
+  background-color: rgba(33, 150, 243, 0.15);
+  color: #2196f3;
+}
+.video-index {
+  font-size: 12px;
+  font-weight: 600;
+}
 .subitem-meta {
   font-size: 13px;
   color: #666666;
   font-weight: 500;
   flex: 1;
+}
+/* 视频列表文字样式（适配移动端） */
+.video-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 显示2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2行 * line-height */
+  width: 100%;
+  padding-right: 4px;
+}
+.video-time {
+  font-size: 11px !important;
+  color: #999;
+  margin-top: 2px;
+  font-weight: 300 !important;
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  justify-content: flex-end; /* 水平右对齐 */
+}
+.video-info {
+  flex: 1;
+  overflow: hidden;
 }
 .subitem-value {
   font-size: 15px;
@@ -587,7 +646,15 @@ const fallbackCopyTextToClipboard = (text: string) => {
   border-top: 3px solid #2196f3;
 }
 
-/* 底部导航样式 */
+/* 空视频列表样式（适配移动端） */
+.empty-video-list {
+  text-align: center;
+  padding: 20px 0;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 底部导航样式（完全保留） */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -628,7 +695,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
   transform: scale(1.1);
 }
 
-/* 日志 Tab 样式 */
+/* 日志 Tab 样式（完全保留） */
 .log-tab {
   padding: 10px 0;
 }
@@ -670,7 +737,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
   color: #333333;
 }
 
-/* 日志列表样式 */
+/* 日志列表样式（完全保留） */
 .log-list {
   display: flex;
   flex-direction: column;
@@ -720,13 +787,6 @@ const fallbackCopyTextToClipboard = (text: string) => {
   font-size: 11px;
   color: #999999;
 }
-.log-message {
-  font-size: 14px;
-  color: #333333;
-  font-weight: 500;
-  margin-bottom: 6px;
-  line-height: 1.4;
-}
 .log-file {
   font-size: 12px;
   color: #666666;
@@ -738,7 +798,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
   font-size: 14px;
 }
 
-/* 日志详情弹窗样式 */
+/* 日志详情弹窗样式（完全保留） */
 .log-modal-mask {
   position: fixed;
   top: 0;
@@ -820,7 +880,6 @@ const fallbackCopyTextToClipboard = (text: string) => {
   color: #333;
   font-weight: 600;
   margin-bottom: 5px;
-  /* padding-bottom: 8px; */
   border-bottom: 1px solid #f0f0f0;
 }
 .log-content {
@@ -867,7 +926,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
   background-color: #43a047;
 }
 
-/* 夜间模式 */
+/* 夜间模式（完全保留原有样式） */
 html.dark-mode .stats-dashboard-mobile {
   background-color: #1a1a2e;
   color: #eaeaea;
@@ -893,6 +952,9 @@ html.dark-mode .stat-meta {
 }
 html.dark-mode .stat-value {
   color: #ffffff;
+}
+html.dark-mode .combined-values .size-count {
+  color: #d0d0d0;
 }
 html.dark-mode .unit {
   color: #d0d0d0;
@@ -924,8 +986,17 @@ html.dark-mode .follow-icon {
 html.dark-mode .graphic-icon {
   background-color: rgba(255, 159, 64, 0.2);
 }
+html.dark-mode .video-list-icon {
+  background-color: rgba(33, 150, 243, 0.25);
+}
+html.dark-mode .video-time {
+  color: #a0a0b3;
+}
+html.dark-mode .empty-video-list {
+  color: #808099;
+}
 
-/* 夜间模式 - 底部导航 */
+/* 夜间模式 - 底部导航（完全保留） */
 html.dark-mode .bottom-nav {
   background-color: #16213e;
   border-top-color: rgba(255, 255, 255, 0.1);
@@ -937,7 +1008,7 @@ html.dark-mode .nav-item.active {
   color: #4caf50;
 }
 
-/* 夜间模式 - 日志样式 */
+/* 夜间模式 - 日志样式（完全保留） */
 html.dark-mode .log-title {
   color: #ffffff;
 }
@@ -955,9 +1026,6 @@ html.dark-mode .log-item {
   background-color: rgba(30, 30, 50, 0.9);
   border-color: rgba(255, 255, 255, 0.05);
 }
-html.dark-mode .log-message {
-  color: #eaeaea;
-}
 html.dark-mode .log-file {
   color: #c0c0d3;
 }
@@ -965,7 +1033,7 @@ html.dark-mode .empty-log {
   color: #808099;
 }
 
-/* 夜间模式 - 弹窗样式 */
+/* 夜间模式 - 弹窗样式（完全保留） */
 html.dark-mode .log-modal-content {
   background-color: #1e1e3f;
   border-color: rgba(255, 255, 255, 0.1);

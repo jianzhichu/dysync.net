@@ -11,12 +11,12 @@ namespace dy.net.Controllers
     [ApiController]
     public class VideoController : ControllerBase
     {
-        private readonly DouyinVideoService dyCollectVideoService;
+        private readonly DouyinVideoService douyinVideoService;
         private readonly DouyinCommonService douyinCommonService;
 
         public VideoController(DouyinVideoService dyCollectVideoService, DouyinCommonService douyinCommonService)
         {
-            this.dyCollectVideoService = dyCollectVideoService;
+            this.douyinVideoService = dyCollectVideoService;
             this.douyinCommonService = douyinCommonService;
         }
         /// <summary>
@@ -27,16 +27,16 @@ namespace dy.net.Controllers
         [HttpPost("paged")]
         public async Task<IActionResult> GetPagedAsync(DouyinVideoPageRequestDto dto)
         {
-            var (list, totalCount) = await dyCollectVideoService.GetPagedAsync(dto);
+            var (list, totalCount) = await douyinVideoService.GetPagedAsync(dto);
             return Ok(new
             {
                 code = 0,
                 data = new
                 {
                     data = list,
-                    total=totalCount,
-                    pageIndex=dto.PageIndex,
-                    pageSize=dto.PageSize
+                    total = totalCount,
+                    pageIndex = dto.PageIndex,
+                    pageSize = dto.PageSize
                 }
             });
         }
@@ -49,7 +49,7 @@ namespace dy.net.Controllers
         [HttpGet("statics")]
         public async Task<IActionResult> GetStaticsAsync()
         {
-            var data = await dyCollectVideoService.GetStatics();
+            var data = await douyinVideoService.GetStatics();
             return Ok(new
             {
                 code = 0,
@@ -68,7 +68,7 @@ namespace dy.net.Controllers
         {
             try
             {
-                var viedo = await dyCollectVideoService.GetById(vid);
+                var viedo = await douyinVideoService.GetById(vid);
 
                 if (viedo == null)
                 {
@@ -137,7 +137,7 @@ namespace dy.net.Controllers
         {
             try
             {
-                var viedo = await dyCollectVideoService.GetById(vid);
+                var viedo = await douyinVideoService.GetById(vid);
 
                 if (viedo == null)
                 {
@@ -191,7 +191,7 @@ namespace dy.net.Controllers
             }
             else
             {
-                var result = await dyCollectVideoService.ReDownloadViedoAsync(dto);
+                var result = await douyinVideoService.ReDownloadViedoAsync(dto);
                 if (result)
                 {
                     return Ok(new { code = 0, data = true });
@@ -208,7 +208,7 @@ namespace dy.net.Controllers
         /// <param name="vid"></param>
         /// <returns></returns>
         [HttpGet("vdelete/{vid}")]
-        public async Task<IActionResult> DeleteVideo([FromRoute]string vid)
+        public async Task<IActionResult> DeleteVideo([FromRoute] string vid)
         {
             if (string.IsNullOrWhiteSpace(vid))
             {
@@ -216,14 +216,14 @@ namespace dy.net.Controllers
             }
             else
             {
-                var video = await dyCollectVideoService.GetById(vid);
+                var video = await douyinVideoService.GetById(vid);
                 if (video == null)
                 {
                     return Ok(new { code = -1, data = false });
                 }
                 else
                 {
-                    var result = await dyCollectVideoService.ReDownloadViedoAsync(new ReDownViedoDto { Ids = new List<string> { vid } });
+                    var result = await douyinVideoService.ReDownloadViedoAsync(new ReDownViedoDto { Ids = new List<string> { vid } });
                     if (result)
                     {
                         //加入删除逻辑
@@ -243,7 +243,7 @@ namespace dy.net.Controllers
                     }
 
                 }
-              
+
             }
         }
 
@@ -254,7 +254,20 @@ namespace dy.net.Controllers
         [HttpGet("vdelete/get")]
         public async Task<IActionResult> GetDeleteVideo()
         {
-            return Ok(new { code = 0, data = await douyinCommonService.GetDouyinDeleteVideos() } );
+            return Ok(new { code = 0, data = await douyinCommonService.GetDouyinDeleteVideos() });
+        }
+
+        /// <summary>
+        /// 查询最新N条数据
+        /// </summary>
+        /// <param name="top"></param>
+        /// <returns></returns>
+        [HttpGet("top{top}")]
+        public async Task<IActionResult> GetLast([FromRoute]int top = 5)
+        {
+            var data =await douyinVideoService.GetLastTop(top);
+
+            return Ok(new { code = 0, data = data });
         }
     }
 }

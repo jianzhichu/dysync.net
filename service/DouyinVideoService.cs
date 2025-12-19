@@ -311,6 +311,12 @@ namespace dy.net.service
             }
         }
 
-      
+
+
+        public async Task<List<DouyinVideoTopDto>> GetLastTop(int top=5)
+        {
+            return await _dyCollectVideoRepository.GetTopsOrderByCreateTime(top);
+        }
+
     }
 }
