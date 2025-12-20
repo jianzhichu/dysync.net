@@ -37,7 +37,7 @@ export const useApiStore = defineStore('coreapi', () => {
       .request<any, Response<any>>('/api/config/GetConfig', 'GET')
       .then((res) => {
         console.log(res)
-        return res.data;
+        return res;
       })
       .finally(() => {
 
@@ -49,7 +49,7 @@ export const useApiStore = defineStore('coreapi', () => {
       .request<any, Response<any>>('/api/config/UpdateConfig', 'post_json', request)
       .then((res) => {
         console.log(res)
-        return res.data;
+        return res;
       })
       .finally(() => {
 
@@ -67,7 +67,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //用户信息-头像
   async function apiUserInfo() {
     return http.request<any, Response<any>>('/api/auth/GetUserAvatar', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -75,7 +75,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //密码修改
   async function apiChangePwd(param: object) {
     return http.request<any, Response<any>>('/api/auth/UpdatePwd', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -83,14 +83,14 @@ export const useApiStore = defineStore('coreapi', () => {
   //StartJobNow
   async function StartJobNow() {
     return http.request<any, Response<any>>('/api/config/ExecuteJobNow', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
   }
   async function VideoStatics() {
     return http.request<any, Response<any>>('/api/video/statics', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -99,7 +99,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //视频查询
   async function VideoPageList(param: object) {
     return http.request<any, Response<any>>('/api/video/paged', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -107,14 +107,14 @@ export const useApiStore = defineStore('coreapi', () => {
   //cookies
   async function CookiePageList(param: object) {
     return http.request<any, Response<any>>('/api/config/paged', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
   }
   async function CookieList() {
     return http.request<any, Response<any>>('/api/config/list', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -123,7 +123,7 @@ export const useApiStore = defineStore('coreapi', () => {
 
   async function UpdateConfig(param: object) {
     return http.request<any, Response<any>>('/api/config/update', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -131,7 +131,7 @@ export const useApiStore = defineStore('coreapi', () => {
 
   async function deleteCookie(id: string) {
     return http.request<any, Response<any>>('/api/config/delete?id=' + id, 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -139,7 +139,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //follows
   async function FollowList(param: object) {
     return http.request<any, Response<any>>('/api/follow/paged', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -147,7 +147,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //同步关注列表
   async function SyncFollow() {
     return http.request<any, Response<any>>('/api/follow/sync', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -155,7 +155,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //更新同步关注者状态
   async function OpenOrCloseSync(param: object) {
     return http.request<any, Response<any>>('/api/follow/openOrCloseSync', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -163,7 +163,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //更新同步关注者状态
   async function OpenOrCloseFullSync(param: object) {
     return http.request<any, Response<any>>('/api/follow/openOrCloseFullSync', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -171,7 +171,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //重新下载
   async function ReDownViedos(param: object) {
     return http.request<any, Response<any>>('/api/video/redown', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -179,7 +179,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //删除
   async function DeleteVideo(param: string) {
     return http.request<any, Response<any>>('/api/video/vdelete/' + param, 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -187,7 +187,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //删除
   async function GetDeleteViedos() {
     return http.request<any, Response<any>>('/api/video/vdelete/get', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -197,7 +197,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //检查版本
   async function CheckTag() {
     return http.request<any, Response<any>>('/api/config/checktag', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -206,7 +206,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //添加非关注的博主
   async function AddFollow(param: object) {
     return http.request<any, Response<any>>('/api/follow/add', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -214,7 +214,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //删除非关注的博主
   async function DelFollow(param: object) {
     return http.request<any, Response<any>>('/api/follow/delete', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -223,7 +223,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //导出配置
   async function ExportConf() {
     return http.request<any, Response<any>>('/api/config/exportConf', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -231,7 +231,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //导入配置
   async function ImportConf(param: object) {
     return http.request<any, Response<any>>('/api/config/importConf', 'post_json', param).then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -240,7 +240,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //移动端获取日志列表
   async function MobileLogs() {
     return http.request<any, Response<any>>('/api/logs/list', 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -249,7 +249,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //移动端获取日志详情
   async function LogDetail(type: string, date: string) {
     return http.request<any, Response<any>>('/api/logs/content?type=' + type + "&Date=" + date, 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });
@@ -258,7 +258,7 @@ export const useApiStore = defineStore('coreapi', () => {
   //TOP
   async function TopVideo(param: number) {
     return http.request<any, Response<any>>('/api/Video/top' + param, 'get').then(r => {
-      return r.data;
+      return r;
     }).finally(() => {
 
     });

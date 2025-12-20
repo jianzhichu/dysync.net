@@ -467,7 +467,7 @@ const handleSavePath = (item: FollowItem) => {
   uploadSyncStatus(item);
 };
 
-// 上传同步状态
+// 更新同步状态
 const uploadSyncStatus = (item: FollowItem) => {
   item.isSaving = true;
   useApiStore()
@@ -483,7 +483,7 @@ const uploadSyncStatus = (item: FollowItem) => {
         message.success(`保存成功，将在下次任务执行时生效`);
         item.isEditing = false;
       } else {
-        message.error('保存失败' + (res.msg || '未知错误'));
+        message.error('保存失败' + (res.message || '未知错误'));
       }
     })
     .catch((err) => {
@@ -508,7 +508,7 @@ const handleSyncAll = () => {
       if (res.code === 0) {
         message.success('后台开始同步...根据您关注的数量，需要的时间不一定...请耐心等待');
       } else {
-        message.error('同步失败：' + (res.msg || '未知错误'));
+        message.error('同步失败：' + (res.message || '未知错误'));
       }
     })
     .catch((err) => {
@@ -609,7 +609,7 @@ const handleAddSubmit = () => {
               tabList.value[tabIndex].total = (tabList.value[tabIndex].total || 0) + 1;
             }
           } else {
-            message.error('新增失败：' + (res.msg || '未知错误'));
+            message.error('新增失败：' + (res.message || '未知错误'));
           }
         })
         .catch((err) => {
@@ -654,7 +654,7 @@ const handleDeleteItem = (item: FollowItem) => {
               initData();
               resolve(true);
             } else {
-              message.error('删除失败：' + (res.msg || '未知错误'));
+              message.error('删除失败：' + (res.message || '未知错误'));
               reject(false);
             }
           })

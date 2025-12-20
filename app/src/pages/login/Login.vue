@@ -12,8 +12,24 @@ import { message } from 'ant-design-vue';
 const router = useRouter();
 
 function onLoginSuccess() {
-  router.push('/dashboard');
+  if (isMobileBrowser()) router.push('/mobile');
+  else router.push('/dashboard');
 }
+// 精准判断移动端浏览器（复用之前的核心逻辑，简化版）
+const isMobileBrowser = (): boolean => {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+    return false;
+  }
+  const userAgent = navigator.userAgent.toLowerCase();
+  // 匹配手机UA（排除平板）
+  const mobileUA = /android|iphone|ipod|blackberry|windows phone|iemobile|opera mini/i.test(userAgent);
+  const isTablet = /ipad|tablet|playbook|kindle|android 3\.|android 4\.[0-3]/.test(userAgent);
+  // 触摸设备+小屏兜底
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isMobileScreen = window.innerWidth <= 768 && window.innerHeight <= 1024;
+
+  return (mobileUA && !isTablet && isTouchDevice) || (isMobileScreen && isTouchDevice);
+};
 
 function onLoginFail(reason: string, fields: any) {
   console.log('登录失败:', reason, fields);

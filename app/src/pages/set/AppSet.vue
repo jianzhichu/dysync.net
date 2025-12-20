@@ -358,7 +358,7 @@ const getConfig = () => {
 
         tagData.value = JSON.parse(res.data.priorityLevel);
       } else {
-        message.error(res.erro || '获取配置失败', 8);
+        message.error(res.message || '获取配置失败', 8);
       }
     })
     .catch((error) => {
@@ -452,7 +452,7 @@ const onSubmit = () => {
             message.success('修改成功，同步任务将在5-10秒按新配置运行...');
             componentDisabled.value = true;
           } else {
-            message.error(res.erro || '更新配置失败', 8);
+            message.error(res.message || '更新配置失败', 8);
           }
         })
         .catch((error) => {

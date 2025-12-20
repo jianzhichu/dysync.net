@@ -150,7 +150,7 @@ const onFinish = (values: PassFormState) => {
           visible.value = false;
           http.removeAuthorization();
         } else {
-          message.error(res.erro, 8);
+          message.error(res.message, 8);
         }
       });
   }

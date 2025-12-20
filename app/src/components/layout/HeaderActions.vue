@@ -242,7 +242,7 @@ const showVersionNotification = () => {
         }
         openVersionNotification();
       } else {
-        message.error(res.msg);
+        message.error(res.message);
       }
     })
     .catch((err) => {

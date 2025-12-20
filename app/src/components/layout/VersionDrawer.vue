@@ -26,7 +26,7 @@ const getVersions = () => {
       if (res.code == 1) {
         dyVersions.value = res.data;
       } else {
-        message.error(res.msg);
+        message.error(res.message);
       }
     });
 };
