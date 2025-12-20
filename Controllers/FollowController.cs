@@ -34,25 +34,17 @@ namespace dy.net.Controllers
         {
             if (string.IsNullOrWhiteSpace(dto.MySelfId))
             {
-                return Ok(new
-                {
-                    code = 0,
-                    data = new { }
-                });
+                return ApiResult.Success(new { });
             }
             var (list, totalCount) = await _douyinFollowService.GetPagedAsync(dto);
-            return Ok(new
+
+            return ApiResult.Success(new
             {
-                code = 0,
-                data = new
-                {
-                    data = list,
-                    total = totalCount,
-                    pageIndex = dto.PageIndex,
-                    pageSize = dto.PageSize
-                }
-            }
-           );
+                data = list,
+                total = totalCount,
+                pageIndex = dto.PageIndex,
+                pageSize = dto.PageSize
+            });
         }
         /// <summary>
         /// 重新同步-单次
@@ -64,13 +56,13 @@ namespace dy.net.Controllers
             //后台异步
             _douyinQuartzJobService.StartFollowJobOnceAsync();
             await Task.Delay(1000);
-            return Ok(new { code = 0 });
+            return ApiResult.Success();
         }
         [HttpPost("add")]
         public async Task<IActionResult> AddFollow(DouyinFollowed followed)
         {
             var res = await _douyinFollowService.AddAsync(followed);
-            return Ok(new { code = res ? 0 : -1, msg = res ? "" : "添加失败,或者已存在相同secuid和uid" });
+            return ApiResult.SuccOrFail(res,"", res ? "" : "添加失败,或者已存在相同secuid和uid");
         }
 
         /// <summary>
@@ -88,29 +80,17 @@ namespace dy.net.Controllers
                 {
                     if (!DouyinFileNameHelper.IsValidWithoutSpecialChars(dto.SavePath))
                     {
-                        return Ok(new
-                        {
-                            code = -1,
-                            msg = "请输入有效文件夹名称（字母数字中文简体）"
-                        });
+                        return ApiResult.Fail("请输入有效文件夹名称（字母数字中文简体）");
                     }
 
                     if (dto.SavePath.Length > 15)
                     {
-                        return Ok(new
-                        {
-                            code = -1,
-                            msg = "请输入有效文件夹名称（最长15）"
-                        });
+                        return ApiResult.Fail("请输入有效文件夹名称（最长15）");
                     }
                 }
             }
             var result=  await _douyinFollowService.OpenOrCloseSync(dto);
-            return Ok(new
-            {
-                code = result ? 0 : -1,
-                data = result
-            });
+            return ApiResult.SuccOrFail(result, result);
         }
 
         /// <summary>
@@ -129,7 +109,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> DeleteFollow(FollowUpdateDto dto)
         {
             var result= await _douyinFollowService.DeleteFollow(dto);
-            return Ok(new { code = result ? 0 : -1, data = result });
+            return ApiResult.SuccOrFail(result, result);
         }
     }
 }

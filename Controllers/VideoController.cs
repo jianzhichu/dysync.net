@@ -28,16 +28,12 @@ namespace dy.net.Controllers
         public async Task<IActionResult> GetPagedAsync(DouyinVideoPageRequestDto dto)
         {
             var (list, totalCount) = await douyinVideoService.GetPagedAsync(dto);
-            return Ok(new
+            return ApiResult.Success(new
             {
-                code = 0,
-                data = new
-                {
-                    data = list,
-                    total = totalCount,
-                    pageIndex = dto.PageIndex,
-                    pageSize = dto.PageSize
-                }
+                data = list,
+                total = totalCount,
+                pageIndex = dto.PageIndex,
+                pageSize = dto.PageSize
             });
         }
 
@@ -50,11 +46,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> GetStaticsAsync()
         {
             var data = await douyinVideoService.GetStatics();
-            return Ok(new
-            {
-                code = 0,
-                data
-            });
+            return ApiResult.Success(data);
         }
 
         /// <summary>
@@ -72,13 +64,13 @@ namespace dy.net.Controllers
 
                 if (viedo == null)
                 {
-                    return NotFound($"视频不存在：{vid}");
+                    return ApiResult.Fail($"视频不存在：{vid}");
                 }
                 return PlayViedo(viedo);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"视频加载失败：{ex.Message}");
+                return ApiResult.Fail($"视频加载失败：{ex.Message}");
             }
         }
 
@@ -91,7 +83,7 @@ namespace dy.net.Controllers
             // 2. 验证文件是否存在
             if (!System.IO.File.Exists(videoFullPath))
             {
-                return NotFound($"视频文件不存在：{videoFullPath}");
+                return ApiResult.Fail($"视频文件不存在：{videoFullPath}");
             }
 
             // 3. 获取文件信息（大小、类型）
@@ -141,20 +133,20 @@ namespace dy.net.Controllers
 
                 if (viedo == null)
                 {
-                    return NotFound($"视频不存在：{vid}");
+                    return ApiResult.Fail($"视频不存在：{vid}");
                 }
 
                 var expectedKey = (viedo.FileHash + viedo.AuthorId).Md5();
                 if (expectedKey != k)
                 {
-                    return NotFound($"视频地址无效");
+                    return ApiResult.Fail($"视频地址无效");
                 }
 
                 return PlayViedo(viedo);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"视频加载失败：{ex.Message}");
+                return ApiResult.Fail($"视频加载失败：{ex.Message}");
             }
         }
 
@@ -187,18 +179,18 @@ namespace dy.net.Controllers
         {
             if (dto == null)
             {
-                return Ok(new { code = -1, data = false });
+                return ApiResult.Fail("参数错误");
             }
             else
             {
                 var result = await douyinVideoService.ReDownloadViedoAsync(dto);
                 if (result)
                 {
-                    return Ok(new { code = 0, data = true });
+                    return ApiResult.Success(true);
                 }
                 else
                 {
-                    return Ok(new { code = -1, data = false });
+                    return ApiResult.Fail("错误");
                 }
             }
         }
@@ -212,14 +204,14 @@ namespace dy.net.Controllers
         {
             if (string.IsNullOrWhiteSpace(vid))
             {
-                return Ok(new { code = -1, data = false });
+                return ApiResult.Fail("参数错误");
             }
             else
             {
                 var video = await douyinVideoService.GetById(vid);
                 if (video == null)
                 {
-                    return Ok(new { code = -1, data = false });
+                    return ApiResult.Fail("请求失败");
                 }
                 else
                 {
@@ -233,13 +225,13 @@ namespace dy.net.Controllers
                             VideoTitle = video.VideoTitle,
                             VideoSavePath = video.VideoSavePath
                         });
-                        Serilog.Log.Debug($"前面的日志,你错了，这条视频是永久删除..哈哈--{video.VideoTitle}");
 
-                        return Ok(new { code = 0, data = true });
+                        Serilog.Log.Debug($"前面的日志,你错了，这条视频是永久删除..哈哈--{video.VideoTitle}");
+                        return ApiResult.Success();
                     }
                     else
                     {
-                        return Ok(new { code = -1, data = false });
+                        return ApiResult.Fail();
                     }
 
                 }
@@ -254,7 +246,7 @@ namespace dy.net.Controllers
         [HttpGet("vdelete/get")]
         public async Task<IActionResult> GetDeleteVideo()
         {
-            return Ok(new { code = 0, data = await douyinCommonService.GetDouyinDeleteVideos() });
+            return ApiResult.Success(await douyinCommonService.GetDouyinDeleteVideos());
         }
 
         /// <summary>
@@ -263,11 +255,9 @@ namespace dy.net.Controllers
         /// <param name="top"></param>
         /// <returns></returns>
         [HttpGet("top{top}")]
-        public async Task<IActionResult> GetLast([FromRoute]int top = 5)
+        public async Task<IActionResult> GetLastSyncTop([FromRoute]int top = 5)
         {
-            var data =await douyinVideoService.GetLastTop(top);
-
-            return Ok(new { code = 0, data = data });
+            return ApiResult.Success(await douyinVideoService.GetLastSyncTop(top));
         }
     }
 }

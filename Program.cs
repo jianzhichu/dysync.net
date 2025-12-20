@@ -1,73 +1,67 @@
-using dy.net.extension;
+ï»¿using dy.net.extension;
 using dy.net.service;
 using dy.net.utils;
 using Serilog;
+using System.Drawing;
 using System.Text;
 
 namespace dy.net
 {
     public class Program
     {
-        // ³£Á¿¶¨Òå
+        // å¸¸é‡å®šä¹‰
         private static string DefaultListenUrl = "http://*:10101";
         private const string SpaRootPath = "app/dist";
         private const string SpaSourcePath = "app/";
         private const string SwaggerDocTitle = "dy.net WebApi Docs";
 
         /// <summary>
-        /// ´ò°üÊ±×¢Òâ£¬Èç¹ûÊÇfalse,Ç°¶Ë²»ÔÊĞíĞŞ¸Ä¿ªÆôÏÂÔØÍ¼Æ¬ºÍÊÓÆµµÄÑ¡Ïî
+        /// æ‰“åŒ…æ—¶æ³¨æ„ï¼Œå¦‚æœæ˜¯false,å‰ç«¯ä¸å…è®¸ä¿®æ”¹å¼€å¯ä¸‹è½½å›¾ç‰‡å’Œè§†é¢‘çš„é€‰é¡¹
         /// </summary>
         public static void Main(string[] args)
         {
-            //Console.ForegroundColor = ConsoleColor.Yellow;
 
-            // ³õÊ¼»¯±àÂëÌá¹©Æ÷
+
+            // åˆå§‹åŒ–ç¼–ç æä¾›å™¨
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            // ¹¹½¨WebÓ¦ÓÃ
+            // æ„å»ºWebåº”ç”¨
             var builder = WebApplication.CreateBuilder(args);
-            //from docker yaml file »·¾³±äÁ¿ »òÕß dockerfile »òappsettings.json 
+            //from docker yaml file ç¯å¢ƒå˜é‡ æˆ–è€… dockerfile æˆ–appsettings.json 
             DefaultListenUrl = builder.Configuration.GetValue<string>(SystemStaticUtil.ASPNETCORE_URLS) ?? DefaultListenUrl;
      
             var isDevelopment = builder.Environment.IsDevelopment();
 
-            // ÅäÖÃÖ÷»ú
+            // é…ç½®ä¸»æœº
             ConfigureHost(builder, isDevelopment);
 
-            // ÅäÖÃ·şÎñ
+            // é…ç½®æœåŠ¡
             ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
 
-            // ¹¹½¨Ó¦ÓÃ
+            // æ„å»ºåº”ç”¨
             var app = builder.Build();
             Log.Debug("ffmpeg is on");
 
-            // ÅäÖÃÖĞ¼ä¼ş
+            // é…ç½®ä¸­é—´ä»¶
             ConfigureMiddleware(app, builder.Environment);
 
-            // ³õÊ¼»¯Ó¦ÓÃ·şÎñ
+            // åˆå§‹åŒ–åº”ç”¨æœåŠ¡
             InitApplicationServices(app, isDevelopment);
 
             Serilog.Log.Debug("dy.sync service is starting...");
             Log.Debug("dy.sync service is started successfully");
-            Console.WriteLine("------------------------------------------------------------------------");
-            Console.WriteLine(@" __ \\ \   /  ___|\ \   /  \  |  ___| 
- |   |\   / \___ \ \   /    \ | |     
- |   |   |        |   |   |\  | |     
-____/   _|_)_____/   _|  _| \_|\____| 
-                                      
-");
-            //Console.ResetColor();
+            Console.WriteLine();
             app.Run();
         }
 
         /// <summary>
-        /// ÅäÖÃÖ÷»úÉèÖÃ
+        /// é…ç½®ä¸»æœºè®¾ç½®
         /// </summary>
         private static void ConfigureHost(WebApplicationBuilder builder, bool isDevelopment)
         {
-            // ÉèÖÃ¼àÌıµØÖ·
+            // è®¾ç½®ç›‘å¬åœ°å€
             builder.WebHost.UseUrls(DefaultListenUrl);
 
-            // ÅäÖÃÅäÖÃÎÄ¼ş
+            // é…ç½®é…ç½®æ–‡ä»¶
             builder.Host.ConfigureAppConfiguration((context, config) =>
             {
                 config.SetBasePath(Directory.GetCurrentDirectory())
@@ -75,7 +69,7 @@ ____/   _|_)_____/   _|  _| \_|\____|
                       .AddEnvironmentVariables();
             });
 
-            // ÅäÖÃÈÕÖ¾
+            // é…ç½®æ—¥å¿—
             builder.Host.ConfigureLogging(logging => logging.ClearProviders())
                        .UseSerilog();
 
@@ -83,86 +77,83 @@ ____/   _|_)_____/   _|  _| \_|\____|
         }
 
         /// <summary>
-        /// ÅäÖÃÒÀÀµ×¢Èë·şÎñ
+        /// é…ç½®ä¾èµ–æ³¨å…¥æœåŠ¡
         /// </summary>
         private static void ConfigureServices(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment)
         {
-
+            PrintApp();
             services.AddSingleton(new Appsettings (config));
-            // Ñ©»¨IDÉú³ÉÆ÷
+            // é›ªèŠ±IDç”Ÿæˆå™¨
             services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 100));
 
-            // MVC¿ØÖÆÆ÷
-            services.AddControllers();
+   
 
-            // HTTP¿Í»§¶Ë
+
+            // MVCæ§åˆ¶å™¨+å¼‚å¸¸æ‹¦æˆªå™¨
+            services.AddControllers().AddGlobalExceptionFilter();
+
+            // HTTPå®¢æˆ·ç«¯
             services.AddHttpClients();
 
-            // Êı¾İ¿â
+            // æ•°æ®åº“
             services.AddSqlsugar(config);
 
-            // ¶¨Ê±ÈÎÎñ
+            // å®šæ—¶ä»»åŠ¡
             services.AddQuartzService();
 
-            // ²Ö´¢ºÍ·şÎñ×¢²á
+            // ä»“å‚¨å’ŒæœåŠ¡æ³¨å†Œ
             services.AddServicesFromNamespace("dy.net.repository")
                     .AddServicesFromNamespace("dy.net.service");
 
             services.AddSingleton<FFmpegHelper>();
-            ////ÏÂÔØÍ¼Æ¬ºÏ³ÉÊÓÆµ-ĞèÒªffmpegÖ§³Ö,¾µÏñ»áºÜ´ó¡£
-            //if (downImageVideo)
-            //{
-            //    //¸ù¾İÅäÖÃ¶¯Ì¬¼ÓÔØdy.image³ÌĞò¼¯
-            //    Assembly assembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, "dy.image.dll"));
-            //    services.AddServicesFromNamespace("dy.image", assembly);
-            //}
-            // SPA¾²Ì¬ÎÄ¼şÖ§³Ö
+        
+            // SPAé™æ€æ–‡ä»¶æ”¯æŒ
             services.AddSpaStaticFiles(options => options.RootPath = SpaRootPath);
 
-            // ¿ª·¢»·¾³ÆôÓÃSwagger
+            // å¼€å‘ç¯å¢ƒå¯ç”¨Swagger
             if (environment.IsDevelopment())
             {
                 services.AddSwagger();
             }
 
-            // ÏìÓ¦Ñ¹Ëõ
+            // å“åº”å‹ç¼©
             services.AddResponseCompression();
 
-            // JWTÈÏÖ¤
+            // JWTè®¤è¯
             services.ConfigureJwtAuthentication();
         }
 
       
 
         /// <summary>
-        /// ÅäÖÃÖĞ¼ä¼ş
+        /// é…ç½®ä¸­é—´ä»¶
         /// </summary>
         private static void ConfigureMiddleware(WebApplication app, IWebHostEnvironment environment)
         {
-            // ÏìÓ¦Ñ¹Ëõ
+            // å“åº”å‹ç¼©
             app.UseResponseCompression();
 
-            // ¿ª·¢»·¾³ÆôÓÃSwaggerUI
+            // å¼€å‘ç¯å¢ƒå¯ç”¨SwaggerUI
             if (environment.IsDevelopment())
             {
                 app.UseCustomSwaggerUI(options => options.Title = SwaggerDocTitle);
             }
 
-            // Â·ÓÉ
+            // è·¯ç”±
             app.UseRouting();
 
-            // ÈÏÖ¤ÊÚÈ¨
+            // è®¤è¯æˆæƒ
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // ÅäÖÃÎÄ¼şÉÏ´«Â·¾¶
+            // é…ç½®æ–‡ä»¶ä¸Šä¼ è·¯å¾„
             //ConfigureUploadPath(app, isDevelopment);
 
-            // APIÂ·ÓÉÓ³Éä
+            // APIè·¯ç”±æ˜ å°„
             app.MapControllers();
 
             app.UseStaticFiles();
-            // Éú²ú»·¾³ÆôÓÃSPA
+            // ç”Ÿäº§ç¯å¢ƒå¯ç”¨SPA
             if (!environment.IsDevelopment())
             {
                 app.UseSpaStaticFiles();
@@ -171,7 +162,7 @@ ____/   _|_)_____/   _|  _| \_|\____|
         }
 
         /// <summary>
-        /// ³õÊ¼»¯Ó¦ÓÃ·şÎñÊı¾İ
+        /// åˆå§‹åŒ–åº”ç”¨æœåŠ¡æ•°æ®
         /// </summary>
         private static void InitApplicationServices(WebApplication app,bool isDevelopment)
         {
@@ -180,26 +171,26 @@ ____/   _|_)_____/   _|  _| \_|\____|
 
             try
             {
-                // ³õÊ¼»¯ÓÃ»§
+                // åˆå§‹åŒ–ç”¨æˆ·
                 var userService = services.GetRequiredService<AdminUserService>();
                 userService.InitUser();
 
-                // ³õÊ¼»¯Cookie
+                // åˆå§‹åŒ–Cookie
                 var cookieService = services.GetRequiredService<DouyinCookieService>();
                 cookieService.InitCookie();
 
-                // ³õÊ¼»¯ÅäÖÃ
+                // åˆå§‹åŒ–é…ç½®
                 var commonService = services.GetRequiredService<DouyinCommonService>();
                 var config = commonService.InitConfig();
 
-                // ¸üĞÂÊÓÆµÀàĞÍ--¼æÈİÀÏ°æ±¾
+                // æ›´æ–°è§†é¢‘ç±»å‹--å…¼å®¹è€ç‰ˆæœ¬
                 commonService.UpdateCollectViedoType();
-                // ÖØÖÃ²©Ö÷×÷Æ·Í¬²½×´Ì¬ÎªÎ´Í¬²½
+                // é‡ç½®åšä¸»ä½œå“åŒæ­¥çŠ¶æ€ä¸ºæœªåŒæ­¥
                 commonService.UpdateAllCookieSyncedToZero();
 
                 if (!isDevelopment)
                 {
-                    // Æô¶¯¶¨Ê±ÈÎÎñ
+                    // å¯åŠ¨å®šæ—¶ä»»åŠ¡
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
                     quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
                 }
@@ -212,7 +203,78 @@ ____/   _|_)_____/   _|  _| \_|\____|
         }
 
      
+        private static void PrintApp()
+        {
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine();
 
-       
+            // æ­¥éª¤1ï¼šå®šä¹‰åŸå§‹ASCIIè‰ºæœ¯å­—è¡Œï¼ˆæ— ç¼©è¿›ï¼‰
+            List<string> originalArtLines = new List<string>
+        {
+            "     __                                    __ ",
+            " ___/ /_ __  ___ __ _____  ____  ___  ___ / /_",
+            "/ _  / // / (_-</ // / _ \\__/ / _ \\/ -_) __/",
+            "\\_,_/\\_, (_)___/\\_, /_//_/\\__(_)_//_/\\__/\\__/ ",
+            "    /___/      /___/                          "
+        };
+
+            // æ­¥éª¤2ï¼šè®¾ç½®ç¼©è¿›å­—ç¬¦æ•°ï¼ˆå¯è‡ªç”±ä¿®æ”¹ï¼š4ã€8ã€10 ç­‰ï¼‰
+            int indentCount = 4;
+            string indent = new string(' ', indentCount); // ç”Ÿæˆå¯¹åº”æ•°é‡çš„ç©ºæ ¼
+
+            // æ­¥éª¤3ï¼šç»™æ¯è¡Œæ·»åŠ ç¼©è¿›
+            List<string> indentedArtLines = new List<string>();
+            foreach (var line in originalArtLines)
+            {
+                indentedArtLines.Add(indent + line); // æ¯è¡Œå¼€å¤´æ‹¼æ¥ç¼©è¿›ç©ºæ ¼
+            }
+
+            // æ­¥éª¤4ï¼šæ‰¾åˆ°ç¼©è¿›åæœ€é•¿è¡Œçš„é•¿åº¦ï¼ˆé¿å…è¶Šç•Œï¼‰
+            int maxLength = 0;
+            foreach (var line in indentedArtLines)
+            {
+                if (line.Length > maxLength) maxLength = line.Length;
+            }
+
+            // æ­¥éª¤5ï¼šæŒ‰åˆ—æ¨è¿›æ‰“å°ï¼ˆä»å·¦åˆ°å³ï¼ŒåŒ…å«ç¼©è¿›ï¼‰
+            for (int col = 0; col < maxLength; col++)
+            {
+                Console.SetCursorPosition(0, 0); // é‡ç½®å…‰æ ‡åˆ°ç¬¬ä¸€è¡Œå¼€å¤´
+
+                for (int row = 0; row < indentedArtLines.Count; row++)
+                {
+                    // å®šä½åˆ°ã€Œå½“å‰åˆ—ã€å½“å‰è¡Œã€ï¼ˆå·²åŒ…å«ç¼©è¿›åç§»ï¼‰
+                    Console.SetCursorPosition(col, row);
+
+                    // æ‰“å°å­—ç¬¦ï¼ˆæ— å­—ç¬¦åˆ™è¡¥ç©ºæ ¼ï¼‰
+                    if (col < indentedArtLines[row].Length)
+                    {
+                        Console.Write(indentedArtLines[row][col]);
+                    }
+                    else
+                    {
+                        Console.Write(' ');
+                    }
+                }
+
+                Thread.Sleep(20); // åˆ—æ¨è¿›é€Ÿåº¦ï¼ˆå¯è°ƒæ•´ï¼š10=å¿«ï¼Œ50=æ…¢ï¼‰
+            }
+
+            // æ‰“å°å®Œæˆåï¼Œå…‰æ ‡ç§»åˆ°è‰ºæœ¯å­—ä¸‹æ–¹
+            Console.SetCursorPosition(0, indentedArtLines.Count);
+
+            //string asciiArt = @"=================================================================================================================";
+            //string asciiArt = $@"â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”{DateTime.Now:yyyy-MM-dd HH:mm:ss}â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”";
+
+            //foreach (char ch in asciiArt)
+            //{
+            //    Console.Write(ch);
+            //    Thread.Sleep(2);
+            //}
+            Console.WriteLine();
+            Console.ResetColor();
+
+        }
+
     }
 }

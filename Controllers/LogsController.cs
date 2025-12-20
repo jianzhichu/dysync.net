@@ -52,11 +52,11 @@ namespace dy.net.Controllers
             {
                 var _logDirectory = Path.Combine(Directory.GetCurrentDirectory(), "logs");
                 var files = logInfoService.GetLogFiles(_logDirectory);
-                return Ok(new {code=0,data=files});
+                return ApiResult.Success(files);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "获取日志列表失败", error = ex.Message });
+                return ApiResult.Fail("获取日志列表失败," + ex.Message);
             }
         }
 

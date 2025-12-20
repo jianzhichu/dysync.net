@@ -35,7 +35,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> UpdatePwd(UpdatePwdRequest user)
         {
             var (code, erro) = await _userService.UpdatePwd(user);
-            return Ok(new { code, erro });
+            return ApiResult.Success("", erro);
         }
 
 
@@ -47,7 +47,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> GetUserAvatar()
         {
             var user = await _userService.GetUser();
-            return Ok(new { code = 0, error = "", data = new { user?.Avatar, user?.Id, user?.UserName } });
+            return ApiResult.Success(new { user?.Avatar, user?.Id, user?.UserName });
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace dy.net.Controllers
                 long maxFileSize = 5 * 1024 * 1024; // 限制文件大小为5MB
                 if (file.Length > maxFileSize)
                 {
-                    return Ok(new { code = -1, erro = "文件最大只能上传5M" });
+                    return ApiResult.Fail("文件最大只能上传5M");
                 }
                 var fileName = $"{IdGener.GetGuid()}_{file.FileName}";
                 var filePath = webHostEnvironment.IsProduction() ?
@@ -86,15 +86,16 @@ namespace dy.net.Controllers
                     catch (Exception ex)
                     {
                         Serilog.Log.Error($"delete file error ,{ex.Message}");
+                        return ApiResult.Fail(ex.Message);
                     }
                     var update = await _userService.UpdateAvatar(fileName);
 
-                    return Ok(new { code = update ? 0 : -1, erro = update ? "" : "上传失败", data = update ? fileName : "" });
+                    return ApiResult.SuccOrFail(update , update ? fileName : "", update ? "" : "上传失败");
                 }
             }
             else
             {
-                return Ok(new { code = -1, erro = "空文件" });
+                return ApiResult.Fail("无效的文件");
             }
         }
 
@@ -110,7 +111,7 @@ namespace dy.net.Controllers
         {
             if (loginUserInfo == null)
             {
-                return Ok(new { code = -1, erro = "参数不能为空" });
+                return ApiResult.Fail("参数不能为空");
             }
             else
             {
@@ -118,7 +119,7 @@ namespace dy.net.Controllers
 
                 if (user == null)
                 {
-                    return Ok(new { code = -1, erro = "用户名或密码不正确" });
+                    return ApiResult.Fail("用户名或密码不正确");
                 }
                 else
                 {
@@ -126,12 +127,11 @@ namespace dy.net.Controllers
                     {
 
                         var tokenString = GenerateJwtToken(user.UserName);
-
-                        return Ok(new { code = 0, erro = "", token = tokenString, expires = 24 * 60 * 60 * 1000,data=user.UserName });
+                        return Ok(new { code = 0, erro = "", token = tokenString, expires = 24 * 60 * 60 * 1000, data = user.UserName });
                     }
                     else
                     {
-                        return Ok(new { code = -1, erro = "用户名或密码不正确" });
+                        return ApiResult.Fail("用户名或密码不正确");
                     }
                 }
             }

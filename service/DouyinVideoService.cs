@@ -313,9 +313,9 @@ namespace dy.net.service
 
 
 
-        public async Task<List<DouyinVideoTopDto>> GetLastTop(int top=5)
+        public async Task<List<DouyinVideoTopDto>> GetLastSyncTop(int top=5)
         {
-            return await _dyCollectVideoRepository.GetTopsOrderByCreateTime(top);
+            return await _dyCollectVideoRepository.GetTopsOrderBySyncTime(top);
         }
 
     }
