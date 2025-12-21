@@ -33,7 +33,6 @@ const enforceMobileRoute = () => {
   const currentPath = route.path.toLowerCase().trim();
 
   // 核心规则：手机浏览器 → 强制跳转到/mobile（无论当前路由是什么）
-  console.log(isMobileBrowser.value);
   if (isMobileBrowser.value) {
     if (currentPath !== targetMobilePath) {
       // 替换路由（禁止返回上一页，避免用户回退到其他路由）

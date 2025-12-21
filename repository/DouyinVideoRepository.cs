@@ -19,7 +19,7 @@ namespace dy.net.repository
 
         public async Task<List<DouyinVideoTopDto>> GetTopsOrderBySyncTime(int top)
         {
-            return await Db.Queryable<DouyinVideo>().Select(x=>new DouyinVideoTopDto { Title=x.VideoTitle,Time=x.SyncTime.ToString("yyyy-MM-dd HH:mm:ss")}).Take(top).OrderByDescending(x=>x.Time).ToListAsync();
+            return await Db.Queryable<DouyinVideo>().Select(x=>new DouyinVideoTopDto {Id=x.Id, Title=x.VideoTitle,Time=x.SyncTime.ToString("yyyy-MM-dd HH:mm:ss")}).Take(top).OrderByDescending(x=>x.Time).ToListAsync();
         }
         /// <summary>
         /// 

@@ -53,7 +53,7 @@ http.interceptors.response.use(
         }).catch((err) => {
           console.error('跳转登录页失败：', err); // 关键！捕获跳转失败的原因
         });
-      }, 1000);
+      }, 100);
 
     } else {
       if (error.response && isAxiosResponse(error.response)) {

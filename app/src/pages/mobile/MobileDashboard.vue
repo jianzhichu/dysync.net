@@ -10,19 +10,18 @@
             <div class="stat-header">
               <div class="header-left">
                 <span class="stat-meta">视频统计</span>
-                <div class="stat-value">
-                  <div class="combined-values">
-                    <span class="video-count">{{ totalVideos }}</span>
-                    <span class="size-count">({{ fileSizeTotal }}G)</span>
+                <!-- 拆分视频总数和总空间到左右两侧 -->
+                <div class="stat-value-container">
+                  <div class="stat-value video-count">
+                    {{ totalVideos }}
+                    <span class="value-label">个</span>
+                  </div>
+                  <div class="stat-value size-count">
+                    {{ fileSizeTotal }}G
                   </div>
                 </div>
               </div>
-              <div class="stat-icon video-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                </svg>
-              </div>
+              <!-- 移除SVG图标 -->
             </div>
             <div class="stat-subitems">
               <div class="subitem" :title="`我喜欢的视频数: ${favoriteCount} (占用: ${favoriteSize}G)`">
@@ -31,8 +30,9 @@
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                   </svg>
                 </div>
-                <span class="subitem-meta">我喜欢的</span>
-                <span class="subitem-value">{{ favoriteCount }} <span class="unit">({{ favoriteSize }}G)</span></span>
+                <!-- 子项调整：数量放在label后，占用空间单独显示 -->
+                <span class="subitem-meta">我喜欢的 <span class="subitem-count">({{ favoriteCount }})</span></span>
+                <span class="subitem-size">{{ favoriteSize }}G</span>
               </div>
               <div class="subitem" :title="`我收藏的视频数: ${collectCount} (占用: ${collectSize}G)`">
                 <div class="subitem-icon collect-icon">
@@ -40,8 +40,8 @@
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                   </svg>
                 </div>
-                <span class="subitem-meta">我收藏的</span>
-                <span class="subitem-value">{{ collectCount }} <span class="unit">({{ collectSize }}G)</span></span>
+                <span class="subitem-meta">我收藏的 <span class="subitem-count">({{ collectCount }})</span></span>
+                <span class="subitem-size">{{ collectSize }}G</span>
               </div>
               <div class="subitem" :title="`我关注的视频数: ${followCount} (占用: ${followSize}G)`">
                 <div class="subitem-icon follow-icon">
@@ -52,8 +52,8 @@
                     <line x1="23" y1="11" x2="17" y2="11"></line>
                   </svg>
                 </div>
-                <span class="subitem-meta">我关注的</span>
-                <span class="subitem-value">{{ followCount }} <span class="unit">({{ followSize }}G)</span></span>
+                <span class="subitem-meta">我关注的 <span class="subitem-count">({{ followCount }})</span></span>
+                <span class="subitem-size">{{ followSize }}G</span>
               </div>
               <div class="subitem" :title="`图文视频数: ${graphicVideoCount} (占用: ${graphicVideoSize}G)`">
                 <div class="subitem-icon graphic-icon">
@@ -63,8 +63,8 @@
                     <polyline points="21 15 16 10 5 21"></polyline>
                   </svg>
                 </div>
-                <span class="subitem-meta">图文视频</span>
-                <span class="subitem-value">{{ graphicVideoCount }} <span class="unit">({{ graphicVideoSize }}G)</span></span>
+                <span class="subitem-meta">图文视频 <span class="subitem-count">({{ graphicVideoCount }})</span></span>
+                <span class="subitem-size">{{ graphicVideoSize }}G</span>
               </div>
             </div>
           </div>
@@ -76,21 +76,14 @@
                 <span class="stat-meta">最新同步</span>
                 <!-- <div class="stat-value">TOP {{ topVideos.length }}</div> -->
               </div>
-              <div class="stat-icon size-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                </svg>
-              </div>
+              <!-- 移除SVG图标 -->
             </div>
             <div class="stat-subitems video-list-container">
               <div v-for="(video, index) in topVideos" :key="index" class="subitem video-item" :title="video.title">
-                <!-- <div class="subitem-icon video-list-icon">
-                  <span class="video-index">{{ index + 1 }}</span>
-                </div> -->
                 <div class="video-info">
-                  <span class="subitem-meta video-title">{{ video.title }}</span>
-                  <span class="subitem-value video-time">{{ formatVideoTime(video.time) }}</span>
+                  <!-- 点击标题播放视频 -->
+                  <span class="subitem-meta video-title" @click="openVideoPlayer(video)">{{ video.title }}</span>
+                  <span class="subitem-value video-time">{{ video.time }}</span>
                 </div>
               </div>
               <div v-if="topVideos.length === 0" class="empty-video-list">
@@ -191,6 +184,39 @@
         </div>
       </div>
     </div>
+
+    <!-- 新增：视频播放弹窗（移动端适配） -->
+    <div v-if="showVideoPlayer" class="video-modal-mask" @click="closeVideoPlayer">
+      <div class="video-modal-content" @click.stop>
+        <div class="video-modal-header">
+          <h3 class="video-title-text"></h3>
+          <button class="video-close-btn" @click="closeVideoPlayer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="video-modal-body">
+          <div v-if="videoLoading" class="video-loading">
+            <div class="loading-spinner"></div>
+            <p>加载视频中...</p>
+          </div>
+          <div v-else-if="videoError" class="video-error">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f44336" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>视频加载失败</p>
+            <button class="retry-btn" @click="loadVideo(currentVideo)">重试</button>
+          </div>
+          <video v-else class="video-player" controls autoplay playsinline :src="videoPlayUrl" @error="handleVideoError">
+            您的浏览器不支持HTML5视频播放
+          </video>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -222,11 +248,11 @@ interface LogItem {
   fileName: string;
 }
 
-// 新增 TopVideo 类型接口
+// 新增 TopVideo 类型接口（增加videoId字段）
 interface TopVideoItem {
   title: string;
   time: string;
-  [key: string]: any; // 其他字段
+  id: string; // 视频ID
 }
 
 // 状态管理（仅保留核心数据）
@@ -253,6 +279,13 @@ const logContent = ref<string>('');
 
 // Top Videos 相关状态
 const topVideos = ref<TopVideoItem[]>([]);
+
+// 新增：视频播放相关状态
+const showVideoPlayer = ref<boolean>(false);
+const currentVideo = ref<TopVideoItem | null>(null);
+const videoPlayUrl = ref<string>('');
+const videoLoading = ref<boolean>(false);
+const videoError = ref<boolean>(false);
 
 // 过滤后的日志列表
 const filteredLogs = computed(() => {
@@ -305,7 +338,7 @@ const loadLogData = async () => {
   }
 };
 
-// 加载热门视频数据
+// 加载最新同步的视频5个
 const TopVideo = () => {
   useApiStore()
     .TopVideo(5)
@@ -314,27 +347,6 @@ const TopVideo = () => {
         topVideos.value = res.data;
       }
     });
-};
-
-// 格式化视频时间显示（适配移动端显示）
-const formatVideoTime = (timeStr?: string) => {
-  if (!timeStr) return '未知时间';
-
-  // 移动端适配的时间格式化
-  if (!isNaN(Number(timeStr))) {
-    const date = new Date(Number(timeStr));
-    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date
-      .getDate()
-      .toString()
-      .padStart(2, '0')}`;
-  }
-
-  // 如果是8位数字日期（20251219）
-  if (timeStr.length === 8 && /^\d+$/.test(timeStr)) {
-    return `${timeStr.slice(0, 4)}-${timeStr.slice(4, 6)}-${timeStr.slice(6, 8)}`;
-  }
-
-  return timeStr;
 };
 
 // 打开日志详情弹窗
@@ -431,6 +443,49 @@ const fallbackCopyTextToClipboard = (text: string) => {
 
   document.body.removeChild(textArea);
 };
+
+// 新增：打开视频播放弹窗
+const openVideoPlayer = (video: TopVideoItem) => {
+  if (!video.id) {
+    message.warn('视频ID不存在，无法播放');
+    return;
+  }
+
+  currentVideo.value = video;
+  showVideoPlayer.value = true;
+  loadVideo(video);
+};
+
+// 新增：加载视频播放地址
+const loadVideo = async (video: TopVideoItem) => {
+  try {
+    videoLoading.value = true;
+    videoError.value = false;
+    const timestamp = new Date().getTime();
+    videoPlayUrl.value = `${import.meta.env.VITE_API_URL}api/Video/play/${video.id}?t=${timestamp}`;
+  } catch (err) {
+    console.error('加载视频失败：', err);
+    videoError.value = true;
+    message.error('视频加载失败，请稍后重试');
+  } finally {
+    videoLoading.value = false;
+  }
+};
+
+// 新增：关闭视频播放弹窗
+const closeVideoPlayer = () => {
+  showVideoPlayer.value = false;
+  currentVideo.value = null;
+  videoPlayUrl.value = '';
+  videoLoading.value = false;
+  videoError.value = false;
+};
+
+// 新增：处理视频播放错误
+const handleVideoError = () => {
+  videoError.value = true;
+  console.error('视频播放出错');
+};
 </script>
 
 <style scoped>
@@ -488,6 +543,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 .stat-meta {
   font-size: 14px;
@@ -496,27 +552,31 @@ const fallbackCopyTextToClipboard = (text: string) => {
   letter-spacing: 0.4px;
   font-weight: 500;
 }
+/* 新增：视频总数和总空间容器样式 */
+.stat-value-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+}
 .stat-value {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
   color: #1a1a1a;
   line-height: 1.1;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
 }
-/* 合并数值样式（保持移动端视觉统一） */
-.combined-values {
-  display: flex;
-  align-items: baseline;
-  gap: 0px;
-  font-size: 28px;
+.value-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  margin-left: 4px;
 }
 .video-count {
-  font-size: 26px;
+  font-size: 22px;
 }
 .size-count {
-  font-size: 18px;
+  font-size: 22px;
   color: #666;
 }
 .unit {
@@ -557,6 +617,7 @@ const fallbackCopyTextToClipboard = (text: string) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease;
   cursor: default;
+  justify-content: space-between;
 }
 .subitem:hover {
   transform: translateY(-1px);
@@ -601,6 +662,18 @@ const fallbackCopyTextToClipboard = (text: string) => {
   font-weight: 500;
   flex: 1;
 }
+/* 新增：子项数量样式 */
+.subitem-count {
+  color: #222;
+  font-weight: 600;
+  margin-left: 4px;
+}
+/* 新增：子项占用空间样式 */
+.subitem-size {
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
+}
 /* 视频列表文字样式（适配移动端） */
 .video-title {
   display: -webkit-box;
@@ -612,6 +685,11 @@ const fallbackCopyTextToClipboard = (text: string) => {
   max-height: 2.8em; /* 2行 * line-height */
   width: 100%;
   padding-right: 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.video-title:hover {
+  color: #2196f3;
 }
 .video-time {
   font-size: 11px !important;
@@ -926,6 +1004,135 @@ const fallbackCopyTextToClipboard = (text: string) => {
   background-color: #43a047;
 }
 
+/* 新增：视频播放弹窗样式（移动端适配） */
+.video-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 0px;
+  box-sizing: border-box;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.video-modal-content {
+  width: 100%;
+  max-width: 100%;
+  background-color: #111;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.video-modal-header {
+  padding: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #222;
+}
+.video-title-text {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 500;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+.video-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.video-modal-body {
+  padding: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000;
+  position: relative;
+}
+.video-player {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  max-height: 60vh;
+  object-fit: contain;
+}
+/* 视频加载状态 */
+.video-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 40px 20px;
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* 视频错误状态 */
+.video-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 40px 20px;
+  text-align: center;
+}
+.video-error p {
+  margin: 16px 0 24px;
+  font-size: 14px;
+}
+.retry-btn {
+  padding: 8px 16px;
+  background-color: #2196f3;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.retry-btn:hover {
+  background-color: #1976d2;
+}
+
 /* 夜间模式（完全保留原有样式） */
 html.dark-mode .stats-dashboard-mobile {
   background-color: #1a1a2e;
@@ -953,7 +1160,10 @@ html.dark-mode .stat-meta {
 html.dark-mode .stat-value {
   color: #ffffff;
 }
-html.dark-mode .combined-values .size-count {
+html.dark-mode .value-label {
+  color: #d0d0d0;
+}
+html.dark-mode .size-count {
   color: #d0d0d0;
 }
 html.dark-mode .unit {
@@ -967,6 +1177,12 @@ html.dark-mode .secondary-card .stat-icon {
 }
 html.dark-mode .subitem-meta {
   color: #c0c0d3;
+}
+html.dark-mode .subitem-count {
+  color: #ffffff;
+}
+html.dark-mode .subitem-size {
+  color: #a0a0b3;
 }
 html.dark-mode .subitem-value {
   color: #ffffff;
