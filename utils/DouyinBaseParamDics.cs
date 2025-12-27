@@ -212,7 +212,7 @@ namespace dy.net.utils
             // 添加特有参数
             parameters.AddRange(new Dictionary<string, string>
             {
-                {"user_id", "1218695735550247"},
+                {"user_id", ""},//空着
                 {"sec_user_id", ""},
                 {"offset", "40"},
                 {"min_time", "0"},

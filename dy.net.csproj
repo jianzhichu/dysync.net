@@ -74,8 +74,6 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <None Include="db\dy1.sqlite" />
-    <None Include="db\dy2.sqlite" />
     <None Include="dy.net.sln" />
   </ItemGroup>
 
@@ -101,6 +99,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="db\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
 	<Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">

@@ -45,6 +45,11 @@ namespace dy.net.job
 
                 foreach (var ck in cookies)
                 {
+                    if (string.IsNullOrWhiteSpace(ck.SecUserId))
+                    {
+                        Serilog.Log.Debug($"同步关注列表博主[{ck.UserName}]-未设置secuserid,跳过.");
+                        continue;
+                    }
                     string count = "20";
                     string offset = "0";
                     bool hasmore = true;
@@ -58,7 +63,7 @@ namespace dy.net.job
                             {
                                 if (err.StatusCode != 0)
                                 {
-                                    Serilog.Log.Error($"同步用户[{ck.UserName}]关注列表时发生错误，错误信息：{err.StatusMsg}，状态码：{err.StatusCode}");
+                                    Serilog.Log.Error($"同步关注列表博主[{ck.UserName}]关注列表时发生错误，错误信息：{err.StatusMsg}，状态码：{err.StatusCode}");
                                 }
                                 // 如果是未登录错误，则跳出循环
                                 if (err.StatusCode == 8)

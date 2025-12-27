@@ -139,6 +139,8 @@ namespace dy.net.Controllers
           var init= await dyCookieService.IsInit();
             return ApiResult.Success(init);
         }
+
+
         /// <summary>
         /// 新增用户Cookie
         /// </summary>

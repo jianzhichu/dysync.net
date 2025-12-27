@@ -219,6 +219,6 @@ services:
 
 16. ✅ 增加开关配置是否仅同步最近视频，默认开启（针对之前收藏或者点赞了很多乱七八糟的视频，太多，又不想一个个去抖音取消的情况）
  
-17. ✅ 完成飞牛fpk打包：[github](https://github.com/jianzhichu/FnDepot)
+17. ❌ 完成飞牛fpk打包
 
 
