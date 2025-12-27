@@ -225,8 +225,8 @@ const manualCheckForm = (): { pass: boolean; msg: string } => {
           <div class="switch-with-desc">
             <a-switch v-model:checked="form.status" :checked-value="1" :un-checked-value="0" class="custom-large-switch" />
             <div class="switch-desc">
-              <span class="main-desc">{{ form.status === 1 ? '同步已开启' : '同步已关闭' }}</span>
-              <span class="sub-desc">开启后自动同步数据,建议默认不开启，保存设置后，进入系统配置完成其他设置后再手动开启！</span>
+              <span class="main-desc">{{ form.status === 1 ? '开启同步' : '关闭同步' }}</span>
+              <span class="sub-desc">建议初始不开启，保存设置后，进入系统配置完成其他设置后再手动开启！</span>
             </div>
           </div>
         </a-form-item>
