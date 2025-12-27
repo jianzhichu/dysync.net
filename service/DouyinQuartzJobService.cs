@@ -106,7 +106,7 @@ namespace dy.net.service
 
                 if (startSuccess)
                 {
-                    Log.Debug($"同步任务执行顺序：collect → favorite → followed → follow_user-->默认每{expression}分钟执行一次...");
+                    Log.Debug($"同步任务执行顺序：collect → favorite → followed-->默认每{expression}分钟执行一次...");
                 }
                 else
                 {
