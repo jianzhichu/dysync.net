@@ -137,7 +137,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> IsInit()
         {
           var init= await dyCookieService.IsInit();
-            return ApiResult.Success(false);
+            return ApiResult.Success(init);
         }
         /// <summary>
         /// 新增用户Cookie

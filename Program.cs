@@ -3,6 +3,7 @@ using dy.net.service;
 using dy.net.utils;
 using Serilog;
 using System.Drawing;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime;
 using System.Text;
@@ -41,11 +42,12 @@ namespace dy.net
             var app = builder.Build();
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);
+            Log.Debug($"dy.sync app is started successfully  on  {DefaultListenUrl}");
 
             // 初始化应用服务
             InitApplicationServices(app, isDevelopment);
 
-            Log.Debug($"dy.sync app is started successfully  on  {DefaultListenUrl}");
+            //Log.Debug($"同步任务执行顺序：collect → favorite → followed → follow_user-->默认30分钟执行一次...");
             Console.WriteLine();
             app.Run();
         }
