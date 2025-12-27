@@ -50,19 +50,25 @@ namespace dy.net.extension
             return dbType;
         }
 
-        private static string GetConnString(IConfiguration configuration, DbType dbType)
-        {
-            var connectionString = configuration["dbconn"];
-            if (dbType == DbType.Sqlite)
-            {
-                connectionString = CreateSqliteDBConn();
-            }
-            return connectionString;
-        }
+        //private static string GetConnString(IConfiguration configuration, DbType dbType)
+        //{
+        //    //var connectionString = configuration["dbconn"];
+        //    if (dbType == DbType.Sqlite)
+        //    {
+        //        connectionString = CreateSqliteDBConn();
+        //    }
+        //    return connectionString;
+        //}
 
-        private static string CreateSqliteDBConn()
+        private static string CreateSqliteDBConn(string dbPath="")
         {
-            var fileFloder = Path.Combine(Environment.CurrentDirectory, "db");
+            Serilog.Log.Debug($"dbpath，{dbPath}");
+            string fileFloder= Path.Combine(Environment.CurrentDirectory, "db"); 
+            if (!string.IsNullOrEmpty(dbPath))
+            { 
+                fileFloder= Path.Combine(dbPath, "db");
+             }
+          
             if (!Directory.Exists(fileFloder))
             {
                 Directory.CreateDirectory(fileFloder);
@@ -75,6 +81,7 @@ namespace dy.net.extension
             }
 
             return conn;
+
         }
 
 
@@ -115,16 +122,16 @@ namespace dy.net.extension
             });
         }
 
-        public static void AddSqlsugar(this IServiceCollection services, IConfiguration configuration)
+        public static void AddSqlsugar(this IServiceCollection services,string dbpath)
         {
-            DbType dbtype = GetDBType(configuration);
+            //DbType dbtype = GetDBType(configuration);
             services.AddScoped<ISqlSugarClient>(db =>
             {
                 var sqlSugar = new SqlSugarClient(new ConnectionConfig
                 {
-                    ConnectionString = GetConnString(configuration, dbtype),
+                    ConnectionString = CreateSqliteDBConn( dbpath),
                     InitKeyType = InitKeyType.Attribute,
-                    DbType = dbtype,
+                    DbType = DbType.Sqlite,
                     IsAutoCloseConnection = true // close connection after each operation (recommended)
                 }, db =>
                 {

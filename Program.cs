@@ -23,7 +23,7 @@ namespace dy.net
         /// </summary>
         public static void Main(string[] args)
         {
-
+         
             // 初始化编码提供器
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             // 构建Web应用
@@ -34,9 +34,9 @@ namespace dy.net
 
             // 配置主机
             ConfigureHost(builder, isDevelopment);
-      
-            // 配置服务
-            ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
+
+            // 配置服务--数据库保存路径从命令行参数传入的第一个参数
+            ConfigureServices(builder.Services, builder.Configuration, builder.Environment, args.Length > 0 ? args[0] : "");
 
             // 构建应用
             var app = builder.Build();
@@ -145,7 +145,7 @@ namespace dy.net
         /// <summary>
         /// 配置依赖注入服务
         /// </summary>
-        private static void ConfigureServices(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment)
+        private static void ConfigureServices(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment,string dbPath)
         {
 
             //打印logo
@@ -165,7 +165,7 @@ namespace dy.net
             services.AddHttpClients();
 
             // 数据库
-            services.AddSqlsugar(config);
+            services.AddSqlsugar(dbPath);
 
             // 定时任务
             services.AddQuartzService();
