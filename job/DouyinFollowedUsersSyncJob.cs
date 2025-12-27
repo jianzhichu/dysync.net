@@ -65,7 +65,7 @@ namespace dy.net.job
                                 {
                                     hasmore = false;
                                 }
-                                ck.StatusMsg = err.StatusCode == 8 ? "已过期" : "正 常";
+                                ck.StatusMsg = err.StatusCode == 8 ? "无效" : "正 常";
                                 ck.StatusCode = err.StatusCode;
                                 await _dyCookieService.UpdateAsync(ck);
                             });
@@ -100,10 +100,15 @@ namespace dy.net.job
                             break;
                         }
                     }
-                  
+
                     if (follows.Count > 0)
                     {
-                        await _followService.Sync(follows, ck );
+                        var (add, update, succ) = await _followService.Sync(follows, ck);
+                        if (!succ) hasmore = false;
+                        else
+                        {
+                            hasmore = add > 100|| update > 100;//一次最多100条数据
+                        }
                     }
 
                 }

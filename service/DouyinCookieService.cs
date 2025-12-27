@@ -1,4 +1,5 @@
 ﻿using ClockSnowFlake;
+using dy.net.dto;
 using dy.net.model;
 using dy.net.repository;
 using SqlSugar;
@@ -26,12 +27,22 @@ namespace dy.net.service
         {
             return _cookieRepository.GetAllAsync();
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> IsInit()
+        {
+          return await  _cookieRepository.ExistsAsync(x => !string.IsNullOrEmpty(x.Id));
+        }
         public async Task<bool> Add(DouyinCookie dyUserCookies)
         {
             return await _cookieRepository.InsertAsync(dyUserCookies);
         }
-
+        public async Task<bool> Switch(DouyinCookieStopDto dto)
+        {
+            return await _cookieRepository.SwitchAsync(dto);
+        }
         public bool InitCookie()
         {
             var exist = _cookieRepository.GetDefault();
@@ -41,7 +52,7 @@ namespace dy.net.service
             }
             var cookie = new DouyinCookie
             {
-                UserName = "douyin",
+                UserName = "douyin2025", 
                 Cookies = "-",
                 SecUserId = "-",
                 Id = IdGener.GetLong().ToString(),
@@ -94,6 +105,24 @@ namespace dy.net.service
             await _cookieRepository.DeleteAsync(x => !string.IsNullOrWhiteSpace(x.Id));
             await _cookieRepository.InsertRangeAsync(cookies);
             return true;
+        }
+
+        /// <summary>
+        /// 将所有同步类型的同步状态改为已同步，这样，之后就不会再扫描所有接口数据，只会读取最新一页的数据了
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> SetOnlySyncNew()
+        {
+            var cks= await _cookieRepository.GetAllAsync();
+
+            foreach (var item in cks)
+            {
+                item.CollHasSyncd = 1;
+                item.FavHasSyncd = 1;
+                item.UperSyncd = 1;
+            }
+           var d= await _cookieRepository.UpdateRangeAsync(cks);
+            return d>0;
         }
 
     }

@@ -338,10 +338,10 @@ const loadLogData = async () => {
   }
 };
 
-// 加载最新同步的视频5个
+// 加载最新同步的视频10个
 const TopVideo = () => {
   useApiStore()
-    .TopVideo(5)
+    .TopVideo(10)
     .then((res) => {
       if (res.code == 0) {
         topVideos.value = res.data;

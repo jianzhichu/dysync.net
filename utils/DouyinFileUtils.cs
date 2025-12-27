@@ -74,5 +74,88 @@
             }
             return totalSize;
         }
+
+
+        /// <summary>
+        /// 检查指定文件夹是否有读取权限
+        /// </summary>
+        /// <param name="directoryPath">文件夹路径</param>
+        /// <returns>有读权限返回true，否则返回false</returns>
+        public static bool HasDirectoryReadPermission(string directoryPath)
+        {
+            if (string.IsNullOrWhiteSpace(directoryPath))
+                return false;
+
+            try
+            {
+                // 首先检查文件夹是否存在
+                if (!Directory.Exists(directoryPath))
+                    return false;
+
+                // 尝试枚举文件夹内容（核心验证读权限）
+                // EnumerateFileSystemEntries 会触发实际的读权限检查
+                var entries = Directory.EnumerateFileSystemEntries(directoryPath);
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // 明确捕获无权限异常
+                return false;
+            }
+            catch (Exception ex)
+            {
+                // 其他异常（如路径无效、文件夹被占用等），视为无有效读权限
+                Console.WriteLine($"检查读权限时发生非权限异常: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 检查指定文件夹是否有写入权限
+        /// </summary>
+        /// <param name="directoryPath">文件夹路径</param>
+        /// <returns>有写权限返回true，否则返回false</returns>
+        public static bool HasDirectoryWritePermission(string directoryPath)
+        {
+            if (string.IsNullOrWhiteSpace(directoryPath))
+                return false;
+
+            try
+            {
+                // 检查文件夹是否存在
+                if (!Directory.Exists(directoryPath))
+                    return false;
+
+                // 核心验证：在文件夹内创建临时文件（最直接的写权限验证）
+                string tempFileName = $"temp_perm_check_{Guid.NewGuid()}.tmp";
+                string tempFilePath = Path.Combine(directoryPath, tempFileName);
+
+                // 尝试创建临时文件
+                using (FileStream fs = File.Create(tempFilePath, 1, FileOptions.DeleteOnClose))
+                {
+                    // FileOptions.DeleteOnClose 确保即使程序异常退出，临时文件也会被删除
+                    return true;
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"检查写权限时发生非权限异常: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 检查指定文件夹是否同时有读写权限
+        /// </summary>
+        /// <param name="directoryPath">文件夹路径</param>
+        /// <returns>同时有读写权限返回true，否则返回false</returns>
+        public static bool HasDirectoryReadWritePermission(string directoryPath)
+        {
+            return HasDirectoryReadPermission(directoryPath) && HasDirectoryWritePermission(directoryPath);
+        }
     }
 }

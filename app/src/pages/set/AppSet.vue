@@ -21,6 +21,14 @@
             <span>每次最大下载数量：10-30</span>
           </div>
         </a-form-item>
+
+        <a-form-item has-feedback label="仅同步最新视频" name="OnlySyncNew" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.OnlySyncNew" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>开启后，仅同步最近收藏的20条，以及未来新收藏的，不会去同步之前的视频，默认开启， 避免突然大量下载，导致风控</span>
+          </div>
+        </a-form-item>
       </div>
 
       <!-- 文件保存配置 -->
@@ -143,23 +151,6 @@
           </div>
         </a-form-item>
 
-        <!-- <a-form-item has-feedback label="日志保留（天数）" name="LogKeepDay" :wrapper-col="{ span: 6 }" style="margin-left:30px">
-          <a-input-number v-model:value="formState.LogKeepDay" placeholder="请输入保留天数" :min="1" :max="90" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>系统运行日志的保留天数，范围1-90天，过期自动清理</span>
-          </div>
-        </a-form-item> -->
-        <!-- <a-form-item has-feedback label="是否自动去重" name="AutoDistinct" :wrapper-col="{ span: 10 }">
-          <a-switch v-model:checked="formState.AutoDistinct" disabled />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>
-              启用后，同一个视频,只会下载一次。(但是暂时不能决定保留哪个文件夹的)
-            </span>
-          </div>
-        </a-form-item> -->
-
       </div>
 
       <!-- 操作按钮 -->
@@ -180,18 +171,27 @@
   <!-- 配置导入导出悬浮按钮（优化布局+动画） -->
   <div class="config-float-btn-container">
     <!-- 主按钮 -->
-    <a-button class="main-float-btn" type="primary" shape="circle">
-      <tool-outlined />
-    </a-button>
+    <a-tooltip title="配置导出导入" placement="left">
+
+      <a-button class="main-float-btn" type="primary" shape="circle">
+        <tool-outlined />
+      </a-button>
+    </a-tooltip>
 
     <!-- 子按钮容器（新增：绝对定位向上展开） -->
     <div class="float-sub-btn-wrapper">
-      <a-button class="sub-float-btn export-btn" type="default" shape="circle" @click="exportConfig" tooltip="导出配置">
-        <cloud-download-outlined />
-      </a-button>
-      <a-button class="sub-float-btn import-btn" type="default" shape="circle" @click="triggerImportFile" tooltip="导入配置">
-        <cloud-upload-outlined />
-      </a-button>
+      <!-- 关键修改：添加 Tooltip 组件包裹导出按钮 -->
+      <a-tooltip title="导出配置" placement="left">
+        <a-button class="sub-float-btn export-btn" type="default" shape="circle" @click="exportConfig">
+          <cloud-download-outlined />
+        </a-button>
+      </a-tooltip>
+      <!-- 关键修改：添加 Tooltip 组件包裹导入按钮 -->
+      <a-tooltip title="导入配置" placement="left">
+        <a-button class="sub-float-btn import-btn" type="default" shape="circle" @click="triggerImportFile">
+          <cloud-upload-outlined />
+        </a-button>
+      </a-tooltip>
     </div>
 
     <input ref="importFileInput" type="file" accept=".json" class="import-file-input" @change="handleImportFile">
@@ -201,7 +201,7 @@
 <script lang="ts" setup>
 import { reactive, toRaw, ref, watch, onMounted, computed, nextTick } from 'vue';
 import type { UnwrapRef } from 'vue';
-import { Form } from 'ant-design-vue';
+import { Form, Tooltip } from 'ant-design-vue'; // 关键修改：导入 Tooltip 组件
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
 import { useApiStore } from '@/store';
@@ -212,11 +212,9 @@ import {
   InfoCircleOutlined,
   SaveOutlined,
   CheckOutlined,
-  // 新增图标
-  SettingOutlined,
-  UpOutlined,
-  DownloadOutlined,
-  UploadOutlined,
+  ToolOutlined, // 修正：原代码中用了 tool-outlined 但未导入
+  CloudDownloadOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons-vue';
 
 // 表单引用
@@ -258,6 +256,7 @@ interface FormState {
   AutoDistinct: boolean;
   PriorityLevel: string;
   DownDynamicVideo: boolean;
+  OnlySyncNew: boolean;
 }
 
 // 表单初始数据
@@ -278,6 +277,7 @@ const formState: UnwrapRef<FormState> = reactive({
   AutoDistinct: false,
   PriorityLevel: '',
   DownDynamicVideo: false,
+  OnlySyncNew: false,
 });
 
 // 实时计算完整模板（可选：让用户实时预览，提交时无需重复计算）
@@ -354,6 +354,7 @@ const getConfig = () => {
           AutoDistinct: res.data.autoDistinct,
           PriorityLevel: res.data.priorityLevel,
           DownDynamicVideo: res.data.downDynamicVideo,
+          OnlySyncNew: res.data.onlySyncNew,
         });
 
         tagData.value = JSON.parse(res.data.priorityLevel);

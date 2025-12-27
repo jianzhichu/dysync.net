@@ -96,8 +96,8 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 | 镜像标签          | 架构           |
 | ----------------- | -------------- |
-| `beta_1.9.0`      | x86_64 (amd64) |
-| `arm_1.9.0`       | ARM64          |
+| `beta_1.9.2`      | x86_64 (amd64) |
+| `arm_1.9.2`       | ARM64          |
 
 ### 最新镜像查看
 [镜像列表](http://nas.synology2023.online:10108/api/docker/dysync/1)
@@ -115,7 +115,7 @@ docker run -d --restart=always \
   -v /opt/dysync/uper:/app/uper \
   -p 10103:10101 \
   --name dysync2025 \
-  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.0
+  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.2
 # 注意：-p 后面的容器端口,可以用环境变量类似：ASPNETCORE_URLS = http://+:10108 指定
 ```
 
@@ -129,7 +129,7 @@ version: '3.8'
 
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.0
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.2
     container_name: dysync2025  # 容器名称
     restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
@@ -215,6 +215,10 @@ services:
 
 14. ✅ 增加配置项及关注列表（手动添加部分）导出导入功能
 
-15. ✅ 增加移动端（主要统计数据和日志）
+15. ✅ 增加移动端（主要统计数据和日志以及最近十条同步记录-可手机端播放）
+
+16. ✅ 增加开关配置是否仅同步最近视频，默认开启（针对之前收藏或者点赞了很多乱七八糟的视频，太多，又不想一个个去抖音取消的情况）
+ 
+17. ✅ 完成飞牛fpk打包：[github](https://github.com/jianzhichu/FnDepot)
 
 

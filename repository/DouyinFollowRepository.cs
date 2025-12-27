@@ -18,7 +18,7 @@ namespace dy.net.repository
         {
             var data = this.Db.Queryable<DouyinFollowed>()
                         .LeftJoin<DouyinCookie>((f, u) => f.mySelfId == u.MyUserId)
-                        .Where((f, u) => u.Status == 1) // 注意：LeftJoin+u.Status==1 等价于 InnerJoin（u必须存在）
+                        //.Where((f, u) => u.Status == 1) // 注意：LeftJoin+u.Status==1 等价于 InnerJoin（u必须存在）
                         .GroupBy((f, u) => f.mySelfId) // 按 mySelfId 分组
                         .Select((f, u) => new DouyinFollowGroupDto
                         {
@@ -39,10 +39,10 @@ namespace dy.net.repository
         public async Task<(List<DouyinFollowed> list, int totalCount)> GetPagedAsync(FollowRequestDto dto)
         {
             var where = this.Db.Queryable<DouyinFollowed>()
-                .Where(x=>x.mySelfId==dto.MySelfId)
+                .Where(x => x.mySelfId == dto.MySelfId)
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.FollowUserName), x => x.UperName.Contains(dto.FollowUserName));
             var totalCount = await where.CountAsync();
-            var list = await where.OrderByDescending(x=>x.OpenSync).OrderByDescending(x => x.LastSyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
+            var list = await where.OrderByDescending(x => x.OpenSync).OrderByDescending(x => x.LastSyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
             return (list, totalCount);
         }
 
@@ -66,7 +66,7 @@ namespace dy.net.repository
         }
 
 
-        public async Task<DouyinFollowed> GetBySecUId(string uperId,string myId)
+        public async Task<DouyinFollowed> GetBySecUId(string uperId, string myId)
         {
             return await this.GetFirstAsync(x => x.UperId == uperId && x.mySelfId == myId);
         }
@@ -83,7 +83,7 @@ namespace dy.net.repository
         public async Task<List<DouyinFollowed>> GetSyncFollows(string userId)
         {
             return await this.Db.Queryable<DouyinFollowed>()
-                .Where(x => x.OpenSync == true).Where(x=>x.mySelfId== userId)
+                .Where(x => x.OpenSync == true).Where(x => x.mySelfId == userId)
                 .ToListAsync();
         }
 
@@ -94,14 +94,14 @@ namespace dy.net.repository
         /// <param name="followInfos"></param>
         /// <param name="ck"></param>
         /// <returns></returns>
-        public async Task<bool> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
+        public async Task<(int add, int update, bool succ)> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
         {
             // 基础参数校验
             if (followInfos == null) followInfos = new List<FollowingsItem>();
             if (ck == null || string.IsNullOrWhiteSpace(ck.MyUserId))
             {
                 Serilog.Log.Error("同步关注列表失败：当前用户ID为空");
-                return false;
+                return (0, 0, false);
             }
 
             try
@@ -111,7 +111,7 @@ namespace dy.net.repository
                 if (!currentSecUids.Any())
                 {
                     Serilog.Log.Debug($"同步关注列表：当前批次无有效数据（{ck.UserName}），直接返回成功");
-                    return true;
+                    return (0, 0, true);
                 }
 
                 // 2. 查询当前批次对应的现有记录（仅查需要对比的，减少数据量）
@@ -177,7 +177,7 @@ namespace dy.net.repository
                     if (!batchAddSuccess)
                     {
                         Serilog.Log.Error("同步关注列表失败：新增关注分批插入异常");
-                        return false;
+                        return (toAddFollows.Count, toUpdateFollows.Count, false);
                     }
                 }
 
@@ -198,21 +198,22 @@ namespace dy.net.repository
                     if (!batchUpdateSuccess)
                     {
                         Serilog.Log.Error("同步关注列表失败：关注信息更新异常");
-                        return false;
+                        return (toAddFollows.Count, toUpdateFollows.Count, false);
                     }
                 }
 
                 // 【重要】删除逻辑已移除：增量场景下不能通过批次对比删除，需单独设计取消关注逻辑
                 Serilog.Log.Debug($"dy_followed_users（{ck.UserName}）关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条");
-                return true;
+                return (toAddFollows.Count, toUpdateFollows.Count, true);
             }
             catch (Exception ex)
             {
                 Serilog.Log.Error(ex, $"同步关注列表失败（{ck.UserName}）：{ex.Message}");
-                return false;
+                return (0, 0, false);
+
             }
         }
-      
+
         //public async Task<bool> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
         //{
         //    // 基础参数校验

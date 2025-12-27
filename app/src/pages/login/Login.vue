@@ -8,9 +8,20 @@
 import LoginBox from './LoginBox.vue';
 import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
+import { onMounted } from 'vue';
+import { useApiStore } from '@/store';
 
 const router = useRouter();
-
+onMounted(() => {
+  useApiStore()
+    .AppisInit()
+    .then((res) => {
+      if (res.code == 0 && res.data) {
+      } else {
+        router.push('/init');
+      }
+    });
+});
 function onLoginSuccess() {
   if (isMobileBrowser()) router.push('/mobile');
   else router.push('/dashboard');

@@ -1,10 +1,19 @@
 <script lang="ts" setup>
 import { getBase64 } from '@/utils/file';
 import { FormInstance } from 'ant-design-vue';
-import { reactive, ref, onMounted, UnwrapRef } from 'vue';
+import { reactive, ref, onMounted, UnwrapRef, watch } from 'vue';
 import dayjs from 'dayjs';
 import { Dayjs } from 'dayjs';
-import { EditFilled } from '@ant-design/icons-vue';
+import {
+  EditFilled,
+  DeleteFilled,
+  SearchOutlined,
+  PlusOutlined,
+  ExclamationCircleOutlined,
+  StopOutlined,
+  ClockCircleOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons-vue';
 import { useApiStore } from '@/store';
 import { message } from 'ant-design-vue';
 
@@ -16,17 +25,14 @@ columns.value = [
     dataIndex: 'userName',
     width: 180,
   },
-  { title: '状态', dataIndex: 'status', width: 180 },
   { title: '收藏路径', dataIndex: 'savePath' },
   { title: '喜欢路径', dataIndex: 'favSavePath' },
   { title: '博主路径', dataIndex: 'upSavePath' },
   { title: '图文视频', dataIndex: 'imgSavePath' },
   { title: 'Cookie', dataIndex: 'cookies' },
   { title: '有效状态', dataIndex: 'statusMsg' },
-  // { title: '博主信息', dataIndex: 'upSecUserIds' },
-  // { title: '自己', dataIndex: 'secUserId' },
-  { title: '操作', dataIndex: 'edit', width: 200 },
-  // { title: 'id', dataIndex: 'id', width: 200, hiden: false },
+  { title: '状态', dataIndex: 'status', width: 180 },
+  { title: '操作', dataIndex: 'edit', width: 350 }, // 加宽操作列宽度
 ];
 
 // 定义数组中单个对象的类型：包含uper和uid字段（可选字符串类型，根据实际需求调整是否可选）
@@ -49,17 +55,8 @@ type DataItem = {
   upSecUserIds?: string;
   upSavePath?: string;
   imgSavePath?: string;
+  useSinglePath?: boolean; // 新增：是否全部用一个地址
 };
-
-// const dataSource = reactive<DataItem[]>([
-//   {
-//     userName: 'Li Zhi',
-//     cookies: '131231',
-//     savePath: 'x',
-//     status: 1,
-//     id: '1',
-//   },
-// ]);
 
 const loading = ref(false);
 const datas: UnwrapRef<DataItem[]> = reactive([]);
@@ -96,7 +93,6 @@ const GetRecords = () => {
       }
     });
 };
-// onMounted(() => {});
 
 function addNew() {
   showModal.value = true;
@@ -114,11 +110,12 @@ const newCookie = (cookie?: DataItem) => {
   cookie.savePath = undefined;
   cookie.favSavePath = undefined;
   cookie.secUserId = undefined;
-  cookie.status = 0;
+  cookie.status = 0; // 0=关闭，1=开启
   cookie.id = '0';
   cookie.upSecUserIdsJson = undefined;
   cookie.upSavePath = undefined;
   cookie.imgSavePath = undefined;
+  cookie.useSinglePath = false; // 新增：默认不使用单一路径
   return cookie;
 };
 
@@ -130,6 +127,19 @@ const copyObject = (target: any, source?: any) => {
 };
 
 const form = reactive<DataItem>(newCookie());
+
+// 新增：监听收藏路径变化，当启用单一路径时同步到其他路径
+watch(
+  [() => form.savePath, () => form.useSinglePath],
+  ([newSavePath, useSinglePath]) => {
+    if (useSinglePath && newSavePath) {
+      form.favSavePath = newSavePath;
+      form.upSavePath = newSavePath;
+      form.imgSavePath = newSavePath;
+    }
+  },
+  { immediate: true }
+);
 
 function reset() {
   return newCookie(form);
@@ -146,7 +156,6 @@ const formLoading = ref(false);
 
 function submit() {
   formLoading.value = true;
-  let self = this;
 
   formModel.value
     ?.validateFields()
@@ -156,9 +165,6 @@ function submit() {
       } else {
         copyObject(editRecord.value, resData);
       }
-      // alert(JSON.stringify(form.upSecUserIdsJson));
-      // console.log('1', authors);
-      // console.log('2', res);
       useApiStore()
         .UpdateConfig(resData)
         .then((res) => {
@@ -181,17 +187,15 @@ function submit() {
 
 const editRecord = ref<DataItem>();
 
-import { Modal } from 'ant-design-vue'; // 假设使用Ant Design Vue的Modal组件
+import { Modal } from 'ant-design-vue';
 
 const deleted = (id: string) => {
-  // 显示确认对话框
   Modal.confirm({
     title: '确认删除',
     content: '确定要删除这条记录吗？此操作不可撤销。',
     okText: '确认',
     cancelText: '取消',
     onOk: () => {
-      // 用户确认后执行删除操作
       useApiStore()
         .deleteCookie(id)
         .then((res) => {
@@ -204,20 +208,60 @@ const deleted = (id: string) => {
         });
     },
     onCancel: () => {
-      // 用户取消删除，不执行任何操作
       console.log('已取消删除');
     },
   });
 };
-/**
- * 编辑
- * @param record
- */
+
 function edit(record: DataItem) {
   editRecord.value = record;
   copyObject(form, record);
+  // 确保useSinglePath有默认值
+  if (form.useSinglePath === undefined) {
+    form.useSinglePath = false;
+  }
   showModal.value = true;
 }
+
+// 新增：切换同步状态方法
+const switchSyncStatus = (record: DataItem) => {
+  const targetStatus = record.status === 1 ? 0 : 1;
+  const statusText = targetStatus === 1 ? '开启' : '停止';
+  const title = `确认${statusText}同步`;
+  const content = `确定要${statusText}【${record.userName || '该'}】Cookie的同步任务吗？`;
+
+  Modal.confirm({
+    title,
+    content,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: () => {
+      loading.value = true;
+      useApiStore()
+        .SwitchCookieStatus({
+          id: record.id,
+          status: targetStatus,
+        })
+        .then((res) => {
+          loading.value = false;
+          if (res.code === 0) {
+            message.success(`${statusText}同步成功`);
+            GetRecords(); // 刷新列表
+          } else {
+            message.error(`${statusText}同步失败：${res.message || '未知错误'}`);
+          }
+        })
+        .catch((err) => {
+          loading.value = false;
+          console.error('切换同步状态失败：', err);
+          message.error('切换同步状态失败，请稍后重试');
+        });
+    },
+    onCancel: () => {
+      console.log(`已取消${statusText}同步`);
+    },
+  });
+};
 
 type Status = 0 | 1;
 
@@ -242,12 +286,17 @@ const showUpers = (recode: DataItem) => {
 };
 
 const addRow = () => {
+  if (!form.upSecUserIdsJson) {
+    form.upSecUserIdsJson = [];
+  }
   form.upSecUserIdsJson.push({ uper: '', uid: '', syncAll: false });
 };
-const removeRow = (index) => {
-  form.upSecUserIdsJson.splice(index, 1);
+const removeRow = (index: number) => {
+  if (form.upSecUserIdsJson) {
+    form.upSecUserIdsJson.splice(index, 1);
+  }
 };
-const rowCount = 4;
+const rowCount = 8;
 
 // 组件挂载时获取配置
 onMounted(() => {
@@ -255,6 +304,7 @@ onMounted(() => {
 });
 const downImgVideo = ref(true);
 </script>
+
 <template>
   <a-modal :title="form._isNew ? '新增' : '编辑'" v-model:visible="showModal" @ok="submit" @cancel="cancel" width="1000px">
     <a-form ref="formModel" :model="form" :labelCol="{ span: 3 }" :wrapperCol="{ span: 20 }">
@@ -264,21 +314,10 @@ const downImgVideo = ref(true);
       <a-form-item label="id" required name="id" v-show="false">
         <a-input v-model:value="form.id" />
       </a-form-item>
-      <a-form-item label="收藏的存储路径" name="savePath">
-        <a-input v-model:value="form.savePath" />
+      <a-form-item label="Cookie值" name="cookies">
+        <a-textarea v-model:value="form.cookies" :rows="rowCount" />
       </a-form-item>
 
-      <a-form-item label="Cookie值" name="cookies">
-        <a-textarea v-model:value="form.cookies" :rows='rowCount' />
-      </a-form-item>
-      <a-form-item label="喜欢的存储路径" name="favSavePath">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.favSavePath" style="flex: 1;" />
-          <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
-            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
-          </a-tooltip>
-        </div>
-      </a-form-item>
       <a-form-item label="我的secUserId" name="secUserId">
         <div style="display: flex; align-items: center; gap: 6px;">
           <a-input v-model:value="form.secUserId" style="flex: 1;" />
@@ -287,58 +326,52 @@ const downImgVideo = ref(true);
           </a-tooltip>
         </div>
       </a-form-item>
+
+      <a-form-item label="收藏的存储路径" name="savePath">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <a-input v-model:value="form.savePath" />
+        </div>
+      </a-form-item>
+      <!-- 新增：是否全部用一个地址开关 -->
+      <a-form-item label="统一存储路径" name="useSinglePath">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <a-switch v-model:checked="form.useSinglePath" :checked-value="true" :un-checked-value="false" size="default" />
+          <span>{{ form.useSinglePath ? '开启（共用收藏视频路径，如果是容器部署-docker-compose只需要映射一个路径就行了）' : '关闭（各路径独立配置）' }}</span>
+        </div>
+      </a-form-item>
+      <a-form-item label="喜欢的存储路径" name="favSavePath">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <a-input v-model:value="form.favSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" />
+          <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
+            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
+          </a-tooltip>
+        </div>
+      </a-form-item>
+
       <a-form-item label="关注的存储路径" name="upSavePath">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.upSavePath" style="flex: 1;" />
+          <a-input v-model:value="form.upSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" style="flex: 1;" />
           <a-tooltip title="同步指定博主视频时必填！！！">
             <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
           </a-tooltip>
         </div>
       </a-form-item>
 
-      <!-- <a-form-item label="博主配置" name="upSecUserIdsJson">
-        <a-form-item-rest> 
-          <a-button type="primary" @click="addRow" style="margin-bottom: 12px">
-            添加
-            <template #icon>
-              <PlusOutlined />
-            </template>
-          </a-button>
-
-          <div v-for="(row, index) in form.upSecUserIdsJson" :key="index" style="display: flex; gap: 12px; margin-bottom: 8px; align-items: center">
-            <a-input v-model:value="row.uper" placeholder="博主别名，可自定义" style="flex: 1" />
-
-            <a-input v-model:value="row.uid" placeholder="博主secUserId" style="flex: 3" />
-
-            <div style="flex: 1; display: flex; align-items: center;">
-              <a-tooltip title="默认关闭，仅同步 UP 主最新一页数据；开启将同步全部作品（量大不建议开启）">
-                <span style="margin-right: 8px; cursor: default;color:#faad14">同步全部作品</span>
-              </a-tooltip>
-              <a-switch v-model:checked="row.syncAll" />
-            </div>
-
-            <a-button type="text" danger @click="removeRow(index)">
-              <template #icon>
-                <DeleteOutlined />
-              </template>
-            </a-button>
-          </div>
-        </a-form-item-rest>
-      </a-form-item> -->
       <a-form-item label="图文的存储路径" name="imgSavePath">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.imgSavePath" style="flex: 1;" />
+          <a-input v-model:value="form.imgSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" style="flex: 1;" />
           <a-tooltip title="同步图文视频必填！！！">
             <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
           </a-tooltip>
         </div>
       </a-form-item>
 
-      <a-form-item label="是否启用" name="status">
-        <a-select style="width: 110px;" v-model:value="form.status" :options="[
-            { label: '停止同步', value: 0 },
-            { label: '开启同步', value: 1 },
-          ]" />
+      <!-- 同步状态开关 -->
+      <a-form-item label="同步状态" name="status">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <a-switch v-model:checked="form.status" :checked-value="1" :un-checked-value="0" size="default" />
+          <span>{{ form.status === 1 ? '开启' : '停止' }}</span>
+        </div>
       </a-form-item>
     </a-form>
   </a-modal>
@@ -346,7 +379,6 @@ const downImgVideo = ref(true);
   <!-- 成员表格 -->
   <a-table v-bind="$attrs" :columns="columns" :dataSource="dataSource" :pagination="false">
     <template #title>
-      <!-- 关键修改：将 justify-between 改为 justify-end（使子元素靠右侧对齐） -->
       <div class="flex justify-end pr-4">
         <a-button type="primary" @click="GetRecords()" :loading="formLoading" class="mr-2">
           <template #icon>
@@ -364,33 +396,43 @@ const downImgVideo = ref(true);
       </div>
     </template>
     <template #bodyCell="{ column, text, record }">
-
       <template v-if="column.dataIndex === 'status'">
-        <a-badge class="text-subtext" :color="'green'">
+        <a-badge class="text-subtext" :color="text === 1 ? 'green' : 'red'">
           <template #text>
             <span class="text-subtext">{{ StatusDict[text as Status] }}</span>
           </template>
         </a-badge>
       </template>
       <template v-else-if="column.dataIndex === 'cookies'">
-        <!-- 触发按钮 -->
         <a-button @click="showCookies(record)">查看</a-button>
       </template>
       <template v-else-if="column.dataIndex === 'upSecUserIds'">
-        <!-- 触发按钮 -->
         <a-button @click="showUpers(record)">查看</a-button>
       </template>
       <template v-else-if="column.dataIndex === 'edit'">
-        <a-button :disabled="showModal" type="link" @click="edit(record)">
+        <!-- 同步状态切换按钮 -->
+        <a-button :disabled="loading" type="link" @click="switchSyncStatus(record)" :style="{ color: record.status === 1 ? '#ff4d4f' : 'green' }">
+          <template #icon>
+            <span v-if="record.status === 1" style="margin-right:5px;">
+              <StopOutlined />
+            </span>
+            <span v-else style="margin-right:5px;">
+              <ClockCircleOutlined />
+            </span>
+          </template>
+          {{ record.status === 1 ? '停止同步'  : '开启同步' }}
+        </a-button>
+
+        <a-button :disabled="showModal || loading" type="link" @click="edit(record)">
           <template #icon>
             <EditFilled />
           </template>
           编辑
         </a-button>
 
-        <a-button type="link" @click="deleted(record.id)" danger>
+        <a-button :disabled="loading" type="link" @click="deleted(record.id)" danger>
           <template #icon>
-            <DeleteFilled />
+            <DeleteOutlined />
           </template>
           删除
         </a-button>
@@ -401,22 +443,21 @@ const downImgVideo = ref(true);
     </template>
   </a-table>
 
-  <!-- Modal弹窗 -->
+  <!-- Cookie详情弹窗 -->
   <a-modal title="Cookie 详情" :visible="showCookiesModal" style="width:1200px;" @cancel="showCookiesModal = false" @ok="showCookiesModal = false">
-    <!-- 弹窗内容 -->
     <div class="cookie-content">
       {{ showCookiesData || '无Cookie数据' }}
     </div>
   </a-modal>
 
-  <!-- Modal弹窗 -->
+  <!-- 博主信息弹窗 -->
   <a-modal title="要同步的博主信息" :visible="showUpersModal" style="width:1200px;" @cancel="showUpersModal = false" @ok="showUpersModal = false">
-    <!-- 弹窗内容 -->
     <div class="cookie-content">
       {{ showUpersData || '未设置' }}
     </div>
   </a-modal>
 </template>
+
 <style scoped>
 .cookie-content {
   white-space: pre-wrap;
@@ -426,101 +467,59 @@ const downImgVideo = ref(true);
   padding: 10px;
   box-sizing: border-box;
 }
-
+.ant-form-item {
+  margin-bottom: 10px;
+}
 /* 透明滚动条样式 - WebKit内核浏览器 */
 .cookie-content::-webkit-scrollbar {
   width: 6px; /* 更细的滚动条 */
 }
-
-/* 轨道完全透明 */
 .cookie-content::-webkit-scrollbar-track {
   background: transparent;
 }
-
-/* 滑块半透明（默认几乎看不见） */
 .cookie-content::-webkit-scrollbar-thumb {
   background: rgba(150, 150, 150, 0.2); /* 浅灰透明 */
   border-radius: 3px;
 }
-
-/* hover时稍微显示一点 */
 .cookie-content::-webkit-scrollbar-thumb:hover {
   background: rgba(150, 150, 150, 0.4); /* 略深一点的透明 */
 }
-
-/* 角落也透明 */
 .cookie-content::-webkit-scrollbar-corner {
   background: transparent;
 }
-
 /* Firefox 透明滚动条适配 */
 .cookie-content {
   scrollbar-width: thin;
   scrollbar-color: rgba(150, 150, 150, 0.2) transparent;
 }
 
-.cookie-content {
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 10px;
-  box-sizing: border-box;
-}
-.cookie-content::-webkit-scrollbar {
-  width: 6px;
-}
-.cookie-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-.cookie-content::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.2);
-  border-radius: 3px;
-}
-.cookie-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.4);
-}
-.cookie-content::-webkit-scrollbar-corner {
-  background: transparent;
-}
-.cookie-content {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(150, 150, 150, 0.2) transparent;
-}
-
-/* ---------------------- 新增：a-textarea 透明滚动条 ---------------------- */
-/* 1. 穿透 scoped，定位 a-textarea 内部的原生 textarea 元素 */
+/* a-textarea 透明滚动条 */
 :deep(.ant-input-textarea-input) {
-  /* 确保内容超出时显示滚动条（a-textarea 默认已配置，可省略） */
   overflow-y: auto;
-  /* Firefox 透明滚动条：thin 细滚动条 + 滑块颜色/轨道颜色 */
   scrollbar-width: thin;
   scrollbar-color: rgba(150, 150, 150, 0.2) transparent;
 }
-
-/* 2. WebKit 浏览器（Chrome/Safari/Edge）透明滚动条 */
-/* 滚动条宽度 */
 :deep(.ant-input-textarea-input)::-webkit-scrollbar {
-  width: 6px; /* 与 cookie-content 保持一致的细滚动条 */
-  height: 6px; /* 横向滚动条（如需） */
+  width: 6px;
+  height: 6px;
 }
-
-/* 滚动条轨道（完全透明） */
 :deep(.ant-input-textarea-input)::-webkit-scrollbar-track {
   background: transparent;
 }
-
-/* 滚动条滑块（半透明，hover 时加深） */
 :deep(.ant-input-textarea-input)::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.2); /* 浅灰透明，默认几乎看不见 */
-  border-radius: 3px; /* 圆角优化 */
+  background: rgba(150, 150, 150, 0.2);
+  border-radius: 3px;
 }
 :deep(.ant-input-textarea-input)::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.4); /* hover 时略深，提升交互感知 */
+  background: rgba(150, 150, 150, 0.4);
 }
-
-/* 滚动条角落（完全透明，避免留白） */
 :deep(.ant-input-textarea-input)::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* 禁用状态的输入框样式优化 */
+:deep(.ant-input-disabled) {
+  background-color: #f5f5f5 !important;
+  color: #666 !important;
 }
 </style>

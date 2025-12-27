@@ -153,7 +153,7 @@ namespace dy.net.job
             var cookies = await GetValidCookies();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug($"{VideoType}-无有效的Cookie，任务终止!!!");
+                Log.Debug($"{VideoType}-未配置cookie或为开启同步，任务终止!!!");
                 return;
             }
             Log.Debug($"{VideoType}-共发现{cookies.Count}个Cookie，同步任务即将开始...");

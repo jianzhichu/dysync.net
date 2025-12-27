@@ -87,6 +87,11 @@ namespace dy.net.model
         /// 是否下载动态图视频
         /// </summary>
         public bool DownDynamicVideo { get; set; }
+
+        /// <summary>
+        /// 仅同步新视频（github 有人提议增加这个配置项，因为之前收藏了很多烂七八糟的视频。不想同步，又不想一个一个清除）
+        /// </summary>
+        public bool OnlySyncNew { get; set; } = true;
     }
 
 }

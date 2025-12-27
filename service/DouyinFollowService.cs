@@ -108,7 +108,7 @@ namespace dy.net.service
         /// <param name="followInfos"></param>
         /// <param name="ck"></param>
         /// <returns></returns>
-        public async Task<bool> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
+        public async Task<(int add, int update, bool succ)> Sync(List<FollowingsItem> followInfos, DouyinCookie ck)
         {
             return await _followRepository.Sync(followInfos, ck);
         }

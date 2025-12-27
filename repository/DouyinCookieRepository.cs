@@ -1,4 +1,5 @@
-﻿using dy.net.model;
+﻿using dy.net.dto;
+using dy.net.model;
 using SqlSugar;
 using System.Linq.Expressions;
 
@@ -42,5 +43,12 @@ namespace dy.net.repository
                                 .First();
         }
 
+
+        public async Task<bool> SwitchAsync(DouyinCookieStopDto dto)
+        {
+            var res =await Db.Updateable<DouyinCookie>().SetColumns(x => new DouyinCookie { Status = dto.Status }).Where(x => x.Id == dto.Id).ExecuteCommandAsync();
+
+            return res > 0;
+        }
     }
 }

@@ -97,6 +97,16 @@ namespace dy.net.model
         /// </summary>
         [SugarColumn(Length = 100, IsNullable = true)]
         public string StatusMsg { get; set; }
+        /// <summary>
+        /// 是否统一一个路径-用 SavePath
+        /// </summary>
+        public bool useSinglePath { get; set; }
+
+        /// <summary>
+        /// 服务端口--不存数据库
+        /// </summary>
+        [SugarColumn(IsIgnore =true)]
+        public int AppPort { get; set; }
 
     }
 }

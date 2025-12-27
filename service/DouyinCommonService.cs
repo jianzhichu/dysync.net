@@ -5,7 +5,7 @@ using dy.net.utils;
 using SqlSugar;
 using System.Reflection;
 using System.Threading.Tasks;
-using static Org.BouncyCastle.Math.EC.ECCurve;
+//using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace dy.net.service
 {
@@ -59,7 +59,8 @@ namespace dy.net.service
                     FollowedTitleSeparator = "",
                     AutoDistinct = true,//默认开启
                     PriorityLevel = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]",
-                    IsFirstRunning = true
+                    IsFirstRunning = true,
+                    OnlySyncNew = true
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;

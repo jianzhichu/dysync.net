@@ -3,6 +3,8 @@ using dy.net.service;
 using dy.net.utils;
 using Serilog;
 using System.Drawing;
+using System.Reflection;
+using System.Runtime;
 using System.Text;
 
 namespace dy.net
@@ -10,45 +12,40 @@ namespace dy.net
     public class Program
     {
         // 常量定义
-        private static string DefaultListenUrl = "http://*:10101";
+        private static string DefaultListenUrl = "10101";
         private const string SpaRootPath = "app/dist";
         private const string SpaSourcePath = "app/";
         private const string SwaggerDocTitle = "dy.net WebApi Docs";
 
         /// <summary>
-        /// 打包时注意，如果是false,前端不允许修改开启下载图片和视频的选项
+        /// 
         /// </summary>
         public static void Main(string[] args)
         {
-
 
             // 初始化编码提供器
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             // 构建Web应用
             var builder = WebApplication.CreateBuilder(args);
-            //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
-            DefaultListenUrl = builder.Configuration.GetValue<string>(SystemStaticUtil.ASPNETCORE_URLS) ?? DefaultListenUrl;
-     
+          
+
             var isDevelopment = builder.Environment.IsDevelopment();
 
             // 配置主机
             ConfigureHost(builder, isDevelopment);
-
+      
             // 配置服务
             ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
 
             // 构建应用
             var app = builder.Build();
-            Log.Debug("ffmpeg is on");
-
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);
 
             // 初始化应用服务
             InitApplicationServices(app, isDevelopment);
 
-            Serilog.Log.Debug("dy.sync service is starting...");
-            Log.Debug("dy.sync service is started successfully");
+            Log.Debug($"dy.sync app is started successfully  on  {DefaultListenUrl}");
             Console.WriteLine();
             app.Run();
         }
@@ -58,17 +55,84 @@ namespace dy.net
         /// </summary>
         private static void ConfigureHost(WebApplicationBuilder builder, bool isDevelopment)
         {
-            // 设置监听地址
-            builder.WebHost.UseUrls(DefaultListenUrl);
+          
 
+            //// 配置配置文件
+            //builder.Host.ConfigureAppConfiguration((context, config) =>
+            //{
+            //    //config.SetBasePath(Directory.GetCurrentDirectory())
+            //    //      .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            //    //      .AddEnvironmentVariables();
+
+            //    // 关键：获取程序集所在的物理目录（而非当前工作目录）
+            //    var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            //    // 兜底：如果获取失败，回退到当前目录（可选）
+            //    var basePath = string.IsNullOrEmpty(assemblyPath) ? Directory.GetCurrentDirectory() : assemblyPath;
+
+            //    config.SetBasePath(basePath) // 使用程序集目录作为基础路径
+            //          .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            //          .AddEnvironmentVariables();
+            //});
             // 配置配置文件
             builder.Host.ConfigureAppConfiguration((context, config) =>
             {
-                config.SetBasePath(Directory.GetCurrentDirectory())
-                      .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                      .AddEnvironmentVariables();
+                // 定义配置文件名（统一小写，适配Linux大小写敏感特性）
+                const string configFileName = "appsettings.json";
+
+                // 步骤1：获取多维度的候选基础路径（覆盖不同部署场景）
+                var candidateBasePaths = new List<string>
+    {
+        // 候选1：程序集所在目录（优先，解决工作目录不一致问题）
+        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+        // 候选2：当前工作目录（兜底）
+        Directory.GetCurrentDirectory(),
+        // 候选3：应用根目录（针对单文件发布/容器部署场景）
+        AppContext.BaseDirectory,
+        // 候选4：自定义环境变量指定的配置目录（灵活性扩展）
+        Environment.GetEnvironmentVariable("APP_CONFIG_DIR")
+    }
+                // 过滤空值和无效路径
+                .Where(path => !string.IsNullOrEmpty(path) && Directory.Exists(path))
+                .Distinct() // 去重
+                .ToList();
+
+                // 步骤2：遍历候选路径，查找存在的配置文件
+                string configFilePath = null;
+                foreach (var basePath in candidateBasePaths)
+                {
+                    var tempPath = Path.Combine(basePath, configFileName);
+                    if (File.Exists(tempPath))
+                    {
+                        configFilePath = tempPath;
+                        break; // 找到第一个存在的配置文件即可
+                    }
+                }
+
+                // 步骤3：配置加载（增加容错和日志提示）
+                if (!string.IsNullOrEmpty(configFilePath))
+                {
+                    // 找到配置文件，正常加载
+                    var basePath = Path.GetDirectoryName(configFilePath);
+                    config.SetBasePath(basePath)
+                          .AddJsonFile(configFileName, optional: false, reloadOnChange: true)
+                          .AddEnvironmentVariables();
+
+                    // 可选：输出日志，确认配置文件加载路径（方便排查）
+                    //Console.WriteLine($"成功加载配置文件：{configFilePath}");
+                }
+                else
+                {
+                    // 未找到配置文件，抛出明确异常（或根据需求调整为兜底逻辑）
+                    throw new FileNotFoundException(
+                        $"未找到配置文件 {configFileName}，已检查以下路径：{string.Join("; ", candidateBasePaths)}",
+                        configFileName);
+                }
             });
 
+            //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
+            DefaultListenUrl = $"http://*:{builder.Configuration.GetValue<string>(SystemStaticUtil.APP_PORT) ?? DefaultListenUrl}";
+            // 设置监听地址
+            builder.WebHost.UseUrls(DefaultListenUrl);
             // 配置日志
             builder.Host.ConfigureLogging(logging => logging.ClearProviders())
                        .UseSerilog();
@@ -81,7 +145,10 @@ namespace dy.net
         /// </summary>
         private static void ConfigureServices(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment)
         {
-            PrintApp();
+
+            //打印logo
+            //PrintApp();
+
             services.AddSingleton(new Appsettings (config));
             // 雪花ID生成器
             services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 100));
@@ -105,16 +172,16 @@ namespace dy.net
             services.AddServicesFromNamespace("dy.net.repository")
                     .AddServicesFromNamespace("dy.net.service");
 
-            services.AddSingleton<FFmpegHelper>();
+            services.AddScoped<FFmpegHelper>();
         
             // SPA静态文件支持
             services.AddSpaStaticFiles(options => options.RootPath = SpaRootPath);
 
             // 开发环境启用Swagger
-            if (environment.IsDevelopment())
-            {
-                services.AddSwagger();
-            }
+            //if (environment.IsDevelopment())
+            //{
+            //    services.AddSwagger();
+            //}
 
             // 响应压缩
             services.AddResponseCompression();
@@ -134,10 +201,10 @@ namespace dy.net
             app.UseResponseCompression();
 
             // 开发环境启用SwaggerUI
-            if (environment.IsDevelopment())
-            {
-                app.UseCustomSwaggerUI(options => options.Title = SwaggerDocTitle);
-            }
+            //if (environment.IsDevelopment())
+            //{
+            //    app.UseCustomSwaggerUI(options => options.Title = SwaggerDocTitle);
+            //}
 
             // 路由
             app.UseRouting();
@@ -175,26 +242,32 @@ namespace dy.net
                 var userService = services.GetRequiredService<AdminUserService>();
                 userService.InitUser();
 
-                // 初始化Cookie
-                var cookieService = services.GetRequiredService<DouyinCookieService>();
-                cookieService.InitCookie();
-
-                // 初始化配置
                 var commonService = services.GetRequiredService<DouyinCommonService>();
-                var config = commonService.InitConfig();
-
+                
                 // 更新视频类型--兼容老版本
                 commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
 
+                // 初始化配置
+                var config = commonService.InitConfig();
                 if (!isDevelopment)
                 {
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
                     quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
                 }
+                // 初始化Cookie
+                var deploy= Appsettings.Get("deploy");
+                if (deploy != null&&deploy=="docker")//docker环境直接初始化一个默认的配置
+                {
+                    var cookieService = services.GetRequiredService<DouyinCookieService>();
+                    cookieService.InitCookie();
+                }
 
+
+
+             
             }
             catch (Exception ex)
             {
@@ -206,7 +279,6 @@ namespace dy.net
         private static void PrintApp()
         {
             Console.ForegroundColor = ConsoleColor.DarkCyan;
-            Console.WriteLine();
 
             // 步骤1：定义原始ASCII艺术字行（无缩进）
             List<string> originalArtLines = new List<string>
@@ -262,15 +334,6 @@ namespace dy.net
 
             // 打印完成后，光标移到艺术字下方
             Console.SetCursorPosition(0, indentedArtLines.Count);
-
-            //string asciiArt = @"=================================================================================================================";
-            //string asciiArt = $@"——————————————————————{DateTime.Now:yyyy-MM-dd HH:mm:ss}——————————————————————";
-
-            //foreach (char ch in asciiArt)
-            //{
-            //    Console.Write(ch);
-            //    Thread.Sleep(2);
-            //}
             Console.WriteLine();
             Console.ResetColor();
 

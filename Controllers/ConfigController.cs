@@ -2,6 +2,7 @@
 using dy.net.dto;
 using dy.net.model;
 using dy.net.service;
+using dy.net.utils;
 using dy.sync.lib;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -126,6 +127,18 @@ namespace dy.net.Controllers
             var follows = await douyinFollowService.GetGroupByCookieAsync();
             return ApiResult.Success(follows);
         }
+
+        /// <summary>
+        /// 是否已经初始化了
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("isInit")]
+        [AllowAnonymous]
+        public async Task<IActionResult> IsInit()
+        {
+          var init= await dyCookieService.IsInit();
+            return ApiResult.Success(false);
+        }
         /// <summary>
         /// 新增用户Cookie
         /// </summary>
@@ -142,6 +155,78 @@ namespace dy.net.Controllers
             return ApiResult.Fail("添加失败");
         }
 
+
+        /// <summary>
+        /// 非docker初始化
+        /// </summary>
+        [HttpPost("deskinit")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DeskInitAsync([FromBody] DouyinCookie dyUserCookies)
+        {
+            dyUserCookies.Id = IdGener.GetLong().ToString();
+
+            if(string.IsNullOrWhiteSpace(dyUserCookies.SavePath))
+            {
+                return ApiResult.Fail("收藏存储路径不能为空");
+            }
+            if (!DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.SavePath))
+            {
+                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.SavePath}添加读写权限");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dyUserCookies.FavSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.FavSavePath))
+            {
+                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.FavSavePath}添加读写权限");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dyUserCookies.UpSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.UpSavePath))
+            {
+                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.UpSavePath}添加读写权限");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dyUserCookies.ImgSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.ImgSavePath))
+            {
+                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.ImgSavePath}添加读写权限");
+            }
+
+            var result = await dyCookieService.Add(dyUserCookies);
+            if (result)
+            {
+
+                return ApiResult.Success();
+            }
+            return ApiResult.Fail("添加失败");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("appport")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAppPort()
+        {
+            //return ApiResult.Success(10105);
+            return ApiResult.Success(string.IsNullOrWhiteSpace(Appsettings.Get("appPort"))?10101: Convert.ToInt32(Appsettings.Get("appPort")));
+        }
+
+      
+
+
+        /// <summary>
+        /// 快速开启或停止
+        /// </summary>
+        [HttpPost("switch")]
+        public async Task<IActionResult> SwitchAsync([FromBody] DouyinCookieStopDto dto)
+        {
+            var result = await dyCookieService.Switch(dto);
+            if (result)
+            {
+                ReStartJob();
+                return ApiResult.Success();
+            }
+            return ApiResult.Fail("添加失败");
+        }
         /// <summary>
         /// 更新用户Cookie
         /// </summary>
@@ -193,6 +278,7 @@ namespace dy.net.Controllers
             var data = commonService.GetConfig();
             return ApiResult.Success(data);
         }
+    
 
         [HttpPost("UpdateConfig")]
         public async Task<IActionResult> UpdateConfig(AppConfig config)
@@ -200,6 +286,13 @@ namespace dy.net.Controllers
             var data = await commonService.UpdateConfig(config);
             if (data)
             {
+                if (config.OnlySyncNew)
+                {
+                    var d = await douyinCookieService.SetOnlySyncNew();
+                    if (d)
+                        Serilog.Log.Debug("仅同步新视频配置已生效,后续所有类型的视频同步将只会读取最近一页约20条数据");
+                }
+
                 ReStartJob();
             }
             return ApiResult.Success(data);
@@ -240,11 +333,38 @@ namespace dy.net.Controllers
         [HttpGet("checktag")]
         public async Task<IActionResult> CheckTag()
         {
+
+            var deploy = Appsettings.Get("deploy");
+            if(string.IsNullOrWhiteSpace(deploy))
+            {
+                return await GetDockerTagVersions();
+            }
+            else
+            {
+                if(deploy== "fn")//飞牛
+                {
+                    return ApiResult.Success(new List<string> { "beta_"+Appsettings.Get("fnVersion") });
+                }
+                else
+                {
+                    return await GetDockerTagVersions();
+                }
+            }
+
+      
+        }
+
+        private static async Task<IActionResult> GetDockerTagVersions()
+        {
             var data = await DouyinHttpHelper.GetTenImage(Appsettings.Get("tagName"));
             if (data.IsSuccessStatusCode)
             {
                 var content = await data.Content.ReadAsStringAsync();
-                return Ok(content);
+
+                var tagData = JsonConvert.DeserializeObject<DouyinApiResponse<List<string>>>(content);
+                if (tagData != null && tagData.Data != null && tagData.Data.Count > 0)
+                    return ApiResult.Success(tagData.Data);
+                return ApiResult.Fail();
             }
             else
             {

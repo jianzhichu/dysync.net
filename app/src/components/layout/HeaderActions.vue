@@ -221,7 +221,7 @@ const showVersionNotification = () => {
   useApiStore()
     .CheckTag()
     .then((res) => {
-      if (res.code === 1) {
+      if (res.code === 0) {
         dyVersions.value = res.data;
         const versionLen = dyVersions.value.length;
 

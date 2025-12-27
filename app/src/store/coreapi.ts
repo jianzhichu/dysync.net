@@ -128,6 +128,31 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  async function DeskInitAsync(param: object) {
+    return http.request<any, Response<any>>('/api/config/deskinit', 'post_json', param).then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+
+  async function AppisInit() {
+    return http.request<any, Response<any>>('/api/config/isInit', 'get').then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+
+  async function GetAppPort() {
+    return http.request<any, Response<any>>('/api/config/appport', 'get').then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+
+
 
   async function deleteCookie(id: string) {
     return http.request<any, Response<any>>('/api/config/delete?id=' + id, 'get').then(r => {
@@ -202,6 +227,14 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  //快速停止或启动cookie配置
+  async function SwitchCookieStatus(param: object) {
+    return http.request<any, Response<any>>('/api/config/switch', 'post_json', param).then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
 
   //添加非关注的博主
   async function AddFollow(param: object) {
@@ -264,6 +297,10 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
   return {
+    GetAppPort,
+    AppisInit,
+    DeskInitAsync,
+    SwitchCookieStatus,
     TopVideo,
     LogDetail,
     MobileLogs,

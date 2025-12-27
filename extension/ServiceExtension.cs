@@ -7,15 +7,15 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+//using Microsoft.OpenApi.Models;
 using Quartz;
 using Serilog;
 using Serilog.Events;
 using Serilog.Filters;
-using Serilog.Formatting.Compact;
+//using Serilog.Formatting.Compact;
 using SqlSugar;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using Swashbuckle.AspNetCore.SwaggerUI;
+//using Swashbuckle.AspNetCore.SwaggerGen;
+//using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Security;
@@ -356,117 +356,117 @@ namespace dy.net.extension
 
 
 
-        /// <summary>
-        /// SwaggerUi
-        /// </summary>
-        /// <param name="app"></param>
-        /// <param name="options"></param>
-        public static void UseCustomSwaggerUI(this IApplicationBuilder app, Action<SwaggerOptions> options)
-        {
-            SwaggerOptions option = new SwaggerOptions();
-            options?.Invoke(option);
-            //启用中间件服务生成Swagger作为JSON终结点
-            app.UseSwagger(c =>
-            {
-                //c.SerializeAsV2 = true;
-                //c.RouteTemplate = "api-docs/{documentName}/swagger.json";
-                c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
-                {
-                    swaggerDoc.Servers = new List<OpenApiServer> { new OpenApiServer { Url = $"{httpReq.Scheme}://{httpReq.Host.Value}" } };
-                    OpenApiPaths paths = new OpenApiPaths();
-                    foreach (var path in swaggerDoc.Paths)
-                    {
-                        //if ( path.Key.StartsWith("/v1/api") )//做版本控制
-                        paths.Add(path.Key, path.Value);
-                    }
-                    swaggerDoc.Paths = paths;
-                });
-            });
-            //启用中间件服务对swagger-ui，指定Swagger JSON终结点
-            app.UseSwaggerUI(c =>
-            {
-                //c.MaxDisplayedTags(5);
-                //c.DisplayOperationId();//唯一标识操作
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", option.Title);
-                //c.SwaggerEndpoint("/swagger/v2/swagger.json", "V2 Docs");
-                c.RoutePrefix = "swagger";//根路由
-                c.EnableDeepLinking();//启用深度链接--不知道干嘛的
-                c.DisplayRequestDuration();//调试，显示接口响应时间
-                c.EnableValidator();//验证
-                c.DocExpansion(DocExpansion.List);//默认展开
-                c.DefaultModelsExpandDepth(-1);//隐藏model
-                c.DefaultModelExpandDepth(3);//model展开层级
-                c.EnableFilter();//筛选--如果接口过多可以开启
-                c.DefaultModelRendering(ModelRendering.Model);//设置显示参数的实体或Example
-                //c.SupportedSubmitMethods(SubmitMethod.Get , SubmitMethod.Head , SubmitMethod.Post);//
+        ///// <summary>
+        ///// SwaggerUi
+        ///// </summary>
+        ///// <param name="app"></param>
+        ///// <param name="options"></param>
+        //public static void UseCustomSwaggerUI(this IApplicationBuilder app, Action<SwaggerOptions> options)
+        //{
+        //    SwaggerOptions option = new SwaggerOptions();
+        //    options?.Invoke(option);
+        //    //启用中间件服务生成Swagger作为JSON终结点
+        //    app.UseSwagger(c =>
+        //    {
+        //        //c.SerializeAsV2 = true;
+        //        //c.RouteTemplate = "api-docs/{documentName}/swagger.json";
+        //        c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+        //        {
+        //            swaggerDoc.Servers = new List<OpenApiServer> { new OpenApiServer { Url = $"{httpReq.Scheme}://{httpReq.Host.Value}" } };
+        //            OpenApiPaths paths = new OpenApiPaths();
+        //            foreach (var path in swaggerDoc.Paths)
+        //            {
+        //                //if ( path.Key.StartsWith("/v1/api") )//做版本控制
+        //                paths.Add(path.Key, path.Value);
+        //            }
+        //            swaggerDoc.Paths = paths;
+        //        });
+        //    });
+        //    //启用中间件服务对swagger-ui，指定Swagger JSON终结点
+        //    app.UseSwaggerUI(c =>
+        //    {
+        //        //c.MaxDisplayedTags(5);
+        //        //c.DisplayOperationId();//唯一标识操作
+        //        c.SwaggerEndpoint("/swagger/v1/swagger.json", option.Title);
+        //        //c.SwaggerEndpoint("/swagger/v2/swagger.json", "V2 Docs");
+        //        c.RoutePrefix = "swagger";//根路由
+        //        c.EnableDeepLinking();//启用深度链接--不知道干嘛的
+        //        c.DisplayRequestDuration();//调试，显示接口响应时间
+        //        c.EnableValidator();//验证
+        //        c.DocExpansion(DocExpansion.List);//默认展开
+        //        c.DefaultModelsExpandDepth(-1);//隐藏model
+        //        c.DefaultModelExpandDepth(3);//model展开层级
+        //        c.EnableFilter();//筛选--如果接口过多可以开启
+        //        c.DefaultModelRendering(ModelRendering.Model);//设置显示参数的实体或Example
+        //        //c.SupportedSubmitMethods(SubmitMethod.Get , SubmitMethod.Head , SubmitMethod.Post);//
 
-                //c.OAuthClientId("test-id");
-                //c.OAuthClientSecret("test-secret");
-                //c.OAuthRealm("test-realm");
-                //c.OAuthAppName("test-app");
-                //c.OAuthScopeSeparator(" ");
-                //c.OAuthAdditionalQueryStringParams(new Dictionary<string, string> { { "foo", "bar" } });
-                //c.OAuthUseBasicAuthenticationWithAccessCodeGrant();
-            });
-        }
+        //        //c.OAuthClientId("test-id");
+        //        //c.OAuthClientSecret("test-secret");
+        //        //c.OAuthRealm("test-realm");
+        //        //c.OAuthAppName("test-app");
+        //        //c.OAuthScopeSeparator(" ");
+        //        //c.OAuthAdditionalQueryStringParams(new Dictionary<string, string> { { "foo", "bar" } });
+        //        //c.OAuthUseBasicAuthenticationWithAccessCodeGrant();
+        //    });
+        //}
 
 
-        /// <summary>
-        /// Swagger
-        /// </summary>
-        /// <param name="services"></param>
-        public static IServiceCollection AddSwagger(this IServiceCollection services, Action<SwaggerGenOptions> options = null)
-        {
-            if (options != null)
-                services.AddSwaggerGen(options);
-            else
-                services.AddSwaggerGen(DefaultSwaggerGenOptions());
-            return services;
-        }
+        ///// <summary>
+        ///// Swagger
+        ///// </summary>
+        ///// <param name="services"></param>
+        //public static IServiceCollection AddSwagger(this IServiceCollection services, Action<SwaggerGenOptions> options = null)
+        //{
+        //    if (options != null)
+        //        services.AddSwaggerGen(options);
+        //    else
+        //        services.AddSwaggerGen(DefaultSwaggerGenOptions());
+        //    return services;
+        //}
 
-        private static Action<SwaggerGenOptions> DefaultSwaggerGenOptions()
-        {
-            Action<SwaggerGenOptions> options = o =>
-            {
-                o.OperationFilter<SwaggerAuthorizationFilter>();
+        //private static Action<SwaggerGenOptions> DefaultSwaggerGenOptions()
+        //{
+        //    Action<SwaggerGenOptions> options = o =>
+        //    {
+        //        o.OperationFilter<SwaggerAuthorizationFilter>();
 
-                o.SwaggerDoc("v1", new OpenApiInfo
-                {
-                    Version = "v1",
-                    Title = "dy.net API Swagger Document",
+        //        o.SwaggerDoc("v1", new OpenApiInfo
+        //        {
+        //            Version = "v1",
+        //            Title = "dy.net API Swagger Document",
                 
-                });
-                o.OrderActionsBy((apiDesc) => $"{apiDesc.ActionDescriptor.RouteValues["controller"]}_{apiDesc.HttpMethod}");
-                o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
-                {
-                    Description = "请在下方输入：Bearer {Token}",
-                    Name = "Authorization",
-                    In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    BearerFormat = "JWT",
-                    Scheme = "Bearer",
-                });
-                o.AddSecurityRequirement(new OpenApiSecurityRequirement
-               {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer",
-                            }
-                        },
-                        new[] { "readAccess", "writeAccess" }
-                    }
-               });
+        //        });
+        //        o.OrderActionsBy((apiDesc) => $"{apiDesc.ActionDescriptor.RouteValues["controller"]}_{apiDesc.HttpMethod}");
+        //        o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+        //        {
+        //            Description = "请在下方输入：Bearer {Token}",
+        //            Name = "Authorization",
+        //            In = ParameterLocation.Header,
+        //            Type = SecuritySchemeType.ApiKey,
+        //            BearerFormat = "JWT",
+        //            Scheme = "Bearer",
+        //        });
+        //        o.AddSecurityRequirement(new OpenApiSecurityRequirement
+        //       {
+        //            {
+        //                new OpenApiSecurityScheme
+        //                {
+        //                    Reference = new OpenApiReference {
+        //                        Type = ReferenceType.SecurityScheme,
+        //                        Id = "Bearer",
+        //                    }
+        //                },
+        //                new[] { "readAccess", "writeAccess" }
+        //            }
+        //       });
 
-                o.DocumentFilter<SwaggerHiddenApiFilter>();
-                var XmlPath = $"{AppContext.BaseDirectory}{AppDomain.CurrentDomain.FriendlyName}.xml";
-                o.IncludeXmlComments(XmlPath);
-                o.EnableAnnotations();
-            };
-            return options;
-        }
+        //        o.DocumentFilter<SwaggerHiddenApiFilter>();
+        //        var XmlPath = $"{AppContext.BaseDirectory}{AppDomain.CurrentDomain.FriendlyName}.xml";
+        //        o.IncludeXmlComments(XmlPath);
+        //        o.EnableAnnotations();
+        //    };
+        //    return options;
+        //}
 
 
         /// <summary>
@@ -483,7 +483,7 @@ namespace dy.net.extension
                 .Filter.ByExcluding(e => e.Level == LogEventLevel.Information) // 排除Info级别的日志
                 .Filter.ByExcluding(Matching.FromSource("Microsoft"))
                 .Filter.ByExcluding(Matching.FromSource("Quartz"))
-                .WriteTo.Console(new RenderedCompactJsonFormatter(), LogEventLevel.Debug)
+                //.WriteTo.Console(new RenderedCompactJsonFormatter(), LogEventLevel.Debug)
                 //.WriteTo.MySQL(connectionString: builder.Configuration.GetConnectionString("DbConnectionString"), tableName: "Logs") // 输出到数据库
                 .WriteTo.Logger(configure => configure
                     .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Debug)
@@ -552,34 +552,34 @@ namespace dy.net.extension
     }
 
 
-    public class SwaggerAuthorizationFilter : IOperationFilter
-    {
-        public void Apply(OpenApiOperation operation, OperationFilterContext context)
-        {
-            operation.Parameters ??= new List<OpenApiParameter>();
-            _ = context.ApiDescription.ActionDescriptor.AttributeRouteInfo;
+    //public class SwaggerAuthorizationFilter : IOperationFilter
+    //{
+    //    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    //    {
+    //        operation.Parameters ??= new List<OpenApiParameter>();
+    //        _ = context.ApiDescription.ActionDescriptor.AttributeRouteInfo;
 
-            //先判断是否是匿名访问,
-            if (context.ApiDescription.ActionDescriptor is ControllerActionDescriptor descriptor)
-            {
-                var Authorizes = descriptor.MethodInfo.GetCustomAttributes(typeof(AuthorizeFilter), true);
-                //非匿名的方法,链接中添加accesstoken值
-                if (Authorizes.Any())
-                {
-                    operation.Responses.Add("401", new OpenApiResponse { Description = "Unauthorized" });
-                    //operation.Parameters.Add(new OpenApiParameter()
-                    //{
-                    //    Required = true,
-                    //    Name = "Bearer",
-                    //    In = ParameterLocation.Header,
-                    //    Description = "You Must  Request With  token",
-                    //    Style = ParameterStyle.DeepObject,
+    //        //先判断是否是匿名访问,
+    //        if (context.ApiDescription.ActionDescriptor is ControllerActionDescriptor descriptor)
+    //        {
+    //            var Authorizes = descriptor.MethodInfo.GetCustomAttributes(typeof(AuthorizeFilter), true);
+    //            //非匿名的方法,链接中添加accesstoken值
+    //            if (Authorizes.Any())
+    //            {
+    //                operation.Responses.Add("401", new OpenApiResponse { Description = "Unauthorized" });
+    //                //operation.Parameters.Add(new OpenApiParameter()
+    //                //{
+    //                //    Required = true,
+    //                //    Name = "Bearer",
+    //                //    In = ParameterLocation.Header,
+    //                //    Description = "You Must  Request With  token",
+    //                //    Style = ParameterStyle.DeepObject,
 
-                    //});
-                }
-            }
-        }
-    }
+    //                //});
+    //            }
+    //        }
+    //    }
+    //}
 
 
     /// <summary>
@@ -591,27 +591,27 @@ namespace dy.net.extension
     /// <summary>
     ///
     /// </summary>
-    public class SwaggerHiddenApiFilter : IDocumentFilter
-    {
-        public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
-        {
-            foreach (ApiDescription apiDescription in context.ApiDescriptions)
-            {
-                if (apiDescription.TryGetMethodInfo(out MethodInfo method))
-                {
-                    if (method.ReflectedType.CustomAttributes.Any(t => t.AttributeType == typeof(HiddenApiAttribute))
-                            || method.CustomAttributes.Any(t => t.AttributeType == typeof(HiddenApiAttribute)))
-                    {
-                        string key = "/" + apiDescription.RelativePath;
-                        if (key.Contains("?"))
-                        {
-                            int idx = key.IndexOf("?", StringComparison.Ordinal);
-                            key = key.Substring(0, idx);
-                        }
-                        swaggerDoc.Paths.Remove(key);
-                    }
-                }
-            }
-        }
-    }
+    //public class SwaggerHiddenApiFilter : IDocumentFilter
+    //{
+    //    public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
+    //    {
+    //        foreach (ApiDescription apiDescription in context.ApiDescriptions)
+    //        {
+    //            if (apiDescription.TryGetMethodInfo(out MethodInfo method))
+    //            {
+    //                if (method.ReflectedType.CustomAttributes.Any(t => t.AttributeType == typeof(HiddenApiAttribute))
+    //                        || method.CustomAttributes.Any(t => t.AttributeType == typeof(HiddenApiAttribute)))
+    //                {
+    //                    string key = "/" + apiDescription.RelativePath;
+    //                    if (key.Contains("?"))
+    //                    {
+    //                        int idx = key.IndexOf("?", StringComparison.Ordinal);
+    //                        key = key.Substring(0, idx);
+    //                    }
+    //                    swaggerDoc.Paths.Remove(key);
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
 }
