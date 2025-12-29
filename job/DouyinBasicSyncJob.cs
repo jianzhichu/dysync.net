@@ -644,6 +644,13 @@ namespace dy.net.job
                             }
                         }
                     }
+                    else
+                    {
+                        //记录存在，但本地文件不存在，则继续下载。
+                        Log.Debug($"{VideoType}-视频-{exitVideo.AwemeId}记录存在，但本地文件缺失，删除记录，重新下载");
+                        //删除原来的记录
+                        await douyinVideoService.DeleteById(exitVideo.Id);
+                    }
                 }
             }
             return true;

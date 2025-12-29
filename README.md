@@ -96,8 +96,8 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 | 镜像标签          | 架构           |
 | ----------------- | -------------- |
-| `beta_1.9.2`      | x86_64 (amd64) |
-| `arm_1.9.2`       | ARM64          |
+| `beta_1.9.3`      | x86_64 (amd64) |
+| `arm_1.9.3`       | ARM64          |
 
 ### 最新镜像查看
 [镜像列表](http://nas.synology2023.online:10108/api/docker/dysync/1)
@@ -113,10 +113,9 @@ docker run -d --restart=always \
   -v /opt/dysync/db:/app/db \
   -v /opt/dysync/imgs:/app/images \
   -v /opt/dysync/uper:/app/uper \
-  -p 10103:10101 \
+  -p 10101:10101 \
   --name dysync2025 \
-  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.2
-# 注意：-p 后面的容器端口,可以用环境变量类似：ASPNETCORE_URLS = http://+:10108 指定
+  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.3
 ```
 
 
@@ -129,7 +128,7 @@ version: '3.8'
 
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.2
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.3
     container_name: dysync2025  # 容器名称
     restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
