@@ -259,5 +259,16 @@ namespace dy.net.Controllers
         {
             return ApiResult.Success(await douyinVideoService.GetLastSyncTop(top));
         }
+
+        /// <summary>
+        /// 删除无效视频记录
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("removeInvalid")]
+        public async Task<IActionResult> RemoveInvalidVideo()
+        {
+            var data = await douyinVideoService.DeleteInvalidVideo();
+            return Ok(data);
+        }
     }
 }

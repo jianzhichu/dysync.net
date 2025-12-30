@@ -318,5 +318,32 @@ namespace dy.net.service
             return await _dyCollectVideoRepository.GetTopsOrderBySyncTime(top);
         }
 
+
+        /// <summary>
+        /// 删除无效记录（记录存在，用户手动把目录下的视频删了的情况，视频记录依然存在）
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<DeleteInvalidVideoDto>> DeleteInvalidVideo()
+        {
+            var videos=await _dyCollectVideoRepository.GetAllAsync();
+            List<DeleteInvalidVideoDto> vList = new List<DeleteInvalidVideoDto>();
+
+            List<string> douyinVideoIds=new List<string>();
+            foreach (var v in videos)
+            {
+                if (!File.Exists(v.VideoSavePath))
+                {
+                    douyinVideoIds.Add(v.Id);
+                    vList.Add(new DeleteInvalidVideoDto { AwId = v.AwemeId, Title = v.VideoTitle, Path = v.VideoSavePath });
+                }
+            }
+
+            if (douyinVideoIds.Any())
+            {
+              await  _dyCollectVideoRepository.DeleteByIdsAsync(douyinVideoIds);
+            }
+
+            return vList;
+        }
     }
 }
