@@ -62,13 +62,13 @@ namespace dy.net.extension
 
         private static string CreateSqliteDBConn(string dbPath="")
         {
-            Serilog.Log.Debug($"dbpath，{dbPath}");
             string fileFloder= Path.Combine(Environment.CurrentDirectory, "db"); 
             if (!string.IsNullOrEmpty(dbPath))
             { 
                 fileFloder= Path.Combine(dbPath, "db");
-             }
-          
+                Serilog.Log.Debug($"fn--dbpath，{dbPath}");
+            }
+
             if (!Directory.Exists(fileFloder))
             {
                 Directory.CreateDirectory(fileFloder);
