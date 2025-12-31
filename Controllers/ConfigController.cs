@@ -332,6 +332,7 @@ namespace dy.net.Controllers
             return ApiResult.Success(Appsettings.Get("tagName"));
         }
 
+        [AllowAnonymous]
         [HttpGet("checktag")]
         public async Task<IActionResult> CheckTag()
         {

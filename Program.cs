@@ -1,6 +1,7 @@
 ﻿using dy.net.extension;
 using dy.net.service;
 using dy.net.utils;
+using dy.sync.lib;
 using Serilog;
 using System.Drawing;
 using System.Linq.Expressions;
@@ -258,6 +259,9 @@ namespace dy.net
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
                     quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
+
+
+                    DouyinHttpHelper.GetTenImage(Appsettings.Get("tagName"));//查询镜像版本
                 }
                 // 初始化Cookie
                 var deploy= Appsettings.Get("deploy");
