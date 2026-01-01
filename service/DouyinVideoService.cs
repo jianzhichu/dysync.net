@@ -199,7 +199,7 @@ namespace dy.net.service
 
             // 3. 构建重新下载记录（提前准备数据，避免事务内耗时操作）
             var reDownList = new List<DouyinReDownload>();
-            var filePathsToDelete = new List<string>(); // 收集待删除文件路径，统一处理
+            var filePathsToDelete = new List<(string path,bool onlyImgOrMp3)>(); // 收集待删除文件路径，统一处理
 
             foreach (var video in videos)
             {
@@ -221,7 +221,7 @@ namespace dy.net.service
                     CookieId = video.CookieId
                 });
 
-                filePathsToDelete.Add(video.VideoSavePath);
+                filePathsToDelete.Add((video.VideoSavePath,video.OnlyImgOrOnlyMp3));
             }
 
             // 无有效重新下载记录时直接返回
@@ -248,23 +248,35 @@ namespace dy.net.service
 
                 // 5. 文件删除（非事务操作，失败不回滚数据库，可根据业务调整）
                 // 采用异步文件操作，避免同步IO阻塞线程（需.NET 5+支持）
-                foreach (var path in filePathsToDelete)
+                foreach (var video in filePathsToDelete)
                 {
                     try
                     {
-                        if (File.Exists(path))
+                        if (File.Exists(video.path))
                         {
-                            File.Delete(path); // 异步删除，提升并发性能
-                            Serilog.Log.Debug("视频文件删除成功：Path={0}", path);
+                            File.Delete(video.path); // 异步删除，提升并发性能
+                            Serilog.Log.Debug("视频文件删除成功：Path={0}", video);
+
+                            if (!video.onlyImgOrMp3)//如果是纯图片或纯音频文件，则不删除所在文件夹
+                            {
+                                //检查这个路径所在文件夹是否还有其他视频文件，如果没有则删除这个文件夹
+                                var dir = Path.GetDirectoryName(video.Item1);
+
+                                bool hasMp4File = Directory.EnumerateFiles(dir, "*.mp4", SearchOption.TopDirectoryOnly).Any(); // 只要存在一个MP4文件就返回true；
+                                if (!hasMp4File)
+                                {
+                                    Directory.Delete(dir, true);
+                                }
+                            }
                         }
                         else
                         {
-                            Serilog.Log.Error("视频文件不存在，跳过删除：Path={0}", path);
+                            Serilog.Log.Error("视频文件不存在，跳过删除：Path={0}", video);
                         }
                     }
                     catch (IOException ex)
                     {
-                        Serilog.Log.Error(ex, "视频文件删除失败：Path={0}", path);
+                        Serilog.Log.Error(ex, "视频文件删除失败：Path={0}", video);
                     }
                 }
 

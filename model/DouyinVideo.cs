@@ -154,5 +154,10 @@ namespace dy.net.model
         // 普通字符串字段，显式标记为 SQLite TEXT 类型
         [SugarColumn(ColumnDataType = "TEXT", Length = -1,IsNullable =true)]    
         public string DynamicVideos { get; set; }
+
+        /// <summary>
+        /// 是否仅下载图片或仅下载音频
+        /// </summary>
+        public bool OnlyImgOrOnlyMp3 { get; set; }
     }
 }

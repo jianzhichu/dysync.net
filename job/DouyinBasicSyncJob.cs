@@ -646,10 +646,17 @@ namespace dy.net.job
                     }
                     else
                     {
-                        //记录存在，但本地文件不存在，则继续下载。
-                        Log.Debug($"{VideoType}-视频-{exitVideo.AwemeId}记录存在，但本地文件缺失，删除记录，重新下载");
-                        //删除原来的记录
-                        await douyinVideoService.DeleteById(exitVideo.Id);
+                        if (exitVideo.OnlyImgOrOnlyMp3)
+                        {
+                            return true;//说明是图文视频，不需要再下载视频了
+                        }
+                        else
+                        {
+                            //记录存在，但本地文件不存在，则继续下载。
+                            Log.Debug($"{VideoType}-视频-{exitVideo.AwemeId}记录存在，但本地文件缺失，删除记录，重新下载");
+                            //删除原来的记录
+                            await douyinVideoService.DeleteById(exitVideo.Id);
+                        }
                     }
                 }
             }
@@ -768,7 +775,7 @@ namespace dy.net.job
             // 生成NFO文件
             await GenerateNfoFile(saveFolder, item, avatarUrl, cookie, config);
             // 创建视频实体
-            return CreateVideoEntity(cookie, item, v, savePath, saveFolder, tag1, tag2, tag3, avatarSavePath, avatarUrl, data);
+            return CreateVideoEntity(config,cookie, item, v, savePath, saveFolder, tag1, tag2, tag3, avatarSavePath, avatarUrl, data);
         }
 
 
@@ -837,7 +844,7 @@ namespace dy.net.job
                     DataSize = DouyinFileUtils.GetTotalFileSize(dynamicSavePaths)  // 合成视频的文件大小
                 }
             };
-            return CreateVideoEntity(cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault(), saveFolder, tag1, tag2, tag3,"", "", data,dynamicSavePaths);
+            return CreateVideoEntity(config,cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault(), saveFolder, tag1, tag2, tag3,"", "", data,dynamicSavePaths);
         }
 
 
@@ -978,7 +985,7 @@ namespace dy.net.job
 
 
                 // 获取不带扩展名的完整路径
-                string fullPathWithoutExtension = Path.Combine(Path.GetDirectoryName(savePath),Path.GetFileNameWithoutExtension(savePath) );
+                //string fullPathWithoutExtension = Path.Combine(Path.GetDirectoryName(savePath),Path.GetFileNameWithoutExtension(savePath) );
                 if (config.DownImageVideo)
                 {
                     // 检查合成后的视频文件是否有效
@@ -1021,7 +1028,7 @@ namespace dy.net.job
                 };
 
                 // 创建视频实体
-                var videoEntity = CreateVideoEntity(
+                var videoEntity = CreateVideoEntity(config,
                     cookie, item, virtualBitRate, savePath, fileNamefolder,
                     tag1, tag2, tag3, avatarSavePath, avatarUrl, data);
 
@@ -1240,6 +1247,7 @@ namespace dy.net.job
         /// 创建视频实体
         /// 根据视频信息、下载路径等创建DouyinVideo实体对象
         /// </summary>
+        /// <param name="config">配置</param>
         /// <param name="cookie">用户Cookie</param>
         /// <param name="item">视频信息</param>
         /// <param name="bitRate">视频码率信息</param>
@@ -1253,13 +1261,13 @@ namespace dy.net.job
         /// <param name="data">视频信息对象</param>
         /// <param name="dynamicVideos">动态视频</param>
         /// <returns>创建的视频实体对象</returns>
-        private DouyinVideo CreateVideoEntity(
+        private DouyinVideo CreateVideoEntity(AppConfig config,
             DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string saveFolder,
             string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfo data,List<string> dynamicVideos=null)
         {
             var diffs = GetVideoEntityDifferences(cookie, item);
 
-            var video= new DouyinVideo
+            var video = new DouyinVideo
             {
                 ViedoType = VideoType,
                 AwemeId = item.AwemeId,
@@ -1283,7 +1291,8 @@ namespace dy.net.job
                 VideoCoverSavePath = Path.Combine(saveFolder, "poster.jpg"),
                 SyncTime = DateTime.Now,
                 DyUserId = item.AuthorUserId == 0 ? item.Author?.Uid : item.AuthorUserId.ToString(),
-                CookieId = cookie.Id
+                CookieId = cookie.Id,
+                OnlyImgOrOnlyMp3 = string.IsNullOrWhiteSpace(savePath) && !config.DownImageVideo && (config.DownImage || config.DownMp3)
             };
             if (dynamicVideos != null && dynamicVideos.Count > 0)
             {

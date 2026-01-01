@@ -301,7 +301,7 @@ namespace dy.net.service
         /// <summary>
         /// 保存下载的文件（图片/音频）到目标目录
         /// </summary>
-        private async Task SaveDownloadedFilesAsync(string[] sourcePaths, string targetFolder,  string defaultExt,string videoFileName)
+        private static async Task SaveDownloadedFilesAsync(string[] sourcePaths, string targetFolder,  string defaultExt,string videoFileName)
         {
             if (sourcePaths == null || sourcePaths.Length == 0) return;
             Directory.CreateDirectory(targetFolder); // 确保目标目录存在

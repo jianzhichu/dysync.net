@@ -52,7 +52,7 @@ namespace dy.net.service
             }
             var cookie = new DouyinCookie
             {
-                UserName = "douyin2025", 
+                UserName = "douyin2026", 
                 Cookies = "-",
                 SecUserId = "-",
                 Id = IdGener.GetLong().ToString(),

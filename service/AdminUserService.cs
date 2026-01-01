@@ -35,7 +35,7 @@ namespace dy.net.service
             AdminUserInfo userInfo = new AdminUserInfo
             {
                 UserName = "douyin",
-                Password = "douyin2025",
+                Password = "douyin2026",
                 CreateTime = DateTime.Now
             };
             return  _userRepository.InitUser(userInfo);
