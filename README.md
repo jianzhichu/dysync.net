@@ -114,7 +114,7 @@ docker run -d --restart=always \
   -v /opt/dysync/uper:/app/uper \
   -p 10101:10101 \
   --name dysync2025 \
-  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.4
+  ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.5
 ```
 
 
@@ -127,7 +127,7 @@ version: '3.8'
 
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.4
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_1.9.5
     container_name: dysync2025  # 容器名称
     restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
