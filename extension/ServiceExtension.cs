@@ -66,7 +66,14 @@ namespace dy.net.extension
             if (!string.IsNullOrEmpty(dbPath))
             { 
                 fileFloder= Path.Combine(dbPath, "db");
-                Serilog.Log.Debug($"fn--dbpath，{dbPath}");
+            }
+            else
+            {
+                if (Appsettings.Get("deploy") == "fn")
+                {
+                   Log.Error($"fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
+                     throw new Exception("fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
+                }
             }
 
             if (!Directory.Exists(fileFloder))

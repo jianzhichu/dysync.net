@@ -12,14 +12,23 @@ namespace dy.net.utils
     {
         #if DEBUG
                 // Debug 环境，通常是 Windows
-                private readonly string _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
-                private readonly string _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
-        #else
+                private  string _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
+                private  string _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
+#else
             // Release 环境，通常是 Docker Linux
-            private readonly string _ffmpegExecutablePath = "ffmpeg";
-            private readonly string _ffprobeExecutablePath = "ffprobe";
-        #endif
+            private  string _ffmpegExecutablePath = "ffmpeg";
+            private  string _ffprobeExecutablePath = "ffprobe";
+#endif
 
+
+        public FFmpegHelper()
+        {
+            if (Appsettings.Get("deploy") == "fn")
+            {
+                _ffmpegExecutablePath = "/usr/bin/ffmpeg";
+                _ffprobeExecutablePath = "/usr/bin/ffprobe";
+            }
+        }
 
         private Process _ffmpegProcess;
         private CancellationTokenSource _cancellationTokenSource;
@@ -50,6 +59,11 @@ namespace dy.net.utils
             IProgress<double> progress = null,
             CancellationToken cancellationToken = default)
         {
+            if (Appsettings.Get("deploy") == "fn")
+            {
+                _ffmpegExecutablePath = "/usr/bin/ffmpeg";
+                _ffprobeExecutablePath = "/usr/bin/ffprobe";
+            }
             // 输入验证
             if (imageFilePaths == null || !imageFilePaths.Any())
                 throw new ArgumentException("图片路径列表不能为空。", nameof(imageFilePaths));
