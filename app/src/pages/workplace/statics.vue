@@ -157,20 +157,23 @@
           <div v-if="currentTab === 'author'" key="author-view" class="stats-content">
             <div class="authors-grid">
               <div class="author-card" v-for="(author, index) in authors" :key="index">
-                <div class="author-avatar">
-                  <img :src="author.icon" alt="作者头像" />
+                <!-- 新增横向容器：包裹头像和作者信息 -->
+                <div class="author-info-row">
+                  <div class="author-avatar">
+                    <img :src="author.icon" alt="作者头像" />
+                  </div>
+                  <div class="author-info">
+                    <h3 class="author-name">{{ author.name }}</h3>
+                    <p class="author-stats">同步数量: {{ author.count }}</p>
+                  </div>
                 </div>
-                <div class="author-info">
-                  <h3 class="author-name">{{ author.name }}</h3>
-                  <p class="author-stats">作品数: {{ author.count }}</p>
-                </div>
+                <!-- 进度条独立在横向容器下方，不与头像同行 -->
                 <div class="author-progress">
                   <div class="progress-bar" :style="{ width: `${(author.count / totalVideos) * 100}%` }"></div>
                 </div>
               </div>
             </div>
           </div>
-
           <!-- 分类统计 -->
           <div v-else key="category-view" class="stats-content">
             <div class="categories-grid">
@@ -248,6 +251,16 @@ defineOptions({
   name: 'StatsDashboard',
 });
 
+// 生成随机十六进制颜色的工具函数
+const generateRandomColor = () => {
+  // 生成0-255的随机RGB值，转换为十六进制并补零
+  const randomHex = () =>
+    Math.floor(Math.random() * 256)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${randomHex()}${randomHex()}${randomHex()}`;
+};
+
 // 加载数据和切换标签逻辑
 onMounted(() => {
   loadDashboardData();
@@ -268,27 +281,27 @@ const loadDashboardData = async () => {
     totalAuthors.value = res.data.authorCount;
     categoryTotal.value = res.data.categoryCount;
     totalVideos.value = res.data.videoCount;
-    fileSizeTotal.value = res.data.videoSizeTotal || 0.0;
-    totalDiskSize.value = res.data.totalDiskSize || 0.0;
+    fileSizeTotal.value = res.data.videoSizeTotal || '0.00';
+    totalDiskSize.value = res.data.totalDiskSize || '0.00';
 
     favoriteCount.value = res.data.favoriteCount;
     collectCount.value = res.data.collectCount;
     followCount.value = res.data.followCount || 0;
     graphicVideoCount.value = res.data.graphicVideoCount || 0;
 
-    favoriteSize.value = res.data.videoFavoriteSize || 0.0;
-    collectSize.value = res.data.videoCollectSize || 0.0;
-    followSize.value = res.data.videoFollowSize || 0.0;
-    graphicVideoSize.value = res.data.graphicVideoSize || 0.0;
+    favoriteSize.value = res.data.videoFavoriteSize || '0.00';
+    collectSize.value = res.data.videoCollectSize || '0.00';
+    followSize.value = res.data.videoFollowSize || '0.00';
+    graphicVideoSize.value = res.data.graphicVideoSize || '0.00';
 
     categories.value = res.data.categories;
     authors.value = res.data.authors;
 
-    const cates = getRandomElements(categoriessss.value, categories.value.length);
-    const colors = getRandomElements(colorArray, categories.value.length);
-    categories.value.forEach((item, index) => {
-      item.icon = cates[index];
-      item.color = colors[index];
+    // 移除categoriessss相关逻辑，直接给分类设置固定图标cup（保证显示）
+    // 动态为每个分类生成随机颜色，替代原有的colorArray
+    categories.value.forEach((item) => {
+      item.icon = 'cup'; // 固定使用已定义的cup图标，确保显示正常
+      item.color = generateRandomColor(); // 随机生成颜色
     });
   } catch (err) {
     console.error('加载仪表盘数据失败：', err);
@@ -300,46 +313,7 @@ const getRandomElements = (arr: any[], n: number) => {
   if (n >= arr.length) return [...arr];
   return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
 };
-
-const categoriessss = ref<any[]>([
-  'cup',
-  'spoon',
-  'fork',
-  'knife',
-  'plate',
-  'bottle',
-  'toothbrush',
-  'comb',
-  'mirror',
-  'soap',
-  'mobile',
-  'tablet',
-  'camera',
-  'headphones',
-  'speaker',
-  'tv',
-  'watch',
-  'charger',
-]);
-
-const colorArray = [
-  '#3A7CA5',
-  '#D9A566',
-  '#6B4226',
-  '#829399',
-  '#A63446',
-  '#4F6367',
-  '#FE5F55',
-  '#C7EFCF',
-  '#78C0E0',
-  '#49BEAA',
-  '#49DCB1',
-  '#FF9999',
-  '#66B2FF',
-  '#99FF99',
-];
 </script>
-
 <style scoped>
 /* 基础样式 */
 .stats-dashboard {
@@ -580,10 +554,9 @@ const colorArray = [
   border: none;
   color: #666666;
   padding: 8px 16px;
-  border-radius: 20px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .tab-btn.active {
@@ -617,25 +590,28 @@ const colorArray = [
   }
 }
 
-.author-card,
-.category-card {
+/* 作者卡片样式 - 核心修改：头像+文字横向，进度条独立在下 */
+.author-card {
+  display: flex;
+  flex-direction: column; /* 整体纵向布局，容纳「头像+文字行」和「进度条行」 */
+  gap: 10px; /* 头像文字行 与 进度条 之间的间距，可微调 */
+  padding: 15px;
   background: #eeeeee;
   border-radius: 8px;
-  padding: 15px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
-.author-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.author-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
 }
 
-.author-card:hover,
-.category-card:hover {
-  transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+/* 头像+文字 横向容器 */
+.author-info-row {
+  display: flex;
+  align-items: center; /* 头像与文字垂直居中 */
+  gap: 12px; /* 头像与文字的间距，减少空白 */
 }
 
 .author-avatar {
@@ -643,6 +619,7 @@ const colorArray = [
   height: 50px;
   border-radius: 50%;
   overflow: hidden;
+  flex-shrink: 0; /* 防止头像被压缩 */
 }
 
 .author-avatar img {
@@ -651,25 +628,36 @@ const colorArray = [
   object-fit: cover;
 }
 
+/* 作者文字信息（名字+作品数） */
+.author-info {
+  flex: 1; /* 占据头像右侧剩余空间 */
+  display: flex;
+  flex-direction: column; /* 名字在上，作品数在下，紧凑排列 */
+  gap: 3px; /* 名字与作品数的间距，减少空白 */
+}
+
 .author-name,
 .category-name {
-  margin: 0 0 5px 0;
+  margin: 0; /* 移除默认外边距，消除多余空白 */
   font-size: 16px;
   color: #333333;
 }
 
 .author-stats,
 .category-stats {
-  margin: 0;
-  font-size: 13px;
+  margin: 5px 0px; /* 移除默认外边距 */
+  font-size: 12px;
   color: #666666;
+  line-height: 1; /* 紧凑行高，减少垂直空白 */
 }
 
+/* 进度条 - 独立成行，不与头像同行 */
 .author-progress {
   height: 6px;
   background: #e0e0e0;
   border-radius: 3px;
   overflow: hidden;
+  width: 100%; /* 占满作者卡片宽度 */
 }
 
 .progress-bar {
@@ -679,10 +667,21 @@ const colorArray = [
   transition: width 0.5s ease;
 }
 
+/* 分类卡片样式 */
 .category-card {
   display: flex;
   align-items: center;
   gap: 15px;
+  padding: 15px;
+  background: #eeeeee;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.category-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
 }
 
 .category-icon {
