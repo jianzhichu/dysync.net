@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ActiveDebugProfile>tiny.ddns</ActiveDebugProfile>
-    <NameOfLastUsedPublishProfile>E:\code\dysync\Properties\PublishProfiles\fn.pubxml</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>E:\code\dysync\Properties\PublishProfiles\docker.pubxml</NameOfLastUsedPublishProfile>
     <Controller_SelectedScaffolderID>ApiControllerEmptyScaffolder</Controller_SelectedScaffolderID>
     <Controller_SelectedScaffolderCategoryPath>root/Common/Api</Controller_SelectedScaffolderCategoryPath>
   </PropertyGroup>

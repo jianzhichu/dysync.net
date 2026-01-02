@@ -84,9 +84,6 @@
     <None Update="Dockerfile-arm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Dockerfile">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="mp3\silent_10.mp3">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -118,6 +115,12 @@
 			</ResolvedFileToPublish>
 		</ItemGroup>
 	</Target>
+
+	<!-- 核心配置：仅用核心版本号1.9.5，自动拼接前缀 -->
+	<!--<Target Name="DockerBuildAndPushAfterPublish" AfterTargets="Publish">
+		<Exec Command="docker build -t jianzhichu/dysync.net:beta_$(DockerCoreVersion) . &amp;&amp; docker tag jianzhichu/dysync.net:beta_$(DockerCoreVersion) ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion) &amp;&amp; docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion)"
+			  Condition="'$(DockerArch)' == 'x86'" />
+	</Target>-->
 
 
 </Project>
