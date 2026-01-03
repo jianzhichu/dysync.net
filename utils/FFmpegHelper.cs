@@ -10,16 +10,10 @@ namespace dy.net.utils
 {
     public class FFmpegHelper : IDisposable
     {
-        #if DEBUG
-                // Debug 环境，通常是 Windows
-                private  string _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
-                private  string _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
-#else
-            // Release 环境，通常是 Docker Linux
-            private  string _ffmpegExecutablePath = "ffmpeg";
-            private  string _ffprobeExecutablePath = "ffprobe";
-#endif
 
+
+        private string _ffmpegExecutablePath;
+        private string _ffprobeExecutablePath ;
 
         public FFmpegHelper()
         {
@@ -28,7 +22,19 @@ namespace dy.net.utils
                 _ffmpegExecutablePath = "/usr/bin/ffmpeg";
                 _ffprobeExecutablePath = "/usr/bin/ffprobe";
             }
-        }
+            else
+            {
+                #if DEBUG
+                // Debug 环境，通常是 Windows
+                  _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
+                  _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
+            #else
+                // Release 环境，通常是 Docker Linux
+                  _ffmpegExecutablePath = "ffmpeg";
+                  _ffprobeExecutablePath = "ffprobe";
+            #endif
+    }
+}
 
         private Process _ffmpegProcess;
         private CancellationTokenSource _cancellationTokenSource;
@@ -59,11 +65,6 @@ namespace dy.net.utils
             IProgress<double> progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (Appsettings.Get("deploy") == "fn")
-            {
-                _ffmpegExecutablePath = "/usr/bin/ffmpeg";
-                _ffprobeExecutablePath = "/usr/bin/ffprobe";
-            }
             // 输入验证
             if (imageFilePaths == null || !imageFilePaths.Any())
                 throw new ArgumentException("图片路径列表不能为空。", nameof(imageFilePaths));
@@ -148,52 +149,15 @@ namespace dy.net.utils
                     //Console.WriteLine($"图片序列将循环 {loopCount} 次以匹配音频时长");
                 }
 
-                // --- 修正点 2: 重新构建 FFmpeg 参数列表 ---
-                //var arguments = new List<string>
-                //{
-                //    "-y", // 覆盖输出文件
-
-                //    // --- 所有输入文件放在最前面 ---
-                //    // 图片序列输入
-                //    "-f", "image2",
-                //    "-r", imageFps.ToString(CultureInfo.InvariantCulture),
-                //    "-i", $"\"{imageSequencePattern}\"",
-
-                //    // 音频输入
-                //    "-i", $"\"{audioFilePath}\"",
-
-                //    // --- 修正点 3: 使用 filter_complex 对视频流进行循环 ---
-                //    // [0:v] 表示第一个输入（图片序列）的视频流
-                //    // loop={loopCount-1} 表示循环 (次数-1) 次
-                //    // [v] 是处理后的视频流的别名
-                //    "-filter_complex", $"\"[0:v]loop={loopCount - 1}[v]\"",
-
-                //    // --- 修正点 4: 明确映射输出流 ---
-                //    // 将处理后的视频流 [v] 映射到输出
-                //    "-map", "\"[v]\"",
-                //    // 将第二个输入（音频文件）的音频流映射到输出
-                //    "-map", "\"1:a\"",
-
-                //    // --- 视频编码配置 ---
-                //    "-c:v", VideoCodec,
-                //    "-preset", VideoPreset,
-                //    "-crf", $"{VideoCrf}",
-                //    "-s", $"{VideoWidth}x{VideoHeight}",
-                //    "-pix_fmt", "yuv420p",
-
-                //    // --- 音频编码配置 ---
-                //    "-c:a", AudioCodec,
-                //    "-b:a", $"{AudioBitrate}",
-
-                //    // --- 修正点 5: 使用 -shortest 参数 ---
-                //    // 确保视频和音频同时结束，即使循环次数计算得不完全精确
-                //    "-shortest",
-
-                //    // --- 输出文件 ---
-                //    $"\"{outputVideoPath}\""
-                //};
-
-                //AI优化后。。20251129
+                //H264编码要求宽高必须为偶数 20260103
+                if (VideoWidth % 2 != 0)
+                {
+                    VideoWidth++;
+                }
+                if (VideoHeight % 2 != 0)
+                {
+                    VideoHeight++;
+                }
                 var arguments = new List<string>
                     {
                         "-y", // 覆盖输出文件

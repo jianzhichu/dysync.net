@@ -941,7 +941,7 @@ namespace dy.net.job
                         Log.Error($"{VideoType}-图文视频同步-没有配置图片存储路径，任务终止!!!");
                         return null;
                     }
-                    fileNamefolder = Path.Combine(cookie.ImgSavePath, DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId,true));
+                    fileNamefolder = Path.Combine(cookie.ImgSavePath, DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true));
                 }
                 else
                 {
@@ -954,7 +954,12 @@ namespace dy.net.job
                 var savePath = Path.Combine(fileNamefolder, fileName);
 
                 // 如果文件已存在，返回null
-                if (File.Exists(savePath)) return null;
+                if (File.Exists(savePath))
+                {
+                    FileInfo fileInfo = new FileInfo(savePath);
+                    if (fileInfo.Length > 0)
+                        return null;
+                }
 
                 // 获取音乐URL
                 var mp3Url = item.Music?.PlayUrl?.UrlList?.FirstOrDefault();

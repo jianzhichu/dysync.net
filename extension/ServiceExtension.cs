@@ -12,6 +12,8 @@ using Quartz;
 using Serilog;
 using Serilog.Events;
 using Serilog.Filters;
+using Serilog.Formatting.Compact;
+
 //using Serilog.Formatting.Compact;
 using SqlSugar;
 //using Swashbuckle.AspNetCore.SwaggerGen;
@@ -497,7 +499,7 @@ namespace dy.net.extension
                 .Filter.ByExcluding(e => e.Level == LogEventLevel.Information) // 排除Info级别的日志
                 .Filter.ByExcluding(Matching.FromSource("Microsoft"))
                 .Filter.ByExcluding(Matching.FromSource("Quartz"))
-                //.WriteTo.Console(new RenderedCompactJsonFormatter(), LogEventLevel.Debug)
+                .WriteTo.Console(new RenderedCompactJsonFormatter(), LogEventLevel.Debug)
                 //.WriteTo.MySQL(connectionString: builder.Configuration.GetConnectionString("DbConnectionString"), tableName: "Logs") // 输出到数据库
                 .WriteTo.Logger(configure => configure
                     .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Debug)

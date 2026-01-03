@@ -59,14 +59,11 @@
 	  <!--<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="5.6.3" />
 	  <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.3.0" />
 	  <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.6.3" />-->
-	  <!--<PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
+	  <PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
 	  <PackageReference Include="Serilog.Sinks.Async" Version="1.4.0" />
 	  <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
 	  <PackageReference Include="Serilog.Sinks.Seq" Version="4.0.0" />
 	  <PackageReference Include="Serilog" Version="3.1.1" />
-	  <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />-->
-	  <PackageReference Include="Serilog" Version="3.1.1" />
-	  <PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
 	  <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
 	  <PackageReference Include="System.Net.Http" Version="4.3.4" />
 	  <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
@@ -116,7 +113,7 @@
 		</ItemGroup>
 	</Target>
 
-	<!-- 核心配置：仅用核心版本号1.9.5，自动拼接前缀 -->
+	<!-- 核心配置：仅用核心版本号1.9.6，自动拼接前缀 -->
 	<!--<Target Name="DockerBuildAndPushAfterPublish" AfterTargets="Publish">
 		<Exec Command="docker build -t jianzhichu/dysync.net:beta_$(DockerCoreVersion) . &amp;&amp; docker tag jianzhichu/dysync.net:beta_$(DockerCoreVersion) ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion) &amp;&amp; docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion)"
 			  Condition="'$(DockerArch)' == 'x86'" />
