@@ -17,6 +17,8 @@ namespace dy.net.dto
         public List<string>? Dates { get; set; }
         public List<string>? Dates2 { get; set; }
 
+        public string? Tag { get; set; }
+
     }
 
 

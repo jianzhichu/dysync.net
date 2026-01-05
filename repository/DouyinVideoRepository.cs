@@ -45,6 +45,7 @@ namespace dy.net.repository
                 //.WhereIF(!string.IsNullOrWhiteSpace(title), x => x.VideoTitle.Contains(title))
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.Title), x => x.VideoTitle.Contains(dto.Title))
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.Author), x => x.Author.Contains(dto.Author))
+                .WhereIF(!string.IsNullOrWhiteSpace(dto.Tag), x => x.Tag1==dto.Tag)
                 .WhereIF(start.HasValue, x => x.SyncTime >= start.Value)
                 .WhereIF(end.HasValue, x => x.SyncTime <= end.Value)
                 .WhereIF(start2.HasValue, x => x.CreateTime >= start2.Value)
