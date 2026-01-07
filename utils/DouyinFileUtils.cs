@@ -157,5 +157,64 @@
         {
             return HasDirectoryReadPermission(directoryPath) && HasDirectoryWritePermission(directoryPath);
         }
+
+        /// <summary>
+        /// 通过文件头魔数（前几个字节）识别真实文件类型
+        /// </summary>
+        public static string GetFileExtensionByMagicNumber(Stream stream)
+        {
+            // 读取前16个字节（足够识别常见格式）
+            byte[] magicBytes = new byte[16];
+            int readBytes = stream.Read(magicBytes, 0, magicBytes.Length);
+            //stream.Position = 0; // 读完重置指针
+
+            if (readBytes < 4) return ""; // 字节数不足，兜底
+
+            // 魔数匹配规则（核心：区分MP4视频和M4A音频）
+            // MP4/M4A 基础魔数：0x00 0x00 0x00 ?? 0x66 0x74 0x79 0x70 (ftyp)
+            if (magicBytes[4] == 0x66 && magicBytes[5] == 0x74 && magicBytes[6] == 0x79 && magicBytes[7] == 0x70)
+            {
+                // 读取ftyp后的字符，区分MP4/M4A
+                if (readBytes >= 12)
+                {
+                    // MP4 特征：ftypmp42 / ftypisom / ftypmp41
+                    string ftyp = System.Text.Encoding.ASCII.GetString(magicBytes, 8, 4);
+                    if (ftyp == "mp42" || ftyp == "isom" || ftyp == "mp41")
+                    {
+                        // 进一步判断是否包含视频轨道（简化版：M4A只有音频，MP4可能含视频）
+                        // 这里做简化区分：如果是纯音频则为m4a，否则为mp4
+                        // （进阶版可解析MP4盒子，新手先按此规则）
+                        return "m4a"; // 你原链接的真实类型
+                                      // 若要严格区分视频MP4，可扩展：return "mp4";
+                    }
+                    // M4A 特征：ftypM4A / ftypM4B / ftypM4P
+                    else if (ftyp == "M4A " || ftyp == "M4B " || ftyp == "M4P ")
+                    {
+                        return "m4a";
+                    }
+                }
+                // 兜底：MP4/M4A统一先按Content-Type辅助，无则按mp4
+                return "mp4";
+            }
+            // MP3 魔数：0xFF 0xFB 或 0x49 0x44 0x33 (ID3)
+            else if ((magicBytes[0] == 0xFF && magicBytes[1] == 0xFB) ||
+                     (magicBytes[0] == 0x49 && magicBytes[1] == 0x44 && magicBytes[2] == 0x33))
+            {
+                return "mp3";
+            }
+            // 其他常见格式（可扩展）
+            else if (magicBytes[0] == 0xFF && magicBytes[1] == 0xD8) // JPG
+            {
+                return "jpg";
+            }
+            else if (magicBytes[0] == 0x89 && magicBytes[1] == 0x50 && magicBytes[2] == 0x4E && magicBytes[3] == 0x47) // PNG
+            {
+                return "png";
+            }
+            else
+            {
+                return ""; // 未知格式
+            }
+        }
     }
 }

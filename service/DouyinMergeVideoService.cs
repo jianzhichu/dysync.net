@@ -206,7 +206,7 @@ namespace dy.net.service
 
                 // 2. 下载音频
                 string[] rawAudios = Array.Empty<string>();
-                if (mergeImg2Viedo&& request.AudioUrls != null && request.AudioUrls.Count>0)
+                if (mergeImg2Viedo && request.AudioUrls != null && request.AudioUrls.Count > 0) 
                 {
                     var (audios, audioError) = await DownloadMediaAsync(
                         request.AudioUrls, Path.Combine(tempDir, "raw-audios"), "audio_", "mp3", cookie);
@@ -219,7 +219,8 @@ namespace dy.net.service
                     // 保存下载的音频（如果需要）
                     if (downMp3)
                     {
-                        await SaveDownloadedFilesAsync(rawAudios, fileNamefolder, "mp3", Path.GetFileNameWithoutExtension(outputVideoPath));
+                        var ext= Path.GetExtension(rawAudios[0]);
+                        await SaveDownloadedFilesAsync(rawAudios, fileNamefolder, ext, Path.GetFileNameWithoutExtension(outputVideoPath));
                     }
                 }
 
@@ -407,8 +408,15 @@ namespace dy.net.service
 
                 try
                 {
-                    await douyinHttpClientService.DownloadAsync(url, savePath, cookie);
-                    successPaths.Add(savePath);
+                   var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(url, savePath, cookie);
+                    if(Success)
+                    {
+                        successPaths.Add(ActualSavePath);
+                    }
+                    else
+                    {
+                        Serilog.Log.Error($"下载失败：{url} → {savePath}");
+                    }
                    //Console.WriteLine($"下载成功：{url} → {savePath}");
                 }
                 catch (Exception ex)

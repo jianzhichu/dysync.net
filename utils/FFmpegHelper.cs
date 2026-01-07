@@ -33,8 +33,8 @@ namespace dy.net.utils
                   _ffmpegExecutablePath = "ffmpeg";
                   _ffprobeExecutablePath = "ffprobe";
             #endif
-    }
-}
+            }
+        }
 
         private Process _ffmpegProcess;
         private CancellationTokenSource _cancellationTokenSource;
@@ -140,16 +140,18 @@ namespace dy.net.utils
                     Serilog.Log.Error($"获取音频时长失败，将使用图片总时长 ({audioDurationSeconds:F2}s) 作为视频时长: {ex.Message}");
                 }
 
+
                 // 计算图片序列需要循环的次数
                 int loopCount = 1;
-                double singleLoopDuration = imageList.Count * ImageDisplayDurationSeconds;
+                int imageCount = imageList.Count; // 要循环的图片总数（对应loop的size参数）
+                double singleLoopDuration = imageCount * ImageDisplayDurationSeconds;
+
                 if (audioDurationSeconds > singleLoopDuration)
                 {
                     loopCount = (int)Math.Ceiling(audioDurationSeconds / singleLoopDuration);
                     //Console.WriteLine($"图片序列将循环 {loopCount} 次以匹配音频时长");
                 }
-
-                //H264编码要求宽高必须为偶数 20260103
+                // H264编码要求宽高必须为偶数 20260103
                 if (VideoWidth % 2 != 0)
                 {
                     VideoWidth++;
@@ -158,50 +160,53 @@ namespace dy.net.utils
                 {
                     VideoHeight++;
                 }
+
                 var arguments = new List<string>
-                    {
-                        "-y", // 覆盖输出文件
+                        {
+                            "-y", // 覆盖输出文件
 
-                        // 图片序列输入：恢复你原有的 -r，移除可能冲突的参数
-                        "-f", "image2",
-                        "-r", imageFps.ToString(CultureInfo.InvariantCulture), // 保留你原本的帧率参数
-                        "-start_number", "0", // 仅增加：避免序列编号问题（不影响原有逻辑）
-                        "-i", imageSequencePattern, // 关键修复：去掉引号（原代码的引号是核心失败原因）
+                            // 图片序列输入：保留原有逻辑，修复帧率含义（-r 是输出帧率，输入用-framerate更准确）
+                            "-f", "image2",
+                            "-framerate", imageFps.ToString(CultureInfo.InvariantCulture), // 输入帧率（图片播放速度）
+                            "-start_number", "0", // 序列起始编号
+                            "-i", imageSequencePattern, // 图片序列模板（无需引号，后续用ProcessStartInfo传参更安全）
 
-                        // 音频输入：同样去掉引号
-                        "-i", audioFilePath,
+                            // 音频输入
+                            "-i", audioFilePath,
 
-                        // 滤镜修复：恢复简单写法，避免复杂参数（适配旧版 FFmpeg）
-                        "-filter_complex", $"[0:v]loop={loopCount - 1}[v]", // 去掉额外参数，和你原逻辑一致
+                            // 滤镜修复：补充size参数（核心！解决Number of frames to loop is not set报错）
+                            // loop=循环次数:size=要循环的帧数；loop=-1表示无限循环（配合-shortest更简洁）
+                            "-filter_complex", $"[0:v]loop=loop={loopCount - 1}:size={imageCount}[v]",
 
-                        // 流映射：去掉引号，恢复简单写法
-                        "-map", "[v]",
-                        "-map", "1:a",
+                            // 流映射
+                            "-map", "[v]",
+                            "-map", "1:a",
 
-                        // 视频编码：保留你的变量，只增加兼容性参数
-                        "-c:v", VideoCodec, // 保留你原本的编码变量（之前能跑通，说明该编码支持）
-                        "-preset", VideoPreset, // 保留原变量
-                        "-crf", $"{VideoCrf}", // 保留原变量
-                        "-s", $"{VideoWidth}x{VideoHeight}",
-                        "-pix_fmt", "yuv420p", // 仅增加：兼容性关键（不影响原有逻辑）
-                        "-profile:v", "main", // 仅增加：适配多数播放器（不冲突）
+                            // 视频编码：保留你的变量，确保兼容性
+                            "-c:v", VideoCodec,
+                            "-preset", VideoPreset,
+                            "-crf", $"{VideoCrf}",
+                            "-s", $"{VideoWidth}x{VideoHeight}",
+                            "-pix_fmt", "yuv420p", // 兼容所有播放器
+                            "-profile:v", "main",
 
-                        // 音频编码：保留你的变量，修复可能的无效值
-                        "-c:a", AudioCodec, // 保留原变量
-                        "-b:a", $"{AudioBitrate}", // 保留原变量
-                        "-ac", "2", // 仅增加：避免单声道兼容问题
-                        "-ar", "44100", // 仅增加：标准化采样率
+                            // 音频编码：标准化参数，避免无效值
+                            "-c:a", AudioCodec,
+                            "-b:a", $"{AudioBitrate}",
+                            "-ac", "2", // 立体声
+                            "-ar", "44100", // 标准采样率
 
-                        // 封装优化：仅增加关键参数，不影响原有逻辑
-                        "-f", "mp4", // 明确格式（之前可能自动识别，现在显式声明更稳定）
-                        "-movflags", "+faststart", // 仅增加：解决部分播放器无法播放
+                            // 封装优化
+                            "-f", "mp4",
+                            "-movflags", "+faststart",
 
-                        // 保留你原有的同步参数
-                        "-shortest",
+                            // 同步参数：确保视频时长匹配音频
+                            "-shortest",
 
-                        // 输出路径：去掉引号（核心修复点）
-                        outputVideoPath
-                    };
+                            // 输出路径
+                            outputVideoPath
+                        };
+
 
                 string args = string.Join(" ", arguments);
                 //Console.WriteLine($"执行FFmpeg命令: {_ffmpegExecutablePath} {args}");
@@ -285,7 +290,7 @@ namespace dy.net.utils
 
                 if (_ffmpegProcess.ExitCode != 0)
                 {
-                    throw new InvalidOperationException($"FFmpeg执行失败，退出码: {_ffmpegProcess.ExitCode}。请查看控制台输出获取详细错误信息。");
+                    throw new InvalidOperationException($"FFmpeg执行失败，退出码: {_ffmpegProcess.ExitCode}。请查看控制台输出获取详细错误信息。执行命令：ffmpeg {arguments}");
                 }
             }
             finally

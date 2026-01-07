@@ -446,10 +446,11 @@ namespace dy.net.job
             foreach (var item in data.AwemeList)
             {
                 //if (!item.Desc.Contains("人生苦短"))
-                ////if (!item.Desc.Contains("如果你也喜欢"))
+                //if (item.AwemeId!= "7202236830337551616")
                 //{
                 //    continue;
                 //}
+
                 //判断视频是否是强制删除且不再下载的视频
                 var deleteVideo = await douyinCommonService.ExistDeleteVideo(item.AwemeId);
                 if (deleteVideo)
@@ -754,7 +755,8 @@ namespace dy.net.job
             await Task.Delay(_random.Next(1, 4) * 1000);
 
             // 下载视频
-            if (!await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies))
+            var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
+            if (!Success)
             {
                 Log.Error($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载失败!!!");
                 
@@ -812,8 +814,8 @@ namespace dy.net.job
                     dynamicSavePaths.Add(dynamicSavePath);
                     continue;
                 }
-
-                if (!await douyinHttpClientService.DownloadAsync(dynamicUrl, dynamicSavePath, cookie.Cookies))
+                var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(dynamicUrl, dynamicSavePath, cookie.Cookies);
+                if (!Success)
                 {
                     Log.Error($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]-00{i},下载失败!!!");
                 }
@@ -891,8 +893,16 @@ namespace dy.net.job
             if (otherUrls.Count > 0)
             {
                 Log.Debug($"{VideoType}-额外找到{otherUrls.Count}个视频地址，即将再次开始下载...");
-                var result2 = await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies, otherUrls);
-                Log.Debug($"{VideoType}-尝试多个地址后，下载成功,{savePath}");
+                var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies, otherUrls);
+                if(Success)
+                {
+                    Log.Debug($"{VideoType}-尝试多个地址后，下载成功,{savePath}");
+                }
+                else
+                {
+                    Log.Error($"{VideoType}-尝试多个地址后，下载失败,{item.Desc}");
+                    return (flowControl: false, value: null);
+                }
             }
             else
             {
@@ -963,7 +973,6 @@ namespace dy.net.job
 
                 // 获取音乐URL
                 var mp3Url = item.Music?.PlayUrl?.UrlList?.FirstOrDefault();
-
                 var firstImage = item.Images.FirstOrDefault();
                 int height = firstImage.Height;
                 int width = firstImage.Width;
@@ -1244,7 +1253,7 @@ namespace dy.net.job
             // 如果封面文件不存在，则下载
             if (!File.Exists(coverSavePath))
             {
-                var downRes = await douyinHttpClientService.DownloadAsync(coverUrl, coverSavePath, cookie.Cookies);
+              await douyinHttpClientService.DownloadAsync(coverUrl, coverSavePath, cookie.Cookies);
             }
         }
 

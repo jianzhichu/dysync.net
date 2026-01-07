@@ -313,7 +313,7 @@ namespace dy.net.service
         /// <param name="maxRetryCount">最大重试次数（默认3次）</param>
         /// <param name="initialRetryDelay">初始重试延迟（默认1秒，指数退避）</param>
         /// <returns>是否下载成功</returns>
-        public async Task<bool> DownloadAsync(
+        public async Task<(bool Success, string ActualSavePath)> DownloadAsync(
             string videoUrl,
             string savePath,
             string cookie,
@@ -362,21 +362,21 @@ namespace dy.net.service
                     {
                         // 等待期间被取消，直接返回失败
                         Serilog.Log.Information($"重试等待被取消：{videoUrl}");
-                        return false;
+                        return (false, savePath);
                     }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     // 主动取消，不重试
                     Serilog.Log.Information($"下载被取消：{videoUrl}");
-                    return false;
+                    return (false, savePath);
                 }
                 catch (Exception ex)
                 {
                     // 不可重试的异常（如参数错误、权限不足等），直接失败
                     Serilog.Log.Error(ex, $"下载失败（不可重试）：{videoUrl}");
                     CleanupIncompleteFile(savePath); // 清理不完整文件
-                    return false;
+                    return (false, savePath);
                 }
             }
         }
@@ -489,12 +489,12 @@ namespace dy.net.service
         /// <summary>
         /// 单次下载尝试（核心下载逻辑）
         /// </summary>
-        private async Task<bool> TryDownloadOnceAsync(
-            string videoUrl,
-            string savePath,
-            string cookie,
-            CancellationToken cancellationToken,
-            TimeSpan streamTimeout)
+       private async Task<(bool Success, string ActualSavePath)> TryDownloadOnceAsync(
+       string videoUrl,
+       string savePath,
+       string cookie,
+       CancellationToken cancellationToken,
+       TimeSpan streamTimeout)
         {
             DateTime lastStreamActivity = DateTime.UtcNow; // 流活动时间戳
 
@@ -507,6 +507,11 @@ namespace dy.net.service
 
             // 清理已存在的文件（避免占用）
             CleanupIncompleteFile(savePath);
+            //传入的文件后缀名
+            string ext = Path.GetExtension(savePath);
+            string actualSavePath = savePath;
+            string detectedExtension = string.Empty;
+
 
             using (var httpClient = _clientFactory.CreateClient("dy_download"))
             {
@@ -525,46 +530,90 @@ namespace dy.net.service
 
                     long? totalBytes = response.Content.Headers.ContentLength;
 
-                    // 读取流并写入文件
+                    // 读取响应流
                     using (var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
-                    using (var fileStream = new FileStream(
-                        savePath,
-                        FileMode.CreateNew,
-                        FileAccess.Write,
-                        FileShare.None,
-                        bufferSize: 8192,
-                        options: FileOptions.Asynchronous | FileOptions.SequentialScan))
                     {
-                        byte[] buffer = new byte[8192];
-                        int bytesRead;
-                        long totalRead = 0;
 
-                        while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+                        //if (ext == ".mp3")
+                        //{
+                        //    detectedExtension = DouyinFileUtils.GetFileExtensionByMagicNumber(responseStream);
+                        //}
+
+                        if (ext == ".mp3")
                         {
-                            // 检查流读取超时
-                            if (DateTime.UtcNow - lastStreamActivity > streamTimeout)
+                            var contentType = response.Content.Headers.ContentType?.MediaType;
+                            if (!string.IsNullOrEmpty(contentType))
                             {
-                                throw new TimeoutException($"流读取超时（{streamTimeout.TotalSeconds}秒无数据）");
-                            }
-
-                            await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
-                            totalRead += bytesRead;
-                            lastStreamActivity = DateTime.UtcNow;
-
-                            // 进度计算（可选）
-                            if (totalBytes.HasValue)
-                            {
-                                double progress = (double)totalRead / totalBytes.Value * 100;
-                                // 进度上报逻辑：OnProgressChanged(progress);
+                                if (contentType.Contains("audio/mp4") || contentType.Contains("audio/m4a"))
+                                {
+                                    detectedExtension = "m4a";
+                                }
+                                else if (contentType.Contains("audio/mpeg") || contentType.Contains("audio/mp3"))
+                                {
+                                    detectedExtension = "mp3";
+                                }
+                                else if (contentType.Contains("video/mp4"))
+                                {
+                                    detectedExtension = "mp4";
+                                }
                             }
                         }
 
-                        await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false); // 确保数据写入磁盘
+                        if (!string.IsNullOrEmpty(detectedExtension))
+                        {
+                            string extension = Path.GetExtension(actualSavePath);
+                            if (string.IsNullOrEmpty(extension))
+                            {
+                                actualSavePath += detectedExtension;
+                            }
+                            else
+                            {
+                                actualSavePath = Path.ChangeExtension(actualSavePath, detectedExtension.Trim('.'));
+                                savePath = actualSavePath;
+                            }
+                            CleanupIncompleteFile(actualSavePath);
+                        }
+
+                        using (var fileStream = new FileStream(
+                            actualSavePath, // 使用修正后的保存路径
+                            FileMode.CreateNew,
+                            FileAccess.Write,
+                            FileShare.None,
+                            bufferSize: 8192,
+                            options: FileOptions.Asynchronous | FileOptions.SequentialScan))
+                        {
+                            byte[] buffer = new byte[8192];
+                            int bytesRead;
+                            long totalRead = 0;
+
+                            while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+                            {
+                                // 检查流读取超时
+                                if (DateTime.UtcNow - lastStreamActivity > streamTimeout)
+                                {
+                                    throw new TimeoutException($"流读取超时（{streamTimeout.TotalSeconds}秒无数据）");
+                                }
+
+                                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+                                totalRead += bytesRead;
+                                lastStreamActivity = DateTime.UtcNow;
+
+                                // 进度计算（可选）
+                                if (totalBytes.HasValue)
+                                {
+                                    double progress = (double)totalRead / totalBytes.Value * 100;
+                                    // 进度上报逻辑：OnProgressChanged(progress);
+                                }
+                            }
+
+                            await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false); // 确保数据写入磁盘
+                        }
                     }
                 }
             }
 
-            return true;
+            // 返回成功状态和实际的保存路径
+            return (Success: true, ActualSavePath: actualSavePath);
         }
 
 
@@ -711,4 +760,6 @@ namespace dy.net.service
 
 
     }
+
+
 }
