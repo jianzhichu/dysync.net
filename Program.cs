@@ -3,10 +3,7 @@ using dy.net.service;
 using dy.net.utils;
 using dy.sync.lib;
 using Serilog;
-using System.Drawing;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime;
 using System.Text;
 
 namespace dy.net
@@ -24,31 +21,22 @@ namespace dy.net
         /// </summary>
         public static void Main(string[] args)
         {
-         
             // 初始化编码提供器
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             // 构建Web应用
             var builder = WebApplication.CreateBuilder(args);
-          
-
             var isDevelopment = builder.Environment.IsDevelopment();
-
             // 配置主机
             ConfigureHost(builder, isDevelopment);
-
             // 配置服务--数据库保存路径从命令行参数传入的第一个参数
             ConfigureServices(builder.Services, builder.Configuration, builder.Environment, args.Length > 0 ? args[0] : "");
-
             // 构建应用
             var app = builder.Build();
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);
             Log.Debug($"dy.sync app is started successfully  on  {DefaultListenUrl}");
-
             // 初始化应用服务
             InitApplicationServices(app, isDevelopment);
-
-            //Log.Debug($"同步任务执行顺序：collect → favorite → followed → follow_user-->默认30分钟执行一次...");
             Console.WriteLine();
             app.Run();
         }
@@ -58,24 +46,17 @@ namespace dy.net
         /// </summary>
         private static void ConfigureHost(WebApplicationBuilder builder, bool isDevelopment)
         {
-          
+            InitAppsettings(builder);
+            //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
+            DefaultListenUrl = $"http://*:{builder.Configuration.GetValue<string>(SystemStaticUtil.APP_PORT) ?? DefaultListenUrl}";
+            // 设置监听地址
+            builder.WebHost.UseUrls(DefaultListenUrl);
+            // 配置日志
+            builder.ConfigureLogging();
+        }
 
-            //// 配置配置文件
-            //builder.Host.ConfigureAppConfiguration((context, config) =>
-            //{
-            //    //config.SetBasePath(Directory.GetCurrentDirectory())
-            //    //      .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            //    //      .AddEnvironmentVariables();
-
-            //    // 关键：获取程序集所在的物理目录（而非当前工作目录）
-            //    var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            //    // 兜底：如果获取失败，回退到当前目录（可选）
-            //    var basePath = string.IsNullOrEmpty(assemblyPath) ? Directory.GetCurrentDirectory() : assemblyPath;
-
-            //    config.SetBasePath(basePath) // 使用程序集目录作为基础路径
-            //          .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            //          .AddEnvironmentVariables();
-            //});
+        private static void InitAppsettings(WebApplicationBuilder builder)
+        {
             // 配置配置文件
             builder.Host.ConfigureAppConfiguration((context, config) =>
             {
@@ -84,16 +65,16 @@ namespace dy.net
 
                 // 步骤1：获取多维度的候选基础路径（覆盖不同部署场景）
                 var candidateBasePaths = new List<string>
-    {
-        // 候选1：程序集所在目录（优先，解决工作目录不一致问题）
-        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-        // 候选2：当前工作目录（兜底）
-        Directory.GetCurrentDirectory(),
-        // 候选3：应用根目录（针对单文件发布/容器部署场景）
-        AppContext.BaseDirectory,
-        // 候选4：自定义环境变量指定的配置目录（灵活性扩展）
-        Environment.GetEnvironmentVariable("APP_CONFIG_DIR")
-    }
+                {
+                    // 候选1：程序集所在目录（优先，解决工作目录不一致问题）
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                    // 候选2：当前工作目录（兜底）
+                    Directory.GetCurrentDirectory(),
+                    // 候选3：应用根目录（针对单文件发布/容器部署场景）
+                    AppContext.BaseDirectory,
+                    // 候选4：自定义环境变量指定的配置目录（灵活性扩展）
+                    Environment.GetEnvironmentVariable("APP_CONFIG_DIR")
+                }
                 // 过滤空值和无效路径
                 .Where(path => !string.IsNullOrEmpty(path) && Directory.Exists(path))
                 .Distinct() // 去重
@@ -131,16 +112,6 @@ namespace dy.net
                         configFileName);
                 }
             });
-
-            //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
-            DefaultListenUrl = $"http://*:{builder.Configuration.GetValue<string>(SystemStaticUtil.APP_PORT) ?? DefaultListenUrl}";
-            // 设置监听地址
-            builder.WebHost.UseUrls(DefaultListenUrl);
-            // 配置日志
-            builder.Host.ConfigureLogging(logging => logging.ClearProviders())
-                       .UseSerilog();
-
-            builder.ConfigureLogging();
         }
 
         /// <summary>
@@ -155,9 +126,6 @@ namespace dy.net
             services.AddSingleton(new Appsettings (config));
             // 雪花ID生成器
             services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 100));
-
-   
-
 
             // MVC控制器+异常拦截器
             services.AddControllers().AddGlobalExceptionFilter();
@@ -243,15 +211,13 @@ namespace dy.net
             {
                 // 初始化用户
                 var userService = services.GetRequiredService<AdminUserService>();
-                userService.InitUser();
-
+                userService.InitUser("douyin","douyin2026");
                 var commonService = services.GetRequiredService<DouyinCommonService>();
                 
-                // 更新视频类型--兼容老版本
-                commonService.UpdateCollectViedoType();
+                // 更新视频类型--兼容老版本--不再需要
+                //commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
                 commonService.UpdateAllCookieSyncedToZero();
-
                 // 初始化配置
                 var config = commonService.InitConfig();
                 if (!isDevelopment)
@@ -259,8 +225,6 @@ namespace dy.net
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
                     quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
-
-
                     DouyinHttpHelper.GetTenImage(Appsettings.Get("tagName"));//查询镜像版本
                 }
                 // 初始化Cookie
@@ -270,10 +234,6 @@ namespace dy.net
                     var cookieService = services.GetRequiredService<DouyinCookieService>();
                     cookieService.InitCookie();
                 }
-
-
-
-             
             }
             catch (Exception ex)
             {

@@ -23,7 +23,7 @@ namespace dy.net.job
             var now = DateTime.Now;
             if (now.Hour == 1 && now.Minute < 30)
             {
-                 douyinCommonService.UpdateAllCookieSyncedToZero();
+                 //douyinCommonService.UpdateAllCookieSyncedToZero();
                 //顺手清理下日志文件
                 LogFileCleaner.CleanOldLogFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"), 1);
                 await Task.Delay(200); 

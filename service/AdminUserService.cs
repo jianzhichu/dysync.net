@@ -30,12 +30,12 @@ namespace dy.net.service
             return await _userRepository.UpdateAvatar(avatar);
         }
 
-        public (int code, string erro) InitUser()
+        public (int code, string erro) InitUser(string UserName,string Password)
         {
             AdminUserInfo userInfo = new AdminUserInfo
             {
-                UserName = "douyin",
-                Password = "douyin2026",
+                UserName = UserName,
+                Password = Password,
                 CreateTime = DateTime.Now
             };
             return  _userRepository.InitUser(userInfo);

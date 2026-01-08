@@ -137,13 +137,13 @@ namespace dy.net.service
             //强制开启去重
             sqlSugarClient.Updateable<AppConfig>().SetColumns(x => new AppConfig { AutoDistinct = true }).Where(x => !string.IsNullOrWhiteSpace(x.Id)).ExecuteCommand();
             //重新根据保存路径更新图片视频的类型为喜欢，收藏或关注
-            var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().Where(x=>x.ViedoType==VideoTypeEnum.ImageVideo).ToList();
-            if (collectViedos != null && collectViedos.Any()) 
+            var collectViedos = sqlSugarClient.Queryable<DouyinVideo>().Where(x => x.ViedoType == VideoTypeEnum.ImageVideo).ToList();
+            if (collectViedos != null && collectViedos.Any())
             {
-                var cookies= sqlSugarClient.Queryable<DouyinCookie>().ToList();
+                var cookies = sqlSugarClient.Queryable<DouyinCookie>().ToList();
                 collectViedos.ForEach(x =>
                 {
-                 var ck= cookies.FirstOrDefault(c => c.Id == x.CookieId);
+                    var ck = cookies.FirstOrDefault(c => c.Id == x.CookieId);
                     if (ck != null)
                     {
 
@@ -154,17 +154,17 @@ namespace dy.net.service
                             {
                                 x.ViedoType = VideoTypeEnum.dy_collects;
                             }
-                            else if(savePath.StartsWith(ck.UpSavePath))
+                            else if (savePath.StartsWith(ck.UpSavePath))
                             {
                                 x.ViedoType = VideoTypeEnum.dy_follows;
                             }
-                            else if(savePath.StartsWith(ck.FavSavePath))
+                            else if (savePath.StartsWith(ck.FavSavePath))
                             {
                                 x.ViedoType = VideoTypeEnum.dy_favorite;
                             }
                             else
                             {
-                                x.ViedoType= VideoTypeEnum.dy_collects;
+                                x.ViedoType = VideoTypeEnum.dy_collects;
                             }
                         }
                     }
@@ -197,7 +197,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> ExistDeleteVideo(string videoId)
         {
-            var count= await sqlSugarClient.Queryable<DouyinVideoDelete>().Where(x=>x.ViedoId==videoId).CountAsync();
+            var count = await sqlSugarClient.Queryable<DouyinVideoDelete>().Where(x => x.ViedoId == videoId).CountAsync();
             return count > 0;
         }
 
@@ -208,7 +208,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> AddDeleteVideo(DouyinVideoDelete dto)
         {
-            dto.Id=IdGener.GetLong().ToString();
+            dto.Id = IdGener.GetLong().ToString();
             dto.DeleteTime = DateTime.Now;
             return sqlSugarClient.Insertable(dto).ExecuteCommand() > 0;
         }

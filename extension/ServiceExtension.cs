@@ -490,6 +490,8 @@ namespace dy.net.extension
         /// </summary>
         public static void ConfigureLogging(this WebApplicationBuilder builder)
         {
+            builder.Host.ConfigureLogging(logging => logging.ClearProviders())
+                       .UseSerilog();
             string dateFile = "";// DateTime.Now.ToString("yyyyMMdd");
 
             Log.Logger = new LoggerConfiguration()
