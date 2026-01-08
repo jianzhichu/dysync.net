@@ -207,12 +207,8 @@ namespace dy.net.utils
                             outputVideoPath
                         };
 
-
-                string args = string.Join(" ", arguments);
-                //Console.WriteLine($"执行FFmpeg命令: {_ffmpegExecutablePath} {args}");
-
                 // 执行命令
-                await ExecuteFFmpegAsync(args, progress, cancellationToken);
+                await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
                 if (File.Exists(outputVideoPath))
                 {
                     return outputVideoPath;
@@ -238,7 +234,7 @@ namespace dy.net.utils
         /// <summary>
         /// 异步执行FFmpeg命令
         /// </summary>
-        private async Task ExecuteFFmpegAsync(string arguments, IProgress<double> progress, CancellationToken cancellationToken)
+        private async Task ExecuteFFmpegAsync(List<string> arguments, IProgress<double> progress, CancellationToken cancellationToken)
         {
             if (_ffmpegProcess != null && !_ffmpegProcess.HasExited)
             {
@@ -250,7 +246,6 @@ namespace dy.net.utils
             var startInfo = new ProcessStartInfo
             {
                 FileName = _ffmpegExecutablePath,
-                Arguments = arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -259,6 +254,10 @@ namespace dy.net.utils
                 StandardErrorEncoding = System.Text.Encoding.UTF8
             };
 
+            foreach (var arg in arguments)
+            {
+                startInfo.ArgumentList.Add(arg);
+            }
             _ffmpegProcess = new Process { StartInfo = startInfo };
 
             _ffmpegProcess.ErrorDataReceived += (sender, e) =>
@@ -290,7 +289,7 @@ namespace dy.net.utils
 
                 if (_ffmpegProcess.ExitCode != 0)
                 {
-                    throw new InvalidOperationException($"FFmpeg执行失败，退出码: {_ffmpegProcess.ExitCode}。请查看控制台输出获取详细错误信息。执行命令：ffmpeg {arguments}");
+                    throw new InvalidOperationException($"FFmpeg执行失败，退出码: {_ffmpegProcess.ExitCode}。请查看控制台输出获取详细错误信息。执行命令：ffmpeg {string.Join(" ", arguments)}");
                 }
             }
             finally
