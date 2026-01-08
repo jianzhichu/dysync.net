@@ -144,7 +144,7 @@ services:
       - /vol2/1000/media/dysync/dy2/collect:/app/collect2 
       - /vol2/1000/media/dysync/dy2/fav:/app/favorite2  
       - /vol2/1000/media/dysync/dy2/imgv:/app/images2
-	  - /vol2/1000/media/dysync/dy2/up:/app/uper
+	  - /vol2/1000/media/dysync/dy2/up:/app/uper2
 
     network_mode: bridge
     dns:
@@ -154,7 +154,7 @@ services:
     deploy:
       resources: 
           limits:  
-           memory: 120m #限制内存占用不超过120mb，如果运行过程中报错，可以再增加点。不做限制会涨到300多
+           memory: 120m #限制内存占用不超过120mb，如果有图文视频下载需求，不建议设置
 
 ```
 
