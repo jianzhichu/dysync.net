@@ -122,7 +122,6 @@ docker run -d --restart=always \
 创建 docker-compose.yml 文件，复制以下内容，替换「本地路径」后执行 docker-compose up -d：
 
 <span style="color: red; font-weight: bold;">需要注意：unraid玩家需要增加 user配置 --user 1000:100</span>
-<span style="background-color: red; color: white; padding: 2px 4px; border-radius: 2px;">需要注意：unraid玩家需要增加 user配置 --user 1000:100</span>
 
 ```bash
 
