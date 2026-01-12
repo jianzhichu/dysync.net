@@ -11,12 +11,10 @@ namespace dy.net.service
     /// </summary>
     public class DouyinMergeVideoService
     {
-        private readonly FFmpegHelper _fFmpegHelper;
         private readonly DouyinHttpClientService douyinHttpClientService;
 
-        public DouyinMergeVideoService(FFmpegHelper fFmpegHelper,DouyinHttpClientService douyinHttpClientService)
+        public DouyinMergeVideoService(DouyinHttpClientService douyinHttpClientService)
         {
-            _fFmpegHelper = fFmpegHelper;
             this.douyinHttpClientService = douyinHttpClientService;
         }
 
@@ -27,142 +25,23 @@ namespace dy.net.service
         // 重试间隔（毫秒）
         private const int RetryDelay = 1000;
 
+
         /// <summary>
-        /// 视频合成
+        /// 多视频合成一个视频
         /// </summary>
-        /// <param name="cookie"></param>
-        /// <param name="rootPath"></param>
-        /// <param name="request"></param>
-        /// <param name="outputVideoPath"></param>
-        /// <param name="fileNamefolder"></param>
-        /// <param name="mergeImg2Viedo"></param>
-        /// <param name="downImage"></param>
-        /// <param name="downMp3"></param>
+        /// <param name="videoFilePaths"></param>
+        /// <param name="savePath"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
         /// <returns></returns>
-        //public async Task<bool> MergeToVideo(string cookie,string rootPath, MediaMergeRequest request,string outputVideoPath,string fileNamefolder,bool mergeImg2Viedo,bool downImage=false,bool downMp3=false)
-        //{
-
-        //    try
-        //    {
-        //        // 创建唯一临时目录（避免并发冲突）
-        //        var tempDir = Path.Combine(rootPath, "temp", Guid.NewGuid().ToString());
-        //        try
-        //        {
-        //            // 1. 下载图片
-        //            var (rawImages, error) = await DownloadMediaAsync(request.ImageUrls, Path.Combine(tempDir, "raw-images"), "image_", "webp",cookie);
-        //            if (!string.IsNullOrEmpty(error))
-        //            {
-        //                Serilog.Log.Error($"{error}");
-        //                return false;
-        //            }
-        //            else
-        //            {
-        //                if(downImage)
-        //                {
-        //                    for (int i = 0; i < rawImages.Length; i++)
-        //                    {
-        //                        string sourcePath = rawImages[i];
-        //                        // 重命名为有规律的文件名，如 temp_001.jpg, temp_002.png
-        //                        string extension = Path.GetExtension(sourcePath);
-        //                        string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
-        //                        string destPath = Path.Combine(fileNamefolder, destFileName);
-        //                        if (destPath.Contains("小可爱") || sourcePath.Contains("小可爱")) { 
-        //                                Console.WriteLine("发现小可爱图片");
-        //                        }
-        //                        if (!File.Exists(destPath))
-        //                            File.Copy(sourcePath, destPath);
-        //                    }
-        //                }
-        //            }
-        //                // 2. 下载音频
-        //                var (rawAudios, audioError) = await DownloadMediaAsync(request.AudioUrls, Path.Combine(tempDir, "raw-audios"), "audio_", "mp3", cookie);
-        //            if (!string.IsNullOrEmpty(audioError))
-        //            {
-        //                Serilog.Log.Error($"{audioError}");
-        //                return false;
-        //            }
-        //            else
-        //            {
-        //                if(downMp3)
-        //                {
-        //                    for (int i = 0; i < rawAudios.Length; i++)
-        //                    {
-        //                        string sourcePath = rawAudios[i];
-        //                        // 重命名为有规律的文件名，如 temp_001.mp3, temp_002.mp3
-        //                        string extension = Path.GetExtension(sourcePath);
-        //                        string destFileName = $"temp_{i + 1:D3}{extension}"; // D3 确保是3位数字，不足补0
-        //                        string destPath = Path.Combine(fileNamefolder, destFileName);
-        //                        if (!File.Exists(destPath))
-        //                            File.Copy(sourcePath, destPath);
-        //                    }
-        //                }
-        //            }
-        //            if (!mergeImg2Viedo)
-        //            {
-        //                // 不合成视频，直接返回成功
-        //                Serilog.Log.Debug($"不合成视频，直接返回");
-        //                return true;
-        //            }
-
-        //            // 4. 合成视频
-        //            //var outputVideoPath = Path.Combine(tempDir, "output", $"merged-video.{request.OutputFormat.ToLower()}");
-
-        //            // 2. 创建帮助类实例
-        //            // 在Docker容器内，FFmpeg通常在PATH中，所以直接用 "ffmpeg" 即可
-
-        //            // 根据图片数量调整每张图片显示时长
-        //            if (request.ImageUrls.Count <= 3)
-        //            {
-        //                request.ImageDurationPerSecond = 3;
-        //            }
-        //            if (request.ImageUrls.Count > 20)
-        //            {
-        //                request.ImageDurationPerSecond = 2;
-        //            }
-        //            // 3. （可选）自定义视频参数
-        //            _fFmpegHelper.VideoWidth = 1080;
-        //            _fFmpegHelper.VideoHeight = 1920;
-        //            _fFmpegHelper.ImageDisplayDurationSeconds = request.ImageDurationPerSecond;
-        //            _fFmpegHelper.OutputFrameRate = 30;
-
-        //            // 4. 创建进度
-        //            var progress = new Progress<double>(p =>
-        //            {
-        //                Console.WriteLine($"进度: {p:F2}%");
-        //            });
-
-        //            // 5. 执行合成任务
-        //            using (var cancellationTokenSource = new CancellationTokenSource())
-        //            {
-        //                string resultPath = await _fFmpegHelper.CreateVideoFromImagesAndAudioAsync(
-        //                    rawImages,
-        //                    rawAudios[0],
-        //                    outputVideoPath,
-        //                    request.VideoWidth,
-        //                    request.VideoHeight,
-        //                    progress,
-        //                    cancellationTokenSource.Token);
-
-        //                //Console.WriteLine($"视频合成成功！文件已保存至: {resultPath}");
-        //                Serilog.Log.Debug($"视频合成成功！文件已保存至: {resultPath}");
-        //            }
-        //        }
-        //        finally
-        //        {
-        //            // 清理临时目录（无论成功失败）
-        //            if (Directory.Exists(tempDir))
-        //            {
-        //                Directory.Delete(tempDir, recursive: true);
-        //            }
-        //        }
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Serilog.Log.Error($"{ex.StackTrace}");
-        //        return false;
-        //    }
-        //}
+        public async Task<string> MergeMultipleVideosAsync(
+           List<string> videoFilePaths,
+           string savePath,
+           int width = 1080,
+           int height = 1920)
+        {
+            return await new FFmpegHelper().MergeMultipleVideosAsync(videoFilePaths, savePath, width, height);
+        }
 
 
         /// <summary>
@@ -261,7 +140,16 @@ namespace dy.net.service
 
                         if (rawAudios.Length == 0)
                         {
-                            rawAudios= new string[] { Path.Combine(AppContext.BaseDirectory,"mp3", "silent_10.mp3") };
+                           
+                            var mp3Path = Path.Combine(AppContext.BaseDirectory, "mp3", "silent_10.mp3");
+                            var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
+                           .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
+                           .FirstOrDefault();
+                            if (!string.IsNullOrWhiteSpace(uploadMp3) && File.Exists(uploadMp3))
+                            {
+                                mp3Path = uploadMp3;
+                            }
+                            rawAudios = new string[] { mp3Path };
                             Log.Debug("版权原因无法下载音频，使用默认无声音频文件");
                         }
 
@@ -297,7 +185,6 @@ namespace dy.net.service
                 await SafeCleanTempDirAsync(tempDir);
             }
         }
-
 
         /// <summary>
         /// 保存下载的文件（图片/音频）到目标目录
@@ -355,8 +242,6 @@ namespace dy.net.service
             Log.Error($"FFmpeg 进程冲突，重试 {RetryCount} 次后仍失败");
             return false;
         }
-
-
 
         /// <summary>
         /// 安全清理临时目录（避免文件被占用）

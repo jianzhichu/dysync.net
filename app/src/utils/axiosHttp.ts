@@ -1,5 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, Method as _Method, AxiosResponse } from 'axios';
-
+import axios, { AxiosInstance, AxiosRequestConfig, Method as _Method, AxiosResponse } from 'axios'; // 移除 AxiosProgressEvent
 import qs from 'qs';
 import Cookie from 'js-cookie';
 
@@ -9,13 +8,13 @@ declare interface _AxiosExtend {
    * @param url 请求地址
    * @param method 请求方法
    * @param params 请求参数
-   * @param config 请求配置
+   * @param config 请求配置（新增上传进度回调）
    */
   request<T = any, R = AxiosResponse<T>>(
     url: string,
     method: Method,
-    params?: Record<string | number, any>,
-    config?: AxiosRequestConfig
+    params?: Record<string | number, any> | FormData, // 支持 FormData 类型
+    config?: AxiosRequestConfig & { onUploadProgress?: (progressEvent: ProgressEvent) => void } // 改用原生 ProgressEvent
   ): Promise<R>;
   /**
    * 设置token
@@ -41,7 +40,8 @@ declare interface _AxiosExtend {
 
 export interface AxiosHttp extends Omit<AxiosInstance, 'request'>, _AxiosExtend { }
 
-export type Method = _Method | 'POST_JSON' | 'post_json' | 'PUT_JSON' | 'put_json';
+// 新增 post_form / POST_FORM 类型
+export type Method = _Method | 'POST_JSON' | 'post_json' | 'PUT_JSON' | 'put_json' | 'POST_FORM' | 'post_form';
 
 /**
  * 转表单格式
@@ -106,10 +106,16 @@ function createAxiosHttp(config: AxiosRequestConfig): AxiosHttp {
     request<T = any, R = AxiosResponse<T>>(
       url: string,
       method: Method,
-      params?: Record<string | number, any>,
-      config?: AxiosRequestConfig
+      params?: Record<string | number, any> | FormData,
+      config?: AxiosRequestConfig & { onUploadProgress?: (progressEvent: ProgressEvent) => void } // 改用原生 ProgressEvent
     ): Promise<R> {
       const _method = method.toUpperCase();
+      // 处理上传进度配置
+      const requestConfig: AxiosRequestConfig = {
+        ...config,
+        onUploadProgress: config?.onUploadProgress, // 透传上传进度回调
+      };
+
       switch (_method) {
         case 'GET':
           return _axios.get(url, {
@@ -117,24 +123,37 @@ function createAxiosHttp(config: AxiosRequestConfig): AxiosHttp {
             paramsSerializer: (data) => {
               return qs.stringify(data, { indices: false, skipNulls: true });
             },
-            ...config,
+            ...requestConfig,
           });
         case 'POST':
-          return _axios.post(url, toUrlencoded(params), config);
+          return _axios.post(url, toUrlencoded(params as Record<string | number, any>), requestConfig);
         case 'POST_JSON':
-          return _axios.post(url, params, config);
+          return _axios.post(url, params, {
+            ...requestConfig,
+            headers: { 'Content-Type': 'application/json', ...requestConfig.headers },
+          });
+        // 新增：POST_FORM 类型（适配文件上传的 FormData）
+        case 'POST_FORM':
+          return _axios.post(url, params, {
+            ...requestConfig,
+            // FormData 不需要手动设置 Content-Type，axios 会自动处理为 multipart/form-data
+            headers: { ...requestConfig.headers },
+          });
         case 'PUT':
-          return _axios.put(url, toFormData(params), config);
+          return _axios.put(url, toFormData(params as Record<string | number, any>), requestConfig);
         case 'PUT_JSON':
-          return _axios.put(url, params, config);
+          return _axios.put(url, params, {
+            ...requestConfig,
+            headers: { 'Content-Type': 'application/json', ...requestConfig.headers },
+          });
         case 'DELETE':
-          return _axios.delete(url, { data: toFormData(params), ...config });
+          return _axios.delete(url, { data: toFormData(params as Record<string | number, any>), ...requestConfig });
         case 'HEAD':
-          return _axios.head(url, { params, ...config });
+          return _axios.head(url, { params, ...requestConfig });
         case 'OPTIONS':
-          return _axios.options(url, { params, ...config });
+          return _axios.options(url, { params, ...requestConfig });
         case 'PATCH':
-          return _axios.patch(url, { params, ...config });
+          return _axios.patch(url, { params, ...requestConfig });
         case 'PURGE':
         case 'LINK':
         case 'UNLINK':

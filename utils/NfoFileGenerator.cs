@@ -1,4 +1,6 @@
 ﻿using dy.net.dto;
+using dy.net.model;
+using System.IO;
 using System.Text;
 using System.Xml.Linq;
 
@@ -10,7 +12,69 @@ namespace dy.net.utils
     public class NfoFileGenerator
     {
 
-        public static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath)
+
+        /// <summary>
+        /// 生成NFO文件
+        /// NFO文件包含视频的元数据信息，如标题、作者、封面等
+        /// </summary>
+        /// <param name="video">视频信息</param>
+        /// <returns>一个表示异步操作的任务</returns>
+        public static  void GenerateVideoNfoFile(DouyinVideo video)
+        {
+            try
+            {
+
+                string videoDirectory = Path.GetDirectoryName(video.VideoSavePath); // 视频所在目录
+                string videoFileNameWithoutExt = Path.GetFileNameWithoutExtension(video.VideoSavePath); // 无扩展名的文件名
+                string nfoFullPath = Path.Combine(videoDirectory, $"{videoFileNameWithoutExt}.nfo"); // NFO文件完整路径
+                string postFullPath = Path.Combine(videoDirectory, "poster.jpg"); // NFO文件完整路径
+
+                if (!string.IsNullOrWhiteSpace(video.AuthorAvatar))
+                {
+                    if (!video.OnlyImgOrOnlyMp3)
+                    {
+                        //说明是视频
+                        //复制作者头像到当前目录 并改名为跟nfo里面的作者相同的名字
+                        if (File.Exists(video.AuthorAvatar))
+                        {
+                            var fileExt = Path.GetExtension(video.AuthorAvatar);
+
+                            var nfoActorFullPath = Path.Combine(videoDirectory, $"{video.Author}{fileExt}");
+
+                            if (File.Exists(nfoActorFullPath))
+                            {
+                                File.Delete(nfoActorFullPath);
+                            }
+                            // 执行复制（CopyTo支持覆盖，但先删除更可控）
+                            File.Copy(video.AuthorAvatar, nfoActorFullPath, overwrite: true);
+                        }
+                    }
+                }
+
+                GenerateNfoFile(new DouyinVideoNfo
+                {
+                    Actors = new List<Actor>
+                    {
+                        new() {
+                            Name = video.Author,
+                            Role = "主演",
+                        }
+                    },
+                    Author = video.Author,
+                    Poster = postFullPath,
+                    Title = video.VideoTitle,
+                    Thumbnail = postFullPath,// 使用poster作为缩略图
+                    ReleaseDate = video.CreateTime,
+                    Genres = new List<string> { video.Tag1, video.Tag2, video.Tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
+                }, nfoFullPath);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "{f}nfo文件生成异常", video.VideoTitle);
+            }
+        }
+
+        private static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath)
         {
             try
             {
@@ -22,6 +86,10 @@ namespace dy.net.utils
 
                 // 创建根元素
                 XElement root = new XElement("movie");
+                root.Add(new XElement("outline")); 
+                root.Add(new XElement("lockdata", true));
+                root.Add(new XElement("director", videoInfo.Author));
+                root.Add(new XElement("plot", $"<![CDATA[{videoInfo.Title}]]>"));
 
                 // 添加视频信息（先清理无效字符）
                 if (!string.IsNullOrWhiteSpace(videoInfo.Title))
@@ -32,7 +100,10 @@ namespace dy.net.utils
 
                 // 发布时间（无需清理，因为是格式化的日期字符串）
                 if (videoInfo.ReleaseDate.HasValue)
+                {
                     root.Add(new XElement("releasedate", videoInfo.ReleaseDate.Value.ToString("yyyy-MM-dd")));
+                    root.Add(new XElement("premiered", videoInfo.ReleaseDate.Value.ToString("yyyy-MM-dd")));
+                }
 
                 // 分类标签（清理每个标签）
                 if (videoInfo.Genres != null && videoInfo.Genres.Any())
@@ -47,7 +118,6 @@ namespace dy.net.utils
                 // --- 新增：处理演员信息 ---
                 if (videoInfo.Actors != null && videoInfo.Actors.Any())
                 {
-                    var actorsElement = new XElement("actors");
                     foreach (var actor in videoInfo.Actors)
                     {
                         // 至少需要演员姓名
@@ -55,21 +125,13 @@ namespace dy.net.utils
                         {
                             var actorElement = new XElement("actor");
                             actorElement.Add(new XElement("name", CleanInvalidXmlChars(actor.Name)));
-
-                            // 可选的角色和头像
                             if (!string.IsNullOrWhiteSpace(actor.Role))
                                 actorElement.Add(new XElement("role", CleanInvalidXmlChars(actor.Role)));
 
-                            if (!string.IsNullOrWhiteSpace(actor.Thumb))
-                                actorElement.Add(new XElement("thumb", CleanInvalidXmlChars(actor.Thumb)));
+                                actorElement.Add(new XElement("tmdbid", "3141592610000"));//写死一个反正不存在的ID，防止被媒体管理软件误认
 
-                            actorsElement.Add(actorElement);
+                            root.Add(actorElement);
                         }
-                    }
-                    // 将整个 <actors> 节点添加到根节点
-                    if (actorsElement.HasElements)
-                    {
-                        root.Add(actorsElement);
                     }
                 }
                 // --- 演员信息处理结束 ---

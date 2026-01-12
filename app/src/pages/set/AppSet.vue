@@ -1,12 +1,11 @@
 <template>
   <a-card :bordered="false" :body-style="{ padding: '10px' }">
     <a-form :model="formState" :label-col="labelCol" :rules="rules" :wrapper-col="wrapperCol" ref="formRef" label-align="right">
-      <!-- 原有所有表单内容保持不变 -->
       <!-- 任务调度配置 -->
       <div class="form-section">
         <h3 class="section-title">任务调度</h3>
 
-        <a-form-item has-feedback label="同步周期（分钟）" name="Cron" :wrapper-col="{ span: 20}" style="margin-left:30px">
+        <a-form-item has-feedback label="同步周期（分钟）" name="Cron" :wrapper-col="{ span: 20 }" style="margin-left: 30px">
           <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="15" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -14,7 +13,7 @@
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="每次同步上限" name="BatchCount" :wrapper-col="{ span:20}" style="margin-left:30px">
+        <a-form-item has-feedback label="每次同步上限" name="BatchCount" :wrapper-col="{ span: 20 }" style="margin-left: 30px">
           <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大30)" :min="10" :max="30" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -33,13 +32,13 @@
 
       <!-- 文件保存配置 -->
       <div class="form-section">
-        <h3 class="section-title">博主视频（仅关注有效）</h3>
+        <h3 class="section-title">博主视频</h3>
 
         <a-form-item has-feedback label="标题当文件名" name="UperUseViedoTitle" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.UperUseViedoTitle" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用用原标题，未启用用模板；无模板则默认用视频Id</span>
+            <span>开启后，用原标题作为文件名，不开启但又没设置标题规则模板，则默认用视频id命名</span>
           </div>
         </a-form-item>
 
@@ -47,7 +46,7 @@
           <a-switch v-model:checked="formState.UperSaveTogether" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>默认按博主名建文件夹，启用后直接存映射目录根目录</span>
+            <span>默认按博主名建文件夹，开启后直接存映射目录根目录</span>
           </div>
         </a-form-item>
 
@@ -55,8 +54,11 @@
         <a-form-item has-feedback label="定义标题模板" name="FollowedTitleTemplate" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
           <a-select v-model:value="formState.FollowedTitleTemplate" :options="template_options" mode="multiple" size="middle" placeholder="请选择占位符组合"></a-select>
           <div class="flex items-start mt-1 text-sm text-gray-500">
+            <p></p>
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>选择文件名占位符（顺序为文件名顺序，需配合分隔符）<br /><strong class="text-gray-700">占位符：</strong>{Id}=视频ID、{VideoTitle}=标题、{ReleaseTime}=发布时间、{Author}=博主名、{FileHash}=文件哈希、{Resolution}=分辨率</span>
+            <span style="color: red">
+              请选择文件名占位符和模板分隔符（文件名命名规则配置仅博主视频有效）
+            </span>
           </div>
         </a-form-item>
 
@@ -86,51 +88,97 @@
 
       <div class="form-section" v-if="downImgVideo">
         <h3 class="section-title">图文视频</h3>
-        <a-form-item has-feedback label="是否单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
+
+        <a-form-item has-feedback label="下载图文视频" name="DownImageVideo" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.DownImageVideo" @change="downImageVideoHandler" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>开启后，将图片文件和音频文件合成为视频文件</span>
+          </div>
+        </a-form-item>
+        <a-form-item v-if="formState.DownImageVideo" has-feedback label="单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.ImageViedoSaveAlone" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>
-              开启：图文视频统一存入抖音授权 Cookie 配置的目录，且需提前配置该存储路径。关闭：按类型分别存入对应文件夹（如收藏视频存入收藏视频目录）
+              开启后，图文视频统一存入抖音授权 Cookie 配置的目录，且需提前配置该存储路径。关闭后，则按类型分别存入对应文件夹（如收藏视频存入收藏视频目录）
             </span>
           </div>
         </a-form-item>
-        <a-form-item has-feedback label="下载图文视频" name="DownImageVideo" :wrapper-col="{ span: 20 }">
-          <a-switch v-model:checked="formState.DownImageVideo" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用后，会将图片合成为视频文件下载</span>
-          </div>
-        </a-form-item>
-
-        <a-form-item has-feedback label="下载音频文件" name="DownMp3" :wrapper-col="{ span: 20 }">
+        <a-form-item v-if="formState.DownImageVideo" has-feedback label="保留音频" name="DownMp3" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownMp3" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用后，将单独下载音频文件</span>
+            <span>开启后，将保留音频文件</span>
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="下载图片文件" name="DownImage" :wrapper-col="{ span: 20 }">
+        <a-form-item v-if="formState.DownImageVideo" has-feedback label="保留图片" name="DownImage" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownImage" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>启用后，将单独下载所有图片文件</span>
-          </div>
-        </a-form-item>
-        <a-form-item has-feedback label="下载动态视频" name="DownImage" :wrapper-col="{ span: 20 }">
-          <a-switch v-model:checked="formState.DownDynamicVideo" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>针对有些视频是多个视频生成的，实际是分为多个视频，启用后将会分别下载多个视频，名字带_001,002这样</span>
+            <span>开启后，将保留图片文件</span>
           </div>
         </a-form-item>
 
+        <a-form-item v-if="formState.DownImageVideo" has-feedback label="默认音频" name="AudioFile" :wrapper-col="{ span: 20 }">
+          <!-- 音频上传与播放器容器 -->
+          <div class="audio-upload-player-wrapper" style="display: flex; align-items: center; gap: 16px;">
+            <a-upload :before-upload="beforeUpload" :custom-request="customUpload" :show-upload-list="false" accept=".mp3,.wav">
+              <a-button type="default">
+                <UploadOutlined /> 选择默认音频文件
+              </a-button>
+            </a-upload>
+
+            <!-- 新增：启用原生完整控件（controls属性），自带可拖拽进度条 -->
+            <div class="audio-player" v-if="audioUrl" style="flex: 1; max-width: 500px;">
+              <audio ref="audioInstance" :src="audioUrl" controls controlsList="nodownload" @ended="() => isPlaying = false" @pause="() => isPlaying = false" @play="() => isPlaying = true" class="native-audio-player">
+                您的浏览器不支持HTML5音频播放，请升级至现代浏览器。
+              </audio>
+            </div>
+          </div>
+
+          <div class="flex items-start mt-1 text-sm text-gray-500" style="color:red">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>当下载图文视频时，音频因版权原因无法下载时，将用该音频文件作为合成视频的音频</span>
+          </div>
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>支持格式：MP3、WAV、AAC、FLAC、OGG、M4A、WMA，单个文件最大20MB</span>
+          </div>
+        </a-form-item>
+      </div>
+
+      <div class="form-section">
+        <h3 class="section-title">动态视频</h3>
+
+        <a-form-item has-feedback label="下载动态视频" name="DownDynamicVideo" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.DownDynamicVideo" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>针对有些视频是多个视频生成的，实际是分为多个视频，开启后将会分别下载多个视频，名字带_001,002这样</span>
+          </div>
+        </a-form-item>
+        <a-form-item v-if="formState.DownDynamicVideo" has-feedback label="合并动态视频" name="MegDynamicVideo" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.MegDynamicVideo" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>开启后将多个动态视频会合并为一个视频</span>
+          </div>
+        </a-form-item>
+
+        <a-form-item v-if="formState.MegDynamicVideo" has-feedback label="保留原视频" name="KeepDynamicVideo" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.KeepDynamicVideo" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>开启后，将保留合成视频之前的每个短视频</span>
+          </div>
+        </a-form-item>
       </div>
 
       <!-- 系统配置 -->
       <div class="form-section">
-        <h3 class="section-title">去重配置</h3>
+        <h3 class="section-title">视频去重</h3>
 
         <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先等级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
           <!-- Tag 拖拽容器 -->
@@ -150,7 +198,6 @@
               鼠标放到≡，点击鼠标左键即可拖拽调整优先级，</span>
           </div>
         </a-form-item>
-
       </div>
 
       <!-- 操作按钮 -->
@@ -168,13 +215,11 @@
     </a-form>
   </a-card>
 
-  <!-- 配置导入导出悬浮按钮（优化布局+动画） -->
   <div class="config-float-btn-container">
     <!-- 主按钮 -->
     <a-tooltip title="配置导出导入" placement="left">
-
       <a-button class="main-float-btn" type="primary" shape="circle">
-        <tool-outlined />
+        <shake-outlined />
       </a-button>
     </a-tooltip>
 
@@ -183,38 +228,47 @@
       <!-- 关键修改：添加 Tooltip 组件包裹导出按钮 -->
       <a-tooltip title="导出配置" placement="left">
         <a-button class="sub-float-btn export-btn" type="default" shape="circle" @click="exportConfig">
-          <cloud-download-outlined />
+          <CloudDownloadOutlined />
         </a-button>
       </a-tooltip>
       <!-- 关键修改：添加 Tooltip 组件包裹导入按钮 -->
       <a-tooltip title="导入配置" placement="left">
         <a-button class="sub-float-btn import-btn" type="default" shape="circle" @click="triggerImportFile">
-          <cloud-upload-outlined />
+          <CloudUploadOutlined />
         </a-button>
       </a-tooltip>
     </div>
 
     <input ref="importFileInput" type="file" accept=".json" class="import-file-input" @change="handleImportFile">
   </div>
+  <div class="top-right-float-btn-container">
+    <a-tooltip title="重新对同步好的视频文件进行刮削" placement="bottom">
+      <a-button class="top-right-float-btn" type="primary" shape="circle" @click="renfo">
+        <bulb-outlined />
+      </a-button>
+    </a-tooltip>
+  </div>
 </template>
 
 <script lang="ts" setup>
 import { reactive, toRaw, ref, watch, onMounted, computed, nextTick } from 'vue';
 import type { UnwrapRef } from 'vue';
-import { Form, Tooltip } from 'ant-design-vue'; // 关键修改：导入 Tooltip 组件
+import { Form, Tooltip } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
 import { useApiStore } from '@/store';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 import { Sortable } from 'sortablejs';
+import type { UploadProps } from 'ant-design-vue/es/upload/interface';
 
 import {
   InfoCircleOutlined,
   SaveOutlined,
   CheckOutlined,
-  ToolOutlined, // 修正：原代码中用了 tool-outlined 但未导入
+  ToolOutlined,
   CloudDownloadOutlined,
   CloudUploadOutlined,
+  UploadOutlined,
 } from '@ant-design/icons-vue';
 
 // 表单引用
@@ -238,7 +292,15 @@ const downImgVideo = ref(true);
 const floatMenuVisible = ref(false);
 const importFileInput = ref<HTMLInputElement | null>(null);
 
-// 表单数据结构（新增 FullFollowedTitleTemplate 字段）
+// 新增：文件上传相关状态（已删除 uploadFileList，仅保留 isUploading 可选）
+const isUploading = ref(false);
+
+//开启或关闭合成视频
+const downImageVideoHandler = () => {
+  if (formState.DownImageVideo) {
+  }
+};
+// 表单数据结构（包含 FullFollowedTitleTemplate 字段）
 interface FormState {
   Cron: number;
   Id: string;
@@ -250,12 +312,14 @@ interface FormState {
   DownImage: boolean;
   DownMp3: boolean;
   ImageViedoSaveAlone: boolean;
-  FollowedTitleTemplate: string[]; // 占位符数组
-  FollowedTitleSeparator: string; // 分隔符
-  FullFollowedTitleTemplate: string; // 新增：完整模板字符串（自动生成）
+  FollowedTitleTemplate: string[];
+  FollowedTitleSeparator: string;
+  FullFollowedTitleTemplate: string;
   AutoDistinct: boolean;
   PriorityLevel: string;
   DownDynamicVideo: boolean;
+  MegDynamicVideo: boolean; // 补充原有缺失字段
+  KeepDynamicVideo: boolean; // 补充原有缺失字段
   OnlySyncNew: boolean;
 }
 
@@ -273,24 +337,25 @@ const formState: UnwrapRef<FormState> = reactive({
   ImageViedoSaveAlone: true,
   FollowedTitleTemplate: [],
   FollowedTitleSeparator: '',
-  FullFollowedTitleTemplate: '', // 初始为空
+  FullFollowedTitleTemplate: '',
   AutoDistinct: false,
   PriorityLevel: '',
   DownDynamicVideo: false,
+  MegDynamicVideo: false, // 初始化缺失字段
+  KeepDynamicVideo: false, // 初始化缺失字段
   OnlySyncNew: false,
 });
 
-// 实时计算完整模板（可选：让用户实时预览，提交时无需重复计算）
+// 实时计算完整模板
 const computeFullTemplate = computed(() => {
   return formState.FollowedTitleTemplate.join(formState.FollowedTitleSeparator);
 });
 
-// 监听占位符/分隔符变化，实时更新预览（可选）
+// 监听占位符/分隔符变化，实时更新预览
 watch(
   [() => [...formState.FollowedTitleTemplate], () => formState.FollowedTitleSeparator],
   () => {
     if (!formState.UperUseViedoTitle) {
-      // 只有关闭标题当文件名时才更新预览
       formState.FullFollowedTitleTemplate = computeFullTemplate.value;
     }
   },
@@ -302,21 +367,18 @@ watch(
   () => formState.UperUseViedoTitle,
   (isEnabled) => {
     if (isEnabled) {
-      // 开启时清空模板相关数据，避免数据残留
       formState.FollowedTitleTemplate = [];
       formState.FollowedTitleSeparator = '';
       formState.FullFollowedTitleTemplate = '';
-      // 清空相关表单项的校验状态
       formRef.value?.clearValidate(['FollowedTitleTemplate', 'FollowedTitleSeparator', 'FullFollowedTitleTemplate']);
     } else {
-      // 关闭时重新计算完整模板
       formState.FullFollowedTitleTemplate = computeFullTemplate.value;
     }
   },
   { immediate: true }
 );
 
-// 表单校验规则（新增 FullFollowedTitleTemplate 校验）
+// 表单校验规则
 const rules: Record<string, Rule[]> = {
   FollowedTitleSeparator: [{ max: 5, message: '分隔符长度不能超过5个字符', trigger: 'change' }],
   FullFollowedTitleTemplate: [{ max: 200, message: '完整模板字符串长度不能超过200个字符', trigger: 'change' }],
@@ -326,17 +388,15 @@ const rules: Record<string, Rule[]> = {
 const labelCol = { style: { width: '150px', textAlign: 'right' } };
 const wrapperCol = { span: 12 };
 
-// 获取配置数据（适配 FullFollowedTitleTemplate 字段）
+// 获取配置数据
 const getConfig = () => {
   useApiStore()
     .apiGetConfig()
     .then((res) => {
       if (res.code === 0) {
-        // 优先从 FullFollowedTitleTemplate 解析占位符数组（确保数据一致）
         const fullTemplate = res.data.FullFollowedTitleTemplate || res.data.followedTitleTemplate || '';
         const parsedTemplateArr = parseTemplateToArr(fullTemplate);
 
-        // 赋值所有字段（包含新增的 FullFollowedTitleTemplate）
         Object.assign(formState, {
           Cron: res.data.cron,
           Id: res.data.id,
@@ -349,15 +409,17 @@ const getConfig = () => {
           DownMp3: res.data.downMp3,
           FollowedTitleTemplate: parsedTemplateArr,
           FollowedTitleSeparator: res.data.followedTitleSeparator || '',
-          FullFollowedTitleTemplate: fullTemplate, // 回显完整模板
+          FullFollowedTitleTemplate: fullTemplate,
           ImageViedoSaveAlone: res.data.imageViedoSaveAlone,
           AutoDistinct: res.data.autoDistinct,
           PriorityLevel: res.data.priorityLevel,
           DownDynamicVideo: res.data.downDynamicVideo,
+          MegDynamicVideo: res.data.megDynamicVideo || false, // 补充赋值
+          KeepDynamicVideo: res.data.keepDynamicVideo || false, // 补充赋值
           OnlySyncNew: res.data.onlySyncNew,
         });
 
-        tagData.value = JSON.parse(res.data.priorityLevel);
+        tagData.value = JSON.parse(res.data.priorityLevel || '[]');
       } else {
         message.error(res.message || '获取配置失败', 8);
       }
@@ -368,7 +430,7 @@ const getConfig = () => {
     });
 };
 
-// 模板字符串 → 占位符数组（原有逻辑不变）
+// 模板字符串 → 占位符数组
 const parseTemplateToArr = (templateStr: string | null | undefined) => {
   if (!templateStr || typeof templateStr !== 'string' || templateStr.trim() === '') {
     return [];
@@ -382,24 +444,153 @@ const parseTemplateToArr = (templateStr: string | null | undefined) => {
 
 // 拖拽容器 ref
 const tagContainer = ref(null);
-let sortableInstance = ref(null);
-// 模拟 Tag 数据（替换为你的实际数据）
+let sortableInstance = ref<any>(null);
+// 模拟 Tag 数据
 const tagData = ref([
   { id: 1, name: '喜欢的视频', sort: 1 },
   { id: 2, name: '收藏的视频', sort: 2 },
   { id: 3, name: '关注的视频', sort: 3 },
 ]);
 
-// 重新计算所有 Tag 的 sort 值（核心方法）
+// 重新计算所有 Tag 的 sort 值
 const updateTagSort = () => {
   tagData.value.forEach((item, index) => {
-    item.sort = index + 1; // sort = 索引+1（保证顺序和 sort 一一对应）
+    item.sort = index + 1;
   });
 };
+
+// ========== 文件上传相关方法（已修改：移除进度条逻辑） ==========
+/**
+ * 上传前校验
+ */
+const beforeUpload: UploadProps['beforeUpload'] = (file) => {
+  // 1. 校验文件大小（10MB）
+  const isLt20M = file.size / 1024 / 1024 < 20;
+  if (!isLt20M) {
+    message.error('文件大小不能超过20MB!');
+    return false;
+  }
+
+  // 2. 校验文件类型
+  const acceptTypes = ['.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a', '.wma'];
+  const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+  if (!acceptTypes.includes(fileExt || '')) {
+    message.error('仅支持MP3、WAV、AAC、FLAC、OGG、M4A、WMA格式的音频文件!');
+    return false;
+  }
+
+  return true;
+};
+// 1. 新增音频播放相关状态（放在现有状态定义区域，如 isUploading 下方）
+const audioUrl = ref('/api/config/defaudio'); // 上传成功后的音频文件URL
+const isPlaying = ref(false); // 音频是否正在播放
+const audioInstance = ref<HTMLAudioElement | null>(null); // 音频播放器实例
+
+// 2. 改造原有 customUpload 方法，保存上传成功后的音频URL
+const customUpload: UploadProps['customRequest'] = (options) => {
+  const { file, onSuccess, onError } = options;
+  isUploading.value = true;
+
+  // 构造FormData
+  const formData = new FormData();
+  formData.append('file', file);
+
+  useApiStore()
+    .apiUploadAudio(formData)
+    .then((res) => {
+      console.log(res);
+      if (res.code === 0) {
+        // message.success('音频文件上传成功!');
+        audioUrl.value = `/api/config/defaudio?t=${Date.now()}`;
+        onSuccess(res);
+      } else {
+        message.error(res.message || '文件上传失败!');
+        onError(new Error(res.message || '上传失败'), file);
+      }
+    })
+    .catch((error) => {
+      console.error('文件上传失败:', error);
+      message.error('文件上传失败，请稍后重试!');
+      onError(error, file);
+    })
+    .finally(() => {
+      isUploading.value = false;
+    });
+};
+
+// 新增：封装 load() 为 Promise （可复用）
+const audioLoadPromise = (audio: HTMLAudioElement): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // 加载成功回调
+    const onLoadSuccess = () => {
+      audio.removeEventListener('canplaythrough', onLoadSuccess);
+      audio.removeEventListener('error', onLoadError);
+      resolve();
+    };
+
+    // 加载失败回调
+    const onLoadError = () => {
+      audio.removeEventListener('canplaythrough', onLoadSuccess);
+      audio.removeEventListener('error', onLoadError);
+      reject(new Error('音频加载失败'));
+    };
+
+    audio.addEventListener('canplaythrough', onLoadSuccess);
+    audio.addEventListener('error', onLoadError);
+    audio.load();
+  });
+};
+// 修改 refreshAudioPlayer 为 async 方法
+const refreshAudioPlayer = async () => {
+  if (!audioInstance.value) return;
+
+  try {
+    // 1. 暂停播放、重置状态
+    audioInstance.value.pause();
+    audioInstance.value.currentTime = 0;
+    isPlaying.value = false;
+
+    // 2. 等待加载完成（核心：解决时序冲突）
+    await audioLoadPromise(audioInstance.value);
+
+    // 3. 加载完成后，安全调用 play()
+    await audioInstance.value.play();
+    isPlaying.value = true;
+    // message.success('音频已自动播放');
+  } catch (err) {
+    if ((err as Error).message !== '音频加载失败') {
+      // 区分加载失败和自动播放失败
+      message.warning('自动播放失败，请手动点击播放按钮（浏览器限制）');
+    } else {
+      message.error('音频加载失败，无法自动播放');
+    }
+    console.log('错误详情:', err);
+    isPlaying.value = false;
+  }
+};
+// 监听 audioUrl 变化，重置播放状态（可选，优化用户体验）
+watch(
+  audioUrl,
+  (newVal, oldVal) => {
+    // 排除初始值（仅当 url 发生有效变更时刷新）
+    if (newVal && newVal !== oldVal) {
+      isPlaying.value = false;
+      // 核心：调用刷新方法，强制加载新音频
+      refreshAudioPlayer();
+    } else if (!newVal) {
+      // 若 url 为空，仅重置状态
+      isPlaying.value = false;
+      if (audioInstance.value) {
+        audioInstance.value.currentTime = 0;
+      }
+    }
+  },
+  { immediate: false }
+); // 关闭 immediate，避免初始加载时触发
+
 // 组件挂载时获取配置
 onMounted(async () => {
   getConfig();
-  // 等待 Form 组件完全渲染（关键：解决 DOM 未挂载问题）
   await nextTick();
   if (tagContainer.value) {
     sortableInstance.value = new Sortable(tagContainer.value, {
@@ -408,14 +599,9 @@ onMounted(async () => {
       ghostClass: 'tag-ghost',
       preventOnFilter: true,
       onEnd: (evt) => {
-        // 1. 调整 Tag 顺序
         const [movedTag] = tagData.value.splice(evt.oldIndex, 1);
         tagData.value.splice(evt.newIndex, 0, movedTag);
-
-        // 2. 重新计算所有 Tag 的 sort 值（关键：同步 sort 和顺序）
         updateTagSort();
-
-        // 打印结果（验证 sort 是否同步）
         console.log('最新 Tag 数据（含 sort）：', tagData.value);
       },
     });
@@ -424,28 +610,23 @@ onMounted(async () => {
   }
 });
 
-// 提交表单（核心：自动生成完整模板字符串）
+// 提交表单
 const onSubmit = () => {
   formRef.value
-    .validate()
+    ?.validate()
     .then(() => {
-      // 1. 如果开启了标题当文件名，清空模板相关字段
       let fullTemplate = '';
-      let templateTitle = '';
       if (!formState.UperUseViedoTitle) {
-        // 自动拼接完整模板字符串（数组 + 分隔符）
         fullTemplate = formState.FollowedTitleTemplate.join(formState.FollowedTitleSeparator);
       }
 
-      // 2. 构造提交数据（包含三个模板相关字段）
       const submitData = {
         ...toRaw(formState),
-        FullFollowedTitleTemplate: fullTemplate, // 确保提交最新拼接结果
+        FullFollowedTitleTemplate: fullTemplate,
         FollowedTitleTemplate: formState.FollowedTitleTemplate.join(''),
         PriorityLevel: JSON.stringify(tagData.value),
       };
 
-      // 3. 提交接口
       useApiStore()
         .apiUpdateConfig(submitData)
         .then((res) => {
@@ -476,27 +657,24 @@ const onUpdate = () => {
 const onCancel = () => {
   componentDisabled.value = true;
   formRef.value?.clearValidate();
-  // 取消时恢复完整模板预览（只有关闭标题当文件名时）
   if (!formState.UperUseViedoTitle) {
     formState.FullFollowedTitleTemplate = computeFullTemplate.value;
   }
 };
 
-const importOrexportConf = ref();
-// 新增：导出配置
+const importOrexportConf = ref<any>(null);
+// 导出配置
 const exportConfig = () => {
   try {
     useApiStore()
       .ExportConf()
       .then((res) => {
-        if (res.code == 0) {
+        if (res.code === 0) {
           importOrexportConf.value = res.data;
 
-          // 转换为JSON字符串并格式化
           const jsonStr = JSON.stringify(importOrexportConf.value, null, 2);
           const blob = new Blob([jsonStr], { type: 'application/json' });
 
-          // 创建下载链接
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -504,7 +682,6 @@ const exportConfig = () => {
           document.body.appendChild(a);
           a.click();
 
-          // 清理
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
 
@@ -513,22 +690,22 @@ const exportConfig = () => {
         }
       })
       .catch((x) => {
-        console.log(x);
+        console.error('导出接口请求失败:', x);
       });
   } catch (error) {
     console.error('导出配置及手动关注列表失败:', error);
-    message.error('导出配置及手动关注列表，请稍后重试');
+    message.error('导出配置及手动关注列表失败，请稍后重试');
   }
 };
 
-// 新增：触发导入文件选择
+// 触发导入文件选择
 const triggerImportFile = () => {
   if (importFileInput.value) {
     importFileInput.value.click();
   }
 };
 
-// 新增：处理导入文件
+// 处理导入文件
 const handleImportFile = (e: Event) => {
   const target = e.target as HTMLInputElement;
   const file = target.files?.[0];
@@ -537,14 +714,12 @@ const handleImportFile = (e: Event) => {
     return;
   }
 
-  // 验证文件类型
   if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
     message.error('请选择JSON格式的配置文件');
     target.value = '';
     return;
   }
 
-  // 读取文件内容
   const reader = new FileReader();
   reader.onload = (event) => {
     try {
@@ -553,24 +728,48 @@ const handleImportFile = (e: Event) => {
       useApiStore()
         .ImportConf(importData)
         .then((res) => {
-          if (res.code == 0) {
+          if (res.code === 0) {
             message.success('配置及手动关注列表导入成功,下次运行会按新的配置规则运行。');
             floatMenuVisible.value = false;
             getConfig();
           } else {
-            message.error(`配置及手动关注列表导入失败`);
+            message.error('配置及手动关注列表导入失败');
           }
         });
     } catch (error) {
       console.error('解析配置文件失败:', error);
       message.error(`配置及手动关注列表导入失败：${(error as Error).message}`);
     } finally {
-      // 清空文件选择
       target.value = '';
     }
   };
 
   reader.readAsText(file);
+};
+const renfo = () => {
+  // AntD 确认弹窗：Modal.confirm
+  Modal.confirm({
+    title: '操作确认', // 弹窗标题
+    content:
+      '确认要重新生成所有视频的.nfo刮削文件吗？根据视频数量，该操作可能需要较长时间，操作后可查看日志信息，然后进emby查看最新刮削信息。', // 弹窗提示内容
+    okText: '确认执行', // 确认按钮文本
+    cancelText: '取消', // 取消按钮文本
+    iconType: 'warning', // 警告图标（强化提醒效果，防误操作）
+    // 用户点击「确认」时触发
+    onOk() {
+      // 执行原有接口请求逻辑
+      useApiStore()
+        .Renfo()
+        .then((r) => {
+          if (r.code == 0) {
+            message.success(
+              '所有视频将重新生成.nfo刮削文件。根据视频数量，可能需要的时间不同，稍后可以到emby查看最新的刮削信息'
+            );
+          }
+        });
+    },
+    onCancel() {},
+  });
 };
 </script>
 
@@ -632,18 +831,18 @@ const handleImportFile = (e: Event) => {
   color: #444 !important;
   font-weight: 500;
 }
-/* 关键修改：确保拖拽容器不限制子元素 */
+
+/* 拖拽容器样式 */
 .tag-drag-container {
-  position: relative; /* 必须：让拖拽的 ghost 元素不被截断 */
-  overflow: visible !important; /* 覆盖 Form 可能的 overflow: hidden */
+  position: relative;
+  overflow: visible !important;
 }
 
-.tag-
 /* Tag 列表布局（换行显示） */
 .tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px; /* Tag 之间间距 */
+  gap: 12px;
 }
 
 /* 拖拽中的 Tag 占位样式 */
@@ -657,7 +856,7 @@ const handleImportFile = (e: Event) => {
 .drag-handle {
   font-size: 14px;
   color: #666;
-  user-select: none; /* 禁止选中文字 */
+  user-select: none;
 }
 
 .drag-handle:hover {
@@ -674,33 +873,33 @@ const handleImportFile = (e: Event) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-// 1. 悬浮按钮容器（恢复固定定位，作为子按钮的定位基准）
+// 悬浮按钮容器
 .config-float-btn-container {
-  position: fixed; // 关键：恢复固定定位，确保在页面右下角
+  position: fixed;
   right: 30px;
   bottom: 100px;
   z-index: 1000;
-  width: 60px; // 与主按钮宽度一致，确保居中
-  height: auto; // 自适应高度，不限制子按钮展开
+  width: 60px;
+  height: auto;
 
   &:hover {
     cursor: default;
   }
 }
 
-// 2. 子按钮容器（修正定位，基于父容器居中）
+// 子按钮容器
 .float-sub-btn-wrapper {
   position: absolute;
-  bottom: 70px; // 主按钮高度（60px）+ 间距（10px），向上展开
+  bottom: 70px;
   left: 50%;
-  transform: translateX(-50%); // 水平居中
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
 }
 
-// 其他样式（主按钮、子按钮）保持不变
+// 主按钮样式
 .main-float-btn {
   width: 60px;
   height: 60px;
@@ -709,17 +908,18 @@ const handleImportFile = (e: Event) => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    transform: scale(1.05); // 移除多余的 translateX(-50%)
+    transform: scale(1.05);
   }
 }
 
+// 子按钮样式
 .sub-float-btn {
   width: 50px;
   height: 50px;
   font-size: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   opacity: 0;
-  transform: translateY(10px) scale(0.9); // 仅保留垂直偏移，水平居中由父容器控制
+  transform: translateY(10px) scale(0.9);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.export-btn {
@@ -733,15 +933,74 @@ const handleImportFile = (e: Event) => {
 
 .config-float-btn-container:hover .sub-float-btn {
   opacity: 1;
-  transform: translateY(0) scale(1); // 恢复正常位置
+  transform: translateY(0) scale(1);
 }
 
+// 隐藏文件导入输入框
 .import-file-input {
   display: none;
 }
 
-// 修复子按钮tooltip显示
+// 修复子按钮tooltip层级
 :deep(.ant-tooltip) {
   z-index: 1001 !important;
+}
+
+// 上传组件样式适配
+:deep(.ant-upload) {
+  display: inline-block;
+}
+
+:deep(.ant-upload.ant-upload-select) {
+  display: inline-block;
+}
+
+// 音频上传与播放器容器样式
+.audio-upload-player-wrapper {
+  flex-wrap: wrap;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+// 音频播放器样式优化
+:deep(.audio-player audio) {
+  // border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 2px;
+  &:hover {
+    border-color: #1890ff;
+  }
+}
+
+// 播放/清空按钮 hover 效果
+:deep(.audio-player .ant-btn-text:hover) {
+  background-color: #f5f5f5;
+}
+
+// 右上角悬浮按钮容器
+.top-right-float-btn-container {
+  position: fixed;
+  top: 100px; // 距离顶部间距
+  right: 30px; // 距离右侧间距（与现有底部按钮对齐）
+  z-index: 1000; // 保证悬浮在最上层
+}
+
+// 右上角悬浮按钮样式
+.top-right-float-btn {
+  width: 56px;
+  height: 56px;
+  font-size: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  opacity: 0.6; // 默认半透明（0-1之间，0.6为适中的半透明效果）
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); // 平滑过渡动画
+
+  // 鼠标悬浮时：移除半透明，轻微放大增强交互感
+  &:hover {
+    opacity: 1; // 移除半透明，完全不透明
+    transform: scale(1.05); // 轻微放大，提升交互体验（可选，可删除）
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); // 悬浮时阴影加深（可选，可删除）
+  }
 }
 </style>

@@ -1,91 +1,195 @@
 <template>
-  <a-form layout="inline" style="margin-top:5px;margin-bottom:5px;">
-    <a-form-item>
-      <a-date-picker v-model:value="dateValue" format="YYYYMMDD" :locale="locale" @change="datePickChange" />
-    </a-form-item>
-    <a-form-item>
-      <a-radio-group v-model:value="typeValue" button-style="solid" @change="typeChange">
-        <a-radio-button value="debug">debug</a-radio-button>
-        <a-radio-button value="error">error</a-radio-button>
-      </a-radio-group>
-    </a-form-item>
-  </a-form>
-  <div class="container">
-    <a-card title="" :bordered="true">
-      <pre>{{ logs }}</pre>
+  <div style="margin: 5px 0;">
+    <!-- 日志类型按钮组 -->
+    <a-button-group>
+      <a-button :type="typeValue === 'debug' ? 'primary' : 'default'" @click="typeValue = 'debug'; loadLogs()" class="type-btn">
+        普通日志
+      </a-button>
+      <a-button :type="typeValue === 'error' ? 'primary' : 'default'" @click="typeValue = 'error'; loadLogs()" class="type-btn">
+        错误日志
+      </a-button>
+    </a-button-group>
+
+    <!-- 日期操作按钮组（核心调整颜色） -->
+    <a-button-group style="margin-left: 10px;" class="date-btn-group">
+      <a-button @click="changeDate('prev')">前一天</a-button>
+      <a-button class="today-btn" @click="changeDate('current')">今天</a-button>
+      <a-button @click="changeDate('next')">下一天</a-button>
+    </a-button-group>
+
+  </div>
+
+  <!-- 日志展示区域 -->
+  <div class="log-container">
+    <a-card bordered>
+      <pre class="log-content">{{ logs }}</pre>
     </a-card>
   </div>
 </template>
+
 <script lang="ts" setup>
-import { defineComponent, reactive, ref, watch, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useApiStore } from '@/store';
-import type { UnwrapRef } from 'vue';
-import dayjs, { Dayjs } from 'dayjs';
-import locale from 'ant-design-vue/es/date-picker/locale/zh_CN';
-type RangeValue = [Dayjs, Dayjs];
+import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
+
+// 初始化dayjs中文环境
 dayjs.locale('zh-cn');
-const dateValue = ref<Dayjs>(dayjs(Date()));
-const typeValue = ref<string>('debug');
-const iframeUrl = ref<string>('');
-const dateValue1 = ref<string>();
-const logs = ref<string>('');
-dateValue1.value = dayjs(Date()).format('YYYYMMDD');
-iframeUrl.value = `type=${typeValue.value}&date=${dateValue1.value}`;
-const datePickChange = (e, dateStr) => {
-  dateValue1.value = dateStr;
-  iframeUrl.value = `type=${typeValue.value}&date=${dateValue1.value}`;
-  console.log(iframeUrl);
+
+// 核心变量（极简：只维护两个核心变量）
+const typeValue = ref<string>('debug'); // 日志类型
+const currentDate = ref<dayjs.Dayjs>(dayjs()); // 当前选中的日期（唯一日期变量）
+const logs = ref<string>('加载中...'); // 日志内容
+
+// 计算可访问的日期范围（近10天：今天 ~ 9天前）
+const maxDate = computed(() => dayjs()); // 最大日期：今天
+const minDate = computed(() => dayjs().subtract(9, 'day')); // 最小日期：9天前
+
+// 格式化日期文本（供显示和请求使用）
+const currentDateText = computed(() => currentDate.value.format('YYYYMMDD'));
+const minDateText = computed(() => minDate.value.format('YYYYMMDD'));
+const maxDateText = computed(() => maxDate.value.format('YYYYMMDD'));
+
+// 日期切换核心逻辑（极简：直接修改currentDate）
+const changeDate = (action: 'prev' | 'current' | 'next') => {
+  let newDate: dayjs.Dayjs;
+
+  switch (action) {
+    case 'prev':
+      newDate = currentDate.value.subtract(1, 'day');
+      break;
+    case 'next':
+      newDate = currentDate.value.add(1, 'day');
+      break;
+    case 'current':
+    default:
+      newDate = dayjs();
+      break;
+  }
+
+  // 范围校验：限制在10天内
+  if (newDate.isBefore(minDate.value)) {
+    newDate = minDate.value;
+    logs.value = `已到最早可查看日期(${minDateText.value})，无法继续往前`;
+  } else if (newDate.isAfter(maxDate.value)) {
+    newDate = maxDate.value;
+    logs.value = `已到最新可查看日期(${maxDateText.value})，无法继续往后`;
+  }
+
+  // 更新当前日期并加载日志
+  currentDate.value = newDate;
   loadLogs();
 };
 
-const typeChange = (e) => {
-  console.log(e.target);
-  iframeUrl.value = `type=${e.target.value}&date=${dateValue1.value}`;
-  loadLogs();
-};
-const mIfrm = ref<any>(null);
-
-// 核心：处理日志时间戳，移除 .xxx +08:00 部分
-const formatLogTime = (logContent: string) => {
-  // 正则匹配：2025-12-11 18:41:39.624 +08:00 格式，捕获前面的日期时间部分
-  // 正则解释：
-  // (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) 捕获 年-月-日 时:分:秒
-  // \.\d+ \+08:00 匹配 .毫秒 +时区 部分
-  const timeRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d+ \+08:00/g;
-
-  // 替换匹配到的内容，只保留捕获的日期时间部分
-  return logContent.replace(timeRegex, '$1');
-};
-onMounted(() => {
-  // console.log(mIfrm.value);
-  loadLogs();
-});
+// 加载日志数据
 const loadLogs = () => {
-  useApiStore()
-    .apiGetLogs(iframeUrl.value)
-    .then((log) => {
-      // console.log(log);
-      log = formatLogTime(log);
-      const lines = log.split('\n'); // 将文本按换行符分割为行数组
-      const reversedLines = lines.reverse(); // 对行数组进行倒序操作
-      const reversedText = reversedLines.join('\n'); // 将行数组重新连接为一个字符串
+  // 拼接请求参数
+  const params = `${typeValue.value}/${currentDateText.value}`;
 
-      logs.value = reversedText;
+  // 调用接口加载日志
+  useApiStore()
+    .apiGetLogs(params)
+    .then((logContent) => {
+      if (!logContent) {
+        logs.value = `【${currentDateText.value}】暂无${typeValue.value === 'debug' ? '普通' : '错误'}日志数据`;
+        return;
+      }
+      // 格式化日志时间（移除毫秒和时区）
+      const formatLog = logContent.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d+ \+08:00/g, '$1');
+      // 倒序显示
+      logs.value = formatLog.split('\n').reverse().join('\n');
+    })
+    .catch((err) => {
+      console.error('加载日志失败：', err);
+      logs.value = `加载日志失败：${err.message || '网络异常'}`;
     });
 };
+
+// 页面挂载时加载初始日志
+onMounted(() => {
+  loadLogs();
+});
 </script>
-<style lang='less'  scoped>
-html {
-  height: 100vh;
-}
-.container {
+
+<style lang='less' scoped>
+// 日志展示容器样式
+.log-container {
   width: 100%;
-  height: 100%;
-  // max-height: 400px;
-  iframe {
-    .word-wrap {
-      color: white !important;
+  height: calc(100vh - 80px);
+  margin-top: 10px;
+
+  .log-content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    margin: 0;
+    padding: 15px;
+    background: #f9f9f9;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+// 按钮组基础样式
+:deep(.ant-btn-group) {
+  .ant-btn {
+    height: 36px;
+    padding: 0 18px;
+    font-size: 14px;
+    border-radius: 0 !important; // 按钮组圆角处理
+    transition: all 0.2s ease;
+  }
+  // 第一个按钮左圆角
+  .ant-btn:first-child {
+    border-radius: 6px 0 0 6px !important;
+  }
+  // 最后一个按钮右圆角
+  .ant-btn:last-child {
+    border-radius: 0 6px 6px 0 !important;
+  }
+}
+
+// ========== 核心修改：日期按钮颜色 ==========
+.date-btn-group {
+  :deep(.ant-btn) {
+    // 日期按钮默认样式
+    background: #fff;
+    border-color: #e6e6e6;
+    color: #333;
+
+    &:hover {
+      background: #f0f9ff;
+      border-color: #00b42a; // hover时边框变绿色
+      color: #00b42a;
+    }
+  }
+
+  // “今天”按钮高亮样式（核心颜色修改处）
+  :deep(.today-btn) {
+    background: #00b42a !important; // 深绿色背景（可替换成你想要的颜色）
+    border-color: #00b42a !important;
+    color: #fff !important;
+    font-weight: 500;
+
+    &:hover {
+      background: #00c834 !important; // hover时稍浅的绿色
+      border-color: #00c834 !important;
+    }
+  }
+}
+
+// ========== 可选：日志类型按钮颜色也同步调整（可选） ==========
+.type-btn {
+  :deep(&.ant-btn-primary) {
+    background: #722ed1 !important; // 日志类型选中用紫色（可改）
+    border-color: #722ed1 !important;
+    color: #fff !important;
+
+    &:hover {
+      background: #8046e0 !important;
+      border-color: #8046e0 !important;
     }
   }
 }

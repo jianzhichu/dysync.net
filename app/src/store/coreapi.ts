@@ -2,6 +2,7 @@ import { defineStore, storeToRefs } from 'pinia';
 import http from './http';
 import { ref, watch } from 'vue';
 import { Response } from '@/types';
+
 // import { RouteOption } from '@/router/interface';
 // import { addRoutes, removeRoute } from '@/router/dynamicRoutes';
 // import { useSettingStore } from './setting';
@@ -36,7 +37,6 @@ export const useApiStore = defineStore('coreapi', () => {
     return http
       .request<any, Response<any>>('/api/config/GetConfig', 'GET')
       .then((res) => {
-        console.log(res)
         return res;
       })
       .finally(() => {
@@ -57,7 +57,7 @@ export const useApiStore = defineStore('coreapi', () => {
   }
   //后台日志
   async function apiGetLogs(param: string) {
-    return http.request<any, Response<any>>('/api/logs/GetLog?' + param, 'get').then(r => {
+    return http.request<any, Response<any>>('/api/logs/GetLog/' + param, 'get').then(r => {
       // console.log(r)
       return r.data;
     }).finally(() => {
@@ -296,7 +296,43 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+
+  //Renfo
+  async function Renfo() {
+    return http.request<any, Response<any>>('/api/Video/renfo', 'get').then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+
+
+  // 音频文件上传接口
+  async function apiUploadAudio(formData: FormData, options?: { onUploadProgress?: (progressEvent: ProgressEvent) => void }) {
+    return http
+      .request<any, Response<any>>(
+        '/api/config/UploadAudio',  // 请求地址
+        'post_form',                // 使用新增的 post_form 类型
+        formData,                   // FormData 参数（文件+其他参数）
+        {
+          onUploadProgress: options?.onUploadProgress, // 上传进度回调（原生 ProgressEvent）
+          timeout: 120000 // 上传文件超时时间设为2分钟（可选）
+        }
+      )
+      .then((res) => {
+        // console.log('音频上传结果：', res);
+        // 适配你的响应格式（如果响应是包裹层，取 data）
+        return res;
+      })
+      .catch((err) => {
+        console.error('音频上传失败：', err);
+        throw err; // 抛出错误让前端捕获
+      });
+  }
+
   return {
+    Renfo,
+    apiUploadAudio,
     GetAppPort,
     AppisInit,
     DeskInitAsync,

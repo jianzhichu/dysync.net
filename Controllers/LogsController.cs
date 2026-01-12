@@ -20,13 +20,13 @@ namespace dy.net.Controllers
             this.logInfoService = logInfoService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetLog(string type, string date)
+        [HttpGet("/api/logs/GetLog/{type}/{date}")]
+        public async Task<IActionResult> GetLog([FromRoute]string type, [FromRoute] string date)
         {
             var filePath = Path.Combine(webHostEnvironment.IsDevelopment() ? Directory.GetCurrentDirectory() : AppDomain.CurrentDomain.BaseDirectory, "logs", $"log-{type}-{date}.txt");
             if (!System.IO.File.Exists(filePath))
             {
-                var msg = $"Log file log-{type}-{date}.txt not found.";
+                var msg = $"{date}，没有发现{type}的日志";
                 //Serilog.Log.Error(msg);
                 return Ok(msg);
             }

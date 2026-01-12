@@ -229,7 +229,113 @@ namespace dy.net.utils
             }
         }
 
-      
+        /// <summary>
+        /// 合并多个视频文件为一个MP4视频
+        /// </summary>
+        /// <param name="videoFilePaths">待合并的视频路径列表（按合并顺序排列）</param>
+        /// <param name="savePath">输出视频的保存路径</param>
+        /// <param name="width">输出视频宽度（自动修正为偶数）</param>
+        /// <param name="height">输出视频高度（自动修正为偶数）</param>
+        /// <param name="progress">进度回调</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>输出视频路径</returns>
+        public async Task<string> MergeMultipleVideosAsync(
+            List<string> videoFilePaths,
+            string savePath,
+            int width = 1080,
+            int height = 1920,
+            IProgress<double> progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            // 输入验证
+            if (videoFilePaths == null || !videoFilePaths.Any())
+                throw new ArgumentException("视频路径列表不能为空。", nameof(videoFilePaths));
+
+            foreach (var videoPath in videoFilePaths)
+            {
+                if (!File.Exists(videoPath))
+                    throw new FileNotFoundException("视频文件未找到。", videoPath);
+            }
+
+            if (string.IsNullOrEmpty(savePath))
+                throw new ArgumentNullException(nameof(savePath));
+
+            // 自动修正分辨率为偶数（H264编码要求）
+            if (width % 2 != 0) width++;
+            if (height % 2 != 0) height++;
+
+            // 步骤1：创建临时文件列表（FFmpeg合并视频需要先生成文件列表）
+            string tempListFile = Path.Combine(AppContext.BaseDirectory, "temp", $"{Guid.NewGuid()}.txt");
+            var tempDir = Path.GetDirectoryName(tempListFile);
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
+
+            try
+            {
+                // 生成FFmpeg识别的文件列表（格式：file '绝对路径'）
+                var fileListContent = new StringBuilder();
+                foreach (var videoPath in videoFilePaths)
+                {
+                    // 处理路径中的特殊字符，确保跨平台兼容
+                    string escapedPath = videoPath.Replace("\\", "/").Replace("'", "\\'");
+                    fileListContent.AppendLine($"file '{escapedPath}'");
+                }
+                File.WriteAllText(tempListFile, fileListContent.ToString(), Encoding.UTF8);
+
+                // 步骤2：构建FFmpeg合并参数
+                var arguments = new List<string>
+        {
+            "-y", // 覆盖输出文件
+            "-f", "concat", // 指定合并格式
+            "-safe", "0", // 允许访问绝对路径
+            "-i", tempListFile, // 输入文件列表
+
+            // 视频编码参数（复用现有类的编码配置，保证输出格式统一）
+            "-c:v", VideoCodec,
+            "-preset", VideoPreset,
+            "-crf", $"{VideoCrf}",
+            "-s", $"{width}x{height}", // 统一输出分辨率
+            "-pix_fmt", "yuv420p", // 兼容所有播放器
+            "-profile:v", "main",
+
+            // 音频编码参数
+            "-c:a", AudioCodec,
+            "-b:a", AudioBitrate,
+            "-ac", "2", // 立体声
+            "-ar", "44100", // 标准采样率
+
+            // 封装优化
+            "-f", "mp4",
+            "-movflags", "+faststart", // 适合网络播放
+
+            // 输出路径
+            savePath
+        };
+
+                // 执行FFmpeg合并命令
+                await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
+
+                // 验证输出文件
+                if (File.Exists(savePath))
+                {
+                    return savePath;
+                }
+                else
+                {
+                    throw new InvalidOperationException("视频合并失败，未生成输出文件。");
+                }
+            }
+            finally
+            {
+                // 清理临时文件
+                if (File.Exists(tempListFile))
+                {
+                    File.Delete(tempListFile);
+                }
+            }
+        }
 
         /// <summary>
         /// 异步执行FFmpeg命令

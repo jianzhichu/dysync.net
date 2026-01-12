@@ -368,7 +368,7 @@ const loadLogDetailContent = (log: LogItem) => {
   try {
     const type = log.type.toLowerCase();
     const date = log.date;
-    const requestParams = `type=${type}&date=${date}`;
+    const requestParams = `${type}/${date}`;
 
     useApiStore()
       .apiGetLogs(requestParams)

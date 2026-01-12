@@ -99,5 +99,20 @@ namespace dy.net.utils
             // 忽略文化差异，仅按字符编码匹配
             return Regex.IsMatch(input, pattern, RegexOptions.None);
         }
+
+
+        /// <summary>
+        /// 去掉动态视频001_002
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        public static string RemoveNumberSuffix(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return fileName;
+            // 核心正则：只匹配「_+数字」且后面紧跟.的情况
+            var pattern = @"_\d+(?=\.)";
+            return Regex.Replace(fileName, pattern, "");
+        }
     }
 }

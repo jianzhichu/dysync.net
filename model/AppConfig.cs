@@ -24,7 +24,7 @@ namespace dy.net.model
         /// <summary>
         /// 每次查询数量
         /// </summary>
-        public int BatchCount { get; set; } = 10;
+        public int BatchCount { get; set; } = 18;
 
         /// <summary>
         /// 博主视频是否 直接用标题做文件名
@@ -92,6 +92,14 @@ namespace dy.net.model
         /// 仅同步新视频（github 有人提议增加这个配置项，因为之前收藏了很多烂七八糟的视频。不想同步，又不想一个一个清除）
         /// </summary>
         public bool OnlySyncNew { get; set; } = true;
+        /// <summary>
+        /// 是否合并下载动态图视频
+        /// </summary>
+        public bool MegDynamicVideo { get; set; }
+        /// <summary>
+        /// 保留原动态视频文件
+        /// </summary>
+        public bool KeepDynamicVideo { get; set; }
     }
 
 }

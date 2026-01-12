@@ -31,7 +31,6 @@ const isMobileBrowser = computed(() => {
 const enforceMobileRoute = () => {
   const targetMobilePath = '/mobile';
   const currentPath = route.path.toLowerCase().trim();
-
   // 核心规则：手机浏览器 → 强制跳转到/mobile（无论当前路由是什么）
   if (isMobileBrowser.value) {
     if (currentPath !== targetMobilePath) {

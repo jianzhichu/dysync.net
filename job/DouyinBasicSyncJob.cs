@@ -512,8 +512,44 @@ namespace dy.net.job
                         var dynamicVideo = await ProcessDynamicVideo(dynamicVideoUrls, cookie, item, data, config);
                         if (dynamicVideo != null)
                         {
+                            if(!string.IsNullOrEmpty(dynamicVideo.DynamicVideos))
+                            {
+                                var dynamicVideos = JsonConvert.DeserializeObject<List<string>>(dynamicVideo.DynamicVideos);
+                                Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideos?.Count}个视频...");
+                                if (config.MegDynamicVideo)
+                                {
+                                    if (dynamicVideos != null && dynamicVideos.Count > 0)
+                                    {
+                                        int width = 1080;
+                                        int height = 1920;
+                                        var bit = item?.Video?.BitRate?.FirstOrDefault();
+                                        if (bit != null)
+                                        {
+                                            width = bit.PlayAddr.Width;
+                                            height = bit.PlayAddr.Height;
+                                        }
+                                        var savePath = DouyinFileNameHelper.RemoveNumberSuffix(dynamicVideo.VideoSavePath);
+                                        var outPath= await douyinMergeVideoService.MergeMultipleVideosAsync(dynamicVideos, savePath, width, height);
+                                        if (File.Exists(outPath))
+                                        {
+                                            dynamicVideo.VideoSavePath = outPath;
+
+                                            if (!config.KeepDynamicVideo)
+                                            {
+                                                foreach (var opath in dynamicVideos)
+                                                {
+                                                    if (File.Exists(opath))
+                                                        File.Delete(opath);
+                                                }
+                                            }
+                                        }
+
+                                    }
+                                }
+                            }
+
                             videos.Add(dynamicVideo);
-                            Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideo.DynamicVideos.Count()}个视频...");
+
                         }
                         else
                         {
@@ -774,10 +810,9 @@ namespace dy.net.job
             await DownVideoCover(item, saveFolder, cookie, config);
             // 下载作者头像
             var (avatarSavePath, avatarUrl) = await DownAuthorAvatar(cookie, item);
-            // 生成NFO文件
-            await GenerateNfoFile(saveFolder, item, avatarUrl, cookie, config);
+         
             // 创建视频实体
-            return CreateVideoEntity(config,cookie, item, v, savePath, saveFolder, tag1, tag2, tag3, avatarSavePath, avatarUrl, data);
+            return await CreateVideoEntity(config,cookie, item, v, savePath, saveFolder, tag1, tag2, tag3, avatarSavePath, avatarUrl, data);
         }
 
 
@@ -846,7 +881,7 @@ namespace dy.net.job
                     DataSize = DouyinFileUtils.GetTotalFileSize(dynamicSavePaths)  // 合成视频的文件大小
                 }
             };
-            return CreateVideoEntity(config,cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault(), saveFolder, tag1, tag2, tag3,"", "", data,dynamicSavePaths);
+            return await CreateVideoEntity(config,cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault(), saveFolder, tag1, tag2, tag3,"", "", data,dynamicSavePaths);
         }
 
 
@@ -1025,9 +1060,7 @@ namespace dy.net.job
                 await DownVideoCover(imageUrls.FirstOrDefault(), fileNamefolder, cookie, item, config);
                 // 下载作者头像
                 var (avatarSavePath, avatarUrl) = await DownAuthorAvatar(cookie, item);
-                // 生成NFO文件
-                await GenerateNfoFile(fileNamefolder, item, avatarUrl, cookie, config);
-
+               
                 // 获取视频标签
                 var (tag1, tag2, tag3) = GetVideoTags(item);
                 // 为合成的视频创建一个“虚拟”的BitRate对象，以便复用CreateVideoEntity方法
@@ -1042,7 +1075,7 @@ namespace dy.net.job
                 };
 
                 // 创建视频实体
-                var videoEntity = CreateVideoEntity(config,
+                var videoEntity =await CreateVideoEntity(config,
                     cookie, item, virtualBitRate, savePath, fileNamefolder,
                     tag1, tag2, tag3, avatarSavePath, avatarUrl, data);
 
@@ -1084,45 +1117,7 @@ namespace dy.net.job
             }
         }
 
-        /// <summary>
-        /// 生成NFO文件
-        /// NFO文件包含视频的元数据信息，如标题、作者、封面等
-        /// </summary>
-        /// <param name="saveFolder">NFO文件的保存文件夹</param>
-        /// <param name="item">视频信息</param>
-        /// <param name="avatarSavePath">作者头像保存路径</param>
-        /// <param name="cookie"></param>
-        /// <param name="config"></param>
-        /// <returns>一个表示异步操作的任务</returns>
-        protected async Task GenerateNfoFile(string saveFolder, Aweme item,
-            string avatarSavePath, DouyinCookie cookie, AppConfig config)
-        {
-            // 异步生成NFO文件，避免阻塞主线程
-            await Task.Run(() =>
-            {
-                (string tag1, string tag2, string tag3) = GetVideoTags(item);
-                var nfoFileName = GetNfoFileName(cookie, item, config, ".nfo");
-                var poster = GetNfoFileName(cookie, item, config, "poster.jpg");
-                var nfoPath = Path.Combine(saveFolder, nfoFileName);
-                NfoFileGenerator.GenerateNfoFile(new DouyinVideoNfo
-                {
-                    Actors = new List<Actor>
-                    {
-                        new() {
-                            Name = item.Author?.Nickname,
-                            Role = "主演",
-                            Thumb = avatarSavePath
-                        }
-                    },
-                    Author = item.Author?.Nickname,
-                    Poster = poster,
-                    Title = item.Desc,
-                    Thumbnail = poster,// 使用poster作为缩略图
-                    ReleaseDate = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
-                    Genres = new List<string> { tag1, tag2, tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
-                }, nfoPath);
-            });
-        }
+        
 
         /// <summary>
         /// 下载视频封面
@@ -1275,7 +1270,7 @@ namespace dy.net.job
         /// <param name="data">视频信息对象</param>
         /// <param name="dynamicVideos">动态视频</param>
         /// <returns>创建的视频实体对象</returns>
-        private DouyinVideo CreateVideoEntity(AppConfig config,
+        private async Task<DouyinVideo> CreateVideoEntity(AppConfig config,
             DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string saveFolder,
             string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfo data,List<string> dynamicVideos=null)
         {
@@ -1290,7 +1285,7 @@ namespace dy.net.job
                 AuthorAvatar = avatarSavePath,
                 AuthorAvatarUrl = avatarUrl,
                 CreateTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
-                VideoTitle = item.Desc,
+                VideoTitle = string.IsNullOrWhiteSpace(item.Desc) ? $"{item.Author?.Nickname}-{item.CreateTime}" : item.Desc,
                 VideoTitleSimplify = diffs.VideoTitleSimplify,
                 Id = IdGener.GetLong().ToString(),
                 Resolution = $"{bitRate.PlayAddr.Width}×{bitRate.PlayAddr.Height}",
@@ -1312,6 +1307,10 @@ namespace dy.net.job
             {
                 video.DynamicVideos = JsonConvert.SerializeObject(dynamicVideos);
             }
+
+            // 生成NFO文件
+            NfoFileGenerator.GenerateVideoNfoFile(video);
+
             return video;
         }
 

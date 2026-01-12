@@ -71,10 +71,13 @@
       <a-list size="small" bordered :data-source="deleteVideos">
         <template #renderItem="{item, index}">
           <a-list-item>
-
-            <span>
-              {{index+1}}. {{ item.videoTitle }}
-            </span>
+            <!-- 新增文本容器，用于控制省略号 -->
+            <div class="delete-video-title-container">
+              <span class="delete-video-index">{{ index + 1 }}.</span>
+              <span class="delete-video-title" :title="item.videoTitle || '无标题'">
+                {{ item.videoTitle }}
+              </span>
+            </div>
 
             <a-button type="text" size="small" class="copy-delete-video-btn" @click="(e) => copyVideoPath(item.videoSavePath)">
               <CopyOutlined /> 复制
@@ -1313,34 +1316,87 @@ onMounted(() => {
   text-decoration-color: #1890ff;
   text-decoration-thickness: 1px;
 }
-
-/* 已删除视频条目样式 */
-.delete-video-text {
-  flex: 1; /* 文本占满剩余空间 */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-right: 8px;
+/* 已删除视频抽屉 - 列表容器基础样式 */
+:deep(.ant-drawer-body) {
+  padding: 16px !important;
+  overflow-y: auto;
 }
 
-/* 复制按钮样式 */
+:deep(.ant-list) {
+  margin: 0 !important;
+}
+
+/* 已删除视频 - 列表项布局优化 */
+:deep(.ant-list-item) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  transition: background-color 0.2s ease;
+}
+
+/* 列表项悬停效果，增强交互感 */
+:deep(.ant-list-item:hover) {
+  background-color: #f8f9fa !important;
+}
+
+/* 已删除视频 - 标题容器（核心：实现单行省略） */
+.delete-video-title-container {
+  display: flex;
+  align-items: center;
+  flex: 1; /* 占满左侧剩余空间，限制文本宽度 */
+  margin-right: 16px; /* 与复制按钮保持间距 */
+  overflow: hidden; /* 隐藏溢出内容 */
+}
+
+/* 序号样式 */
+.delete-video-index {
+  color: #666;
+  margin-right: 8px;
+  flex: 0 0 auto; /* 序号不收缩、不放大，固定宽度 */
+  white-space: nowrap;
+}
+
+/* 视频标题（核心：单行文本溢出省略） */
+.delete-video-title {
+  flex: 1; /* 占满容器剩余空间，触发宽度限制 */
+  white-space: nowrap; /* 强制文本单行显示 */
+  overflow: hidden; /* 隐藏溢出的文本 */
+  text-overflow: ellipsis; /* 溢出部分显示省略号... */
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* 复制按钮样式优化 */
 .copy-delete-video-btn {
-  padding: 0 4px !important;
-  height: 24px !important;
+  padding: 0 8px !important;
+  height: 28px !important;
   font-size: 12px !important;
   color: #1890ff !important;
+  flex: 0 0 auto; /* 按钮不收缩、不放大，固定宽度 */
 }
 
 .copy-delete-video-btn:hover {
   color: #40a9ff !important;
   background-color: #f0f9ff !important;
+  border-radius: 4px !important;
 }
 
-/* 列表项布局调整 */
-:deep(.ant-list-item) {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 8px 16px !important;
+/* 可选：适配移动端，优化小屏幕显示 */
+@media (max-width: 768px) {
+  .delete-video-title-container {
+    margin-right: 12px;
+  }
+
+  .delete-video-title {
+    font-size: 13px;
+  }
+
+  .copy-delete-video-btn {
+    padding: 0 6px !important;
+    height: 24px !important;
+  }
 }
 </style>

@@ -36,6 +36,7 @@ namespace dy.net.service
                     conf.PriorityLevel = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]";
                 }
                 conf.IsFirstRunning = true;//标记为程序刚启动第一次运行
+                conf.AutoDistinct = true;
                 sqlSugarClient.Updateable(conf).ExecuteCommand();
                 //兼容旧版本
                 return conf;
@@ -60,7 +61,10 @@ namespace dy.net.service
                     AutoDistinct = true,//默认开启
                     PriorityLevel = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]",
                     IsFirstRunning = true,
-                    OnlySyncNew = true
+                    OnlySyncNew = true,
+                    DownDynamicVideo = false,
+                    KeepDynamicVideo = false,
+                    MegDynamicVideo = false
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;

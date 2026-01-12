@@ -4,6 +4,7 @@ using dy.net.model;
 using dy.net.repository;
 using dy.net.utils;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
@@ -124,7 +125,7 @@ namespace dy.net.service
                     data.GraphicVideoSize = "<0.01";//避免显示0.00误导用户
                 }
             }
-            data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount(), Icon = x.FirstOrDefault().AuthorAvatarUrl }).OrderByDescending(d => d.Count).ToList();
+            data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount(), Icon = x.LastOrDefault().AuthorAvatarUrl }).OrderByDescending(d => d.Count).ToList();
             return data;
         }
 
@@ -146,6 +147,11 @@ namespace dy.net.service
         public async Task<(List<DouyinVideo> list, int totalCount)> GetPagedAsync(DouyinVideoPageRequestDto dto)
         {
             return await _dyCollectVideoRepository.GetPagedAsync(dto);
+        }
+
+        public async Task<List<DouyinVideo>> GetAllAsync()
+        {
+            return await _dyCollectVideoRepository.GetAllAsync();
         }
 
         /// <summary>
