@@ -104,7 +104,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 将下方命令中的「本地路径」替换为你的实际路径，终端执行即可：
 
-#### 方式一：Docker 命令行
+#### 方式一：Docker 命令行(不推荐)
 ```bash
 docker run -d --restart=always \
   -v /opt/dysync/coll:/app/collect \
@@ -120,6 +120,8 @@ docker run -d --restart=always \
 
 ### 方式二：Docker Compose 运行（推荐）
 创建 docker-compose.yml 文件，复制以下内容，替换「本地路径」后执行 docker-compose up -d：
+
+<span style="color: red; font-weight: bold;">需要注意：unraid玩家需要增加 user配置 --user 1000:100</span>
 
 ```bash
 
