@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -13,7 +14,7 @@ namespace dy.net.utils
 
 
         private string _ffmpegExecutablePath;
-        private string _ffprobeExecutablePath ;
+        private string _ffprobeExecutablePath;
 
         public FFmpegHelper()
         {
@@ -24,15 +25,15 @@ namespace dy.net.utils
             }
             else
             {
-                #if DEBUG
+#if DEBUG
                 // Debug 环境，通常是 Windows
-                  _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
-                  _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
-            #else
+                _ffmpegExecutablePath = "E:\\down\\ffmpeg\\bin\\ffmpeg.exe";
+                _ffprobeExecutablePath = "E:\\down\\ffmpeg\\bin\\ffprobe.exe";
+#else
                 // Release 环境，通常是 Docker Linux
                   _ffmpegExecutablePath = "ffmpeg";
                   _ffprobeExecutablePath = "ffprobe";
-            #endif
+#endif
             }
         }
 
@@ -229,10 +230,12 @@ namespace dy.net.utils
             }
         }
 
+
         /// <summary>
-        /// 合并多个视频文件为一个MP4视频
+        /// 合并多个视频文件为一个MP4视频（嵌入指定音频文件）
         /// </summary>
         /// <param name="videoFilePaths">待合并的视频路径列表（按合并顺序排列）</param>
+        /// <param name="audioPath">音频文件（可为null/空，为空则保留视频原音频（若有））</param>
         /// <param name="savePath">输出视频的保存路径</param>
         /// <param name="width">输出视频宽度（自动修正为偶数）</param>
         /// <param name="height">输出视频高度（自动修正为偶数）</param>
@@ -241,6 +244,7 @@ namespace dy.net.utils
         /// <returns>输出视频路径</returns>
         public async Task<string> MergeMultipleVideosAsync(
             List<string> videoFilePaths,
+            string audioPath,
             string savePath,
             int width = 1080,
             int height = 1920,
@@ -259,6 +263,11 @@ namespace dy.net.utils
 
             if (string.IsNullOrEmpty(savePath))
                 throw new ArgumentNullException(nameof(savePath));
+
+            // 音频文件验证（若传入非空路径，则校验文件是否存在）
+            bool hasCustomAudio = !string.IsNullOrEmpty(audioPath) && File.Exists(audioPath);
+            //if (!string.IsNullOrEmpty(audioPath) && !hasCustomAudio)
+            //    throw new FileNotFoundException("指定的音频文件未找到。", audioPath);
 
             // 自动修正分辨率为偶数（H264编码要求）
             if (width % 2 != 0) width++;
@@ -282,49 +291,91 @@ namespace dy.net.utils
                     string escapedPath = videoPath.Replace("\\", "/").Replace("'", "\\'");
                     fileListContent.AppendLine($"file '{escapedPath}'");
                 }
-                File.WriteAllText(tempListFile, fileListContent.ToString(), Encoding.UTF8);
+                File.WriteAllText(tempListFile, fileListContent.ToString(), new UTF8Encoding(false));
 
-                // 步骤2：构建FFmpeg合并参数
-                var arguments = new List<string>
-        {
-            "-y", // 覆盖输出文件
-            "-f", "concat", // 指定合并格式
-            "-safe", "0", // 允许访问绝对路径
-            "-i", tempListFile, // 输入文件列表
+                // 步骤2：构建FFmpeg合并+音频嵌入参数
+                var arguments = new List<string>();
 
-            // 视频编码参数（复用现有类的编码配置，保证输出格式统一）
+                // 核心修改：支持双输入（视频列表 + 自定义音频）
+                if (hasCustomAudio)
+                {
+                    // 输入1：视频文件列表（仅读取视频流，忽略原音频）
+                    arguments.AddRange(new[]
+                    {
+                "-y", // 覆盖输出文件
+                "-f", "concat",
+                "-safe", "0",
+                "-i", tempListFile,
+                // 输入2：自定义音频文件
+                "-i", audioPath,
+                // 映射流：输入0的视频流 → 输出视频流；输入1的音频流 → 输出音频流
+                "-map", "0:v",
+                "-map", "1:a",
+                // 音频同步：保证视频与音频时长匹配（若音频较短，循环音频；若较长，截断音频）
+                "-shortest", // 以较短的流时长为准，避免无意义的空帧/静音
+                "-filter:a", "apad=pad_len=0" // 音频补全，防止音频时长略短于视频导致的截断
+            });
+                }
+                else
+                {
+                    // 无自定义音频：仅合并视频，保留原视频音频（若有）
+                    arguments.AddRange(new[]
+                    {
+                "-y", // 覆盖输出文件
+                "-f", "concat",
+                "-safe", "0",
+                "-i", tempListFile,
+                // 映射流：保留原视频的视频流和音频流
+                "-map", "0:v",
+                "-map", "0:a?", // "?" 表示若存在音频流则映射，不存在则忽略，避免报错
+                "-shortest"
+            });
+                }
+
+                // 视频编码参数（复用现有类的编码配置，保证输出格式统一）
+                arguments.AddRange(new[]
+                {
             "-c:v", VideoCodec,
             "-preset", VideoPreset,
             "-crf", $"{VideoCrf}",
             "-s", $"{width}x{height}", // 统一输出分辨率
             "-pix_fmt", "yuv420p", // 兼容所有播放器
-            "-profile:v", "main",
+            "-profile:v", "main"
+        });
 
-            // 音频编码参数
+                // 音频编码参数（无论是否自定义音频，统一编码格式保证兼容性）
+                arguments.AddRange(new[]
+                {
             "-c:a", AudioCodec,
             "-b:a", AudioBitrate,
             "-ac", "2", // 立体声
-            "-ar", "44100", // 标准采样率
+            "-ar", "44100" // 标准采样率
+        });
 
-            // 封装优化
+                // 封装优化
+                arguments.AddRange(new[]
+                {
             "-f", "mp4",
-            "-movflags", "+faststart", // 适合网络播放
+            "-movflags", "+faststart" // 适合网络播放（将moov原子移至文件头部）
+        });
 
-            // 输出路径
-            savePath
-        };
+                // 输出路径
+                arguments.Add(savePath);
 
-                // 执行FFmpeg合并命令
+                //Log.Error($"savePath={savePath}");
+                // 执行FFmpeg合并+音频嵌入命令
                 await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
 
                 // 验证输出文件
                 if (File.Exists(savePath))
                 {
+                    Log.Debug($"视频合成成功:{savePath}");
                     return savePath;
                 }
                 else
                 {
-                    throw new InvalidOperationException("视频合并失败，未生成输出文件。");
+                    Log.Error("视频合成失败，未生成输出文件。");
+                    return "";
                 }
             }
             finally

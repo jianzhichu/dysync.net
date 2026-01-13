@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+// 原有代码不变，此处省略（仅保留模板相关修改，脚本逻辑无变化）
 import { getBase64 } from '@/utils/file';
 import { FormInstance } from 'ant-design-vue';
 import { reactive, ref, onMounted, UnwrapRef, watch } from 'vue';
@@ -320,49 +321,50 @@ const downImgVideo = ref(true);
 
       <a-form-item label="我的secUserId" name="secUserId">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.secUserId" style="flex: 1;" />
-          <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
+          <a-input v-model:value="form.secUserId" style="flex: 1;" placeholder="如果要同步“我喜欢”的视频和关注列表时，必填！！！" />
+          <a-tooltip title="如果要同步“我喜欢”的视频和关注列表时，必填！！！">
             <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
           </a-tooltip>
         </div>
       </a-form-item>
 
+      <!-- 收藏的存储路径 -->
       <a-form-item label="收藏的存储路径" name="savePath">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.savePath" />
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          <a-input v-model:value="form.savePath" style="width: 200px;" />
+          <a-alert message="不想同步收藏的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
+
       <!-- 新增：是否全部用一个地址开关 -->
       <a-form-item label="统一存储路径" name="useSinglePath">
         <div style="display: flex; align-items: center; gap: 8px;">
           <a-switch v-model:checked="form.useSinglePath" :checked-value="true" :un-checked-value="false" size="default" />
-          <span>{{ form.useSinglePath ? '开启（共用收藏视频路径，如果是容器部署-docker-compose只需要映射一个路径就行了）' : '关闭（各路径独立配置）' }}</span>
+          <span>{{ form.useSinglePath ? '共用收藏视频路径，如果是容器部署-docker-compose配置，只需要映射一个路径就行了' : '各类视频路径分开独立配置' }}</span>
         </div>
       </a-form-item>
+
+      <!-- 喜欢的存储路径 -->
       <a-form-item label="喜欢的存储路径" name="favSavePath">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.favSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" />
-          <a-tooltip title="同步“我喜欢的”视频时，必填！！！">
-            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
-          </a-tooltip>
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          <a-input v-model:value="form.favSavePath" :disabled="form.useSinglePath" placeholder="" style="width: 200px;" />
+          <a-alert message="不想同步喜欢的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
+      <!-- 关注的存储路径 -->
       <a-form-item label="关注的存储路径" name="upSavePath">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.upSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" style="flex: 1;" />
-          <a-tooltip title="同步指定博主视频时必填！！！">
-            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
-          </a-tooltip>
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          <a-input v-model:value="form.upSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" style="width: 200px;" />
+          <a-alert message="不想同步关注列表博主的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
+      <!-- 图文的存储路径 -->
       <a-form-item label="图文的存储路径" name="imgSavePath">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <a-input v-model:value="form.imgSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" style="flex: 1;" />
-          <a-tooltip title="同步图文视频必填！！！">
-            <ExclamationCircleOutlined style="color: #faad14;font-size: 16px;" />
-          </a-tooltip>
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          <a-input v-model:value="form.imgSavePath" :disabled="form.useSinglePath" placeholder="开启统一存储路径模式后将自动同步收藏路径的值" style="width: 200px;" />
+          <a-alert message="如果系统配置页面开启了同步图文视频，且开启了单独存储，则必填！！！" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -521,5 +523,58 @@ const downImgVideo = ref(true);
 :deep(.ant-input-disabled) {
   background-color: #f5f5f5 !important;
   color: #666 !important;
+}
+
+/* 修复：移除对alert的自定义样式修改，还原官方默认样式 */
+/* 删除了原有的ant-alert-small和ant-alert-message自定义样式，避免覆盖官方主题 */
+/* 如需调整alert间距，仅修改外层容器，不修改alert内部样式 */
+.alert-wrapper {
+  flex: 1;
+  margin-bottom: 0 !important;
+}
+</style>
+
+<!-- 新增全局样式块，确保alert样式不受scoped影响（仅针对alert还原默认） -->
+<style>
+/* 还原Ant Design Vue alert官方默认样式，消除scoped样式的间接影响 */
+.ant-alert {
+  box-sizing: border-box;
+  margin: 0;
+  /* padding: 16px 16px; */
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 14px;
+  line-height: 1.5714285714;
+  list-style: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+}
+.ant-alert-small {
+  padding: 8px 16px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+/* 还原alert不同类型的官方默认颜色 */
+.ant-alert-info {
+  background-color: #e6f4ff;
+  border: 1px solid #91caff;
+}
+.ant-alert-info .ant-alert-message {
+  color: #1677ff;
+}
+.ant-alert-warning {
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+}
+.ant-alert-warning .ant-alert-message {
+  color: #faad14;
+}
+/* 确保alert图标颜色同步官方样式 */
+.ant-alert-info .ant-alert-icon {
+  color: #1677ff;
+}
+.ant-alert-warning .ant-alert-icon {
+  color: #faad14;
 }
 </style>

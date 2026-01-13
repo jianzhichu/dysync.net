@@ -5,23 +5,23 @@
       <div class="form-section">
         <h3 class="section-title">任务调度</h3>
 
-        <a-form-item has-feedback label="同步周期（分钟）" name="Cron" :wrapper-col="{ span: 20 }" style="margin-left: 30px">
+        <a-form-item has-feedback label="同步周期" name="Cron" :wrapper-col="{ span: 20 }">
           <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="15" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>同步任务执行间隔，最小15分钟，建议使用默认值</span>
+            <span>同步任务执行间隔（分钟），最小15分钟，建议使用默认值</span>
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="每次同步上限" name="BatchCount" :wrapper-col="{ span: 20 }" style="margin-left: 30px">
+        <a-form-item has-feedback label="单次最多" name="BatchCount" :wrapper-col="{ span: 20 }">
           <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大30)" :min="10" :max="30" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>每次最大下载数量：10-30</span>
+            <span>每次任务最多下载数量：10-30，拉取视频数据超出该值将会等待下次任务执行。</span>
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="仅同步最新视频" name="OnlySyncNew" :wrapper-col="{ span: 20 }">
+        <a-form-item has-feedback label="仅新视频" name="OnlySyncNew" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.OnlySyncNew" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -34,24 +34,24 @@
       <div class="form-section">
         <h3 class="section-title">博主视频</h3>
 
-        <a-form-item has-feedback label="标题当文件名" name="UperUseViedoTitle" :wrapper-col="{ span: 20 }">
+        <a-form-item has-feedback label="默认规则" name="UperUseViedoTitle" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.UperUseViedoTitle" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>开启后，用原标题作为文件名，不开启但又没设置标题规则模板，则默认用视频id命名</span>
+            <span>开启后，将使用原标题作为文件名，未开启且未设置标题规则模板，则默认用视频id命名</span>
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="不创建子目录" name="UperSaveTogether" :wrapper-col="{ span: 20 }">
+        <a-form-item has-feedback label="统一存储" name="UperSaveTogether" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.UperSaveTogether" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>默认按博主名建文件夹，开启后直接存映射目录根目录</span>
+            <span>开启后，所有博主视频直接都存一个根目录；关闭后，按博主名称创建文件夹单独存储。</span>
           </div>
         </a-form-item>
 
         <!-- 模板相关配置：只有关闭"标题当文件名"时才显示 -->
-        <a-form-item has-feedback label="定义标题模板" name="FollowedTitleTemplate" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
+        <a-form-item has-feedback label="标题模板" name="FollowedTitleTemplate" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
           <a-select v-model:value="formState.FollowedTitleTemplate" :options="template_options" mode="multiple" size="middle" placeholder="请选择占位符组合"></a-select>
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <p></p>
@@ -62,27 +62,19 @@
           </div>
         </a-form-item>
 
-        <a-form-item has-feedback label="模板分隔符" name="FollowedTitleSeparator" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
+        <a-form-item has-feedback label="分隔符" name="FollowedTitleSeparator" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
           <a-input v-model:value="formState.FollowedTitleSeparator" placeholder="请输入分隔符（如 - _ 或空）" style="width: 200px" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>
-              占位符之间的连接符（如“-”“_”“.”），为空则直接拼接<br />
-              <strong class="text-gray-700">示例：</strong>选择{Author}和{VideoTitle}，分隔符填“-”，将生成“博主名称-视频标题”格式文件名
+              占位符之间的连接符（如“-”“_”“.”），为空则直接拼接,不要使用无法用来作为文件名得特殊字符
             </span>
           </div>
         </a-form-item>
 
         <!-- 完整模板预览：只有关闭"标题当文件名"时才显示 -->
-        <a-form-item label="完整模板预览" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
-          <a-input v-model:value="formState.FullFollowedTitleTemplate" placeholder="最终的模板" disabled style="background: #f5f5f5" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>
-              实时展示您选择的占位符和分隔符组合效果<br />
-              <strong class="text-gray-700">示例：</strong>选择{Author}、{ReleaseTime}、{Id}，分隔符填“_”，预览结果为“博主名称_20250101_123456”
-            </span>
-          </div>
+        <a-form-item label="标题预览" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
+          <a-input v-model:value="formState.FullFollowedTitleTemplate" placeholder="自定义标题预览" disabled style="background: #f5f5f5" />
         </a-form-item>
       </div>
 
@@ -126,7 +118,7 @@
           <div class="audio-upload-player-wrapper" style="display: flex; align-items: center; gap: 16px;">
             <a-upload :before-upload="beforeUpload" :custom-request="customUpload" :show-upload-list="false" accept=".mp3,.wav">
               <a-button type="default">
-                <UploadOutlined /> 选择默认音频文件
+                <UploadOutlined /> 选择文件
               </a-button>
             </a-upload>
 
@@ -156,22 +148,14 @@
           <a-switch v-model:checked="formState.DownDynamicVideo" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>针对有些视频是多个视频生成的，实际是分为多个视频，开启后将会分别下载多个视频，名字带_001,002这样</span>
+            <span>开启后，将下载动态视频（多个短的小视频拼接-合成）</span>
           </div>
         </a-form-item>
-        <a-form-item v-if="formState.DownDynamicVideo" has-feedback label="合并动态视频" name="MegDynamicVideo" :wrapper-col="{ span: 20 }">
-          <a-switch v-model:checked="formState.MegDynamicVideo" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>开启后将多个动态视频会合并为一个视频</span>
-          </div>
-        </a-form-item>
-
-        <a-form-item v-if="formState.MegDynamicVideo" has-feedback label="保留原视频" name="KeepDynamicVideo" :wrapper-col="{ span: 20 }">
+        <a-form-item v-if="formState.DownDynamicVideo" has-feedback label="保留原视频" name="KeepDynamicVideo" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.KeepDynamicVideo" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>开启后，将保留合成视频之前的每个短视频</span>
+            <span>开启后，将保留合成视频之前的每个短视频（动态视频会有多个独立的短视频文件，可以选择保留-但不建议，否则emby会出现很多没有封面的视频...）</span>
           </div>
         </a-form-item>
       </div>
@@ -180,7 +164,7 @@
       <div class="form-section">
         <h3 class="section-title">视频去重</h3>
 
-        <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先等级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
+        <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
           <!-- Tag 拖拽容器 -->
           <div class="tag-drag-container">
             <!-- Tag 拖拽容器（绑定 ref 供 Sortable 初始化） -->

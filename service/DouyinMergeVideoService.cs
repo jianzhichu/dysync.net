@@ -30,17 +30,48 @@ namespace dy.net.service
         /// 多视频合成一个视频
         /// </summary>
         /// <param name="videoFilePaths"></param>
+        /// <param name="audioPath"></param>
         /// <param name="savePath"></param>
+        /// <param name="ck"></param>
         /// <param name="width"></param>
         /// <param name="height"></param>
         /// <returns></returns>
         public async Task<string> MergeMultipleVideosAsync(
            List<string> videoFilePaths,
+           string audioPath,
            string savePath,
+           string ck,
            int width = 1080,
            int height = 1920)
         {
-            return await new FFmpegHelper().MergeMultipleVideosAsync(videoFilePaths, savePath, width, height);
+            string mp3FilePath = GetDefaultAudio();
+            if (!string.IsNullOrWhiteSpace(audioPath))
+            {
+                var (SuccessPaths, _) = await DownloadMediaAsync(new List<string> { audioPath }, Path.GetDirectoryName(savePath), "audio_", "mp3", ck);
+                if (SuccessPaths != null && SuccessPaths.Length > 0)
+                {
+                    mp3FilePath = SuccessPaths[0];
+                }
+            }
+            var ffmpeg = new FFmpegHelper();
+            return await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mp3FilePath, savePath, width, height);
+        }
+
+
+
+
+        private static string GetDefaultAudio()
+        {
+            string mp3FilePath = Path.Combine(AppContext.BaseDirectory, "mp3", "silent_10.mp3");
+            var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
+           .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
+           .FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(uploadMp3) && File.Exists(uploadMp3))
+            {
+                mp3FilePath = uploadMp3;
+            }
+
+            return mp3FilePath;
         }
 
 
@@ -140,15 +171,7 @@ namespace dy.net.service
 
                         if (rawAudios.Length == 0)
                         {
-                           
-                            var mp3Path = Path.Combine(AppContext.BaseDirectory, "mp3", "silent_10.mp3");
-                            var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
-                           .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
-                           .FirstOrDefault();
-                            if (!string.IsNullOrWhiteSpace(uploadMp3) && File.Exists(uploadMp3))
-                            {
-                                mp3Path = uploadMp3;
-                            }
+                            var mp3Path = GetDefaultAudio();
                             rawAudios = new string[] { mp3Path };
                             Log.Debug("版权原因无法下载音频，使用默认无声音频文件");
                         }
@@ -269,7 +292,7 @@ namespace dy.net.service
         /// <summary>
         /// 调整图片显示时长
         /// </summary>
-        private void AdjustImageDuration(MediaMergeRequest request)
+        private static void AdjustImageDuration(MediaMergeRequest request)
         {
             if (request.ImageUrls.Count <= 3)
                 request.ImageDurationPerSecond = 3;

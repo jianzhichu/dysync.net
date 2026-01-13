@@ -27,7 +27,7 @@ namespace dy.net.utils
                 string videoDirectory = Path.GetDirectoryName(video.VideoSavePath); // 视频所在目录
                 string videoFileNameWithoutExt = Path.GetFileNameWithoutExtension(video.VideoSavePath); // 无扩展名的文件名
                 string nfoFullPath = Path.Combine(videoDirectory, $"{videoFileNameWithoutExt}.nfo"); // NFO文件完整路径
-                string postFullPath = Path.Combine(videoDirectory, "poster.jpg"); // NFO文件完整路径
+                //string postFullPath = Path.Combine(videoDirectory, "poster.jpg"); // NFO文件完整路径
 
                 if (!string.IsNullOrWhiteSpace(video.AuthorAvatar))
                 {
@@ -38,8 +38,12 @@ namespace dy.net.utils
                         if (File.Exists(video.AuthorAvatar))
                         {
                             var fileExt = Path.GetExtension(video.AuthorAvatar);
-
-                            var nfoActorFullPath = Path.Combine(videoDirectory, $"{video.Author}{fileExt}");
+                            var actorsDir = Path.Combine(videoDirectory, ".actors");
+                            if(!Directory.Exists(actorsDir))
+                            {
+                                Directory.CreateDirectory(actorsDir);
+                            }
+                            var nfoActorFullPath = Path.Combine(actorsDir, $"{video.Author}{fileExt}");
 
                             if (File.Exists(nfoActorFullPath))
                             {
@@ -61,9 +65,9 @@ namespace dy.net.utils
                         }
                     },
                     Author = video.Author,
-                    Poster = postFullPath,
+                    Poster = "poster.jpg",
                     Title = video.VideoTitle,
-                    Thumbnail = postFullPath,// 使用poster作为缩略图
+                    Thumbnail = "poster.jpg",// 使用poster作为缩略图
                     ReleaseDate = video.CreateTime,
                     Genres = new List<string> { video.Tag1, video.Tag2, video.Tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
                 }, nfoFullPath);
@@ -86,19 +90,18 @@ namespace dy.net.utils
 
                 // 创建根元素
                 XElement root = new XElement("movie");
-                root.Add(new XElement("outline")); 
+                //root.Add(new XElement("outline")); 
                 root.Add(new XElement("lockdata", true));
-                root.Add(new XElement("director", videoInfo.Author));
-                root.Add(new XElement("plot", $"<![CDATA[{videoInfo.Title}]]>"));
+                //root.Add(new XElement("director", videoInfo.Author));
+                //root.Add(new XElement("plot", $"<![CDATA[{videoInfo.Title}]]>"));
 
                 // 添加视频信息（先清理无效字符）
                 if (!string.IsNullOrWhiteSpace(videoInfo.Title))
                     root.Add(new XElement("title", CleanInvalidXmlChars(videoInfo.Title)));
 
-                if (!string.IsNullOrWhiteSpace(videoInfo.Author))
-                    root.Add(new XElement("author", CleanInvalidXmlChars(videoInfo.Author)));
+                //if (!string.IsNullOrWhiteSpace(videoInfo.Author))
+                //    root.Add(new XElement("author", CleanInvalidXmlChars(videoInfo.Author)));
 
-                // 发布时间（无需清理，因为是格式化的日期字符串）
                 if (videoInfo.ReleaseDate.HasValue)
                 {
                     root.Add(new XElement("releasedate", videoInfo.ReleaseDate.Value.ToString("yyyy-MM-dd")));
@@ -128,7 +131,7 @@ namespace dy.net.utils
                             if (!string.IsNullOrWhiteSpace(actor.Role))
                                 actorElement.Add(new XElement("role", CleanInvalidXmlChars(actor.Role)));
 
-                                actorElement.Add(new XElement("tmdbid", "3141592610000"));//写死一个反正不存在的ID，防止被媒体管理软件误认
+                                actorElement.Add(new XElement("tmdbid", ""));
 
                             root.Add(actorElement);
                         }

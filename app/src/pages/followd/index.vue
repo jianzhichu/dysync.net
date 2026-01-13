@@ -76,7 +76,7 @@
                     <template v-if="item.isEditing">
                       <div class="edit-input-group">
                         <!-- 输入框禁用：item.isSaving 为 true 时 -->
-                        <a-input v-model:value="item.savePath" placeholder="请输入文件夹名称" @keypress.enter="() => handleSavePath(item)" maxlength="10" :disabled="item.isSaving" />
+                        <a-input v-model:value="item.savePath" placeholder="请输入文件夹名称" @keypress.enter="() => handleSavePath(item)" maxlength="30" :disabled="item.isSaving" />
                         <!-- 保存按钮禁用：item.isSaving 为 true 时 -->
                         <a-button type="text" class="edit-btn" @click="() => handleSavePath(item)" :disabled="item.isSaving">
                           <SaveOutlined />

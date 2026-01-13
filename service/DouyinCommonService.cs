@@ -64,7 +64,7 @@ namespace dy.net.service
                     OnlySyncNew = true,
                     DownDynamicVideo = false,
                     KeepDynamicVideo = false,
-                    MegDynamicVideo = false
+                    MegDynamicVideo = true
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;

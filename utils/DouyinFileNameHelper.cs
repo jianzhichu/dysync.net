@@ -28,7 +28,13 @@ namespace dy.net.utils
                 // 2. 过滤 Linux 非法字符：
                 // - 禁止：/（路径分隔符）、\0（空字符）
                 // - 替换：其他特殊字符（如 :*?"<>|\\ ）为下划线 _，避免创建失败
-                var invalidChars = new[] { '/', '\0', ':', '*', '?', '"', '<', '>', '|', '\\' };
+                //var invalidChars = new[] { '/', '\0', ':', '*', '?', '"', '<', '>', '|', '\\' };
+
+                var invalidChars = new[] {
+                '/', '\0',    // Linux 核心非法字符
+                '\n', '\r', '\v', '\f',  // 所有换行/回车/制表类控制字符
+                ':', '*', '?', '"', '<', '>', '|', '\\'  // 其他常见非法字符
+                };
                 string sanitizedName = originalName;
                 foreach (var c in invalidChars)
                 {
@@ -82,19 +88,20 @@ namespace dy.net.utils
         /// <returns>true：无特殊字符（仅允许字符）；false：含有特殊字符</returns>
         public static bool IsValidWithoutSpecialChars(string input)
         {
-            // 空字符串默认返回 true（若需禁止空字符串，可先判断 string.IsNullOrWhiteSpace(input) 并返回 false）
-            if (string.IsNullOrEmpty(input))
+            if (string.IsNullOrWhiteSpace(input))
                 return true;
 
             // 正则表达式说明：
             // ^ ：匹配字符串开头
             // $ ：匹配字符串结尾
-            // [a-zA-Z0-9\u4E00-\u9FA5] ：允许的字符范围
+            // [a-zA-Z0-9\u4E00-\u9FA5 _] ：允许的字符范围（新增空格和下划线）
             //   a-zA-Z：大小写字母
             //   0-9：数字
-            //   \u4E00-\u9FA5：简体中文 Unicode 核心范围（覆盖99%+简体中文常用字）
+            //   \u4E00-\u9FA5：简体中文 Unicode 核心范围
+            //   空格：普通空格字符
+            //   _：下划线
             // * ：匹配 0 个或多个允许的字符（若需至少1个字符，可改为 +）
-            const string pattern = @"^[a-zA-Z0-9\u4E00-\u9FA5]*$";
+            const string pattern = @"^[a-zA-Z0-9\u4E00-\u9FA5 _]*$";
 
             // 忽略文化差异，仅按字符编码匹配
             return Regex.IsMatch(input, pattern, RegexOptions.None);
