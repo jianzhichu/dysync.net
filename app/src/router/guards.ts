@@ -13,7 +13,6 @@ interface NaviGuard {
   after?: NavigationHookAfter;
 }
 
-// ========== 新增：移动端检测核心函数 ==========
 /**
  * 检测是否为移动端设备（UA + 屏幕宽度双检测）
  */
@@ -27,44 +26,49 @@ const isMobile = (): boolean => {
 // 标记是否已跳转到移动端路由，防止无限循环
 let hasRedirectedToMobile = false;
 
-// ========== 新增：移动端跳转守卫（已集成登录状态判断） ==========
+// 优化后的移动端跳转守卫（登录优先）
 const MobileRedirectGuard: NavigationGuard = function (to, from, next) {
-  // 1. 排除/mobile路由本身，避免无限循环
-  if (to.path === '/mobile') {
+  // 1. 排除移动端路由和登录页，避免逻辑干扰
+  const isMobileRoute = to.path === '/mobile';
+  const isLoginRoute = to.path === '/login';
+
+  if (isMobileRoute) {
     hasRedirectedToMobile = true;
     next();
     return;
   }
 
-  // 2. 排除/login路由，避免登录页被移动端跳转逻辑覆盖
-  if (to.path === '/login') {
+  if (isLoginRoute) {
+    // 登录页无需移动端跳转，直接放行
+    hasRedirectedToMobile = false; // 重置标记，登录后可正常跳转移动端
     next();
     return;
   }
 
-  // 3. 检测是否为移动端
-  if (isMobile() && !hasRedirectedToMobile) {
-    // 4. 核心判断：检查登录状态
+  // 2. 移动端检测
+  if (isMobile()) {
     const isAuthorized = http.checkAuthorization();
     if (!isAuthorized) {
-      // 未登录：优先跳转到登录页
-      hasRedirectedToMobile = false; // 重置标记，不影响后续登录后的跳转
+      // 未登录：优先跳登录（保持原有优先级）
       next('/login');
     } else {
-      // 已登录：跳转到移动端路由
-      hasRedirectedToMobile = true;
-      next({ path: '/mobile' });
+      // 已登录：跳移动端（防止重复跳转）
+      if (!hasRedirectedToMobile) {
+        hasRedirectedToMobile = true;
+        next({ path: '/mobile' });
+      } else {
+        next();
+      }
     }
   } else {
-    // 非移动端/已跳转：重置标记并执行原有逻辑
+    // 非移动端：重置标记，不影响后续操作
     hasRedirectedToMobile = false;
     next();
   }
 };
 
-// ========== 原有守卫逻辑（无修改） ==========
+// 原有守卫逻辑（无修改）
 const loginGuard: NavigationGuard = function (to, from, next) {
-  // 补充next参数，保证守卫链正常执行
   if (!http.checkAuthorization() && !/^\/(init|login|home|mobile)?$/.test(to.fullPath)) {
     console.log(to.fullPath)
     const account = useAccountStore();
@@ -89,7 +93,6 @@ const dynamicinitRoute = {
 };
 
 const InitGuard: NavigationGuard = function (to, from, next) {
-  // 补充next参数
   if (to.fullPath != '/login') {
     if (!router.hasRoute('login')) {
       router.addRoute(dynamicinitRoute);
@@ -104,7 +107,7 @@ const InitGuard: NavigationGuard = function (to, from, next) {
 const ProgressGuard: NaviGuard = {
   before(to, from, next) {
     NProgress.start();
-    next(); // 补充next参数
+    next();
   },
   after(to, from) {
     NProgress.done();
@@ -134,7 +137,7 @@ const ForbiddenGuard: NaviGuard = {
       delete to.query.permission;
       delete to.query.path;
     }
-    next(); // 补充next参数
+    next();
   },
 };
 
@@ -145,16 +148,16 @@ const NotFoundGuard: NaviGuard = {
     if (to.meta._is404Page && loading) {
       to.params.loading = true as any;
     }
-    next(); // 补充next参数
+    next();
   },
 };
 
-// ========== 页面刷新时的移动端检测（已集成登录状态判断） ==========
+// 优化后的页面刷新移动端检测（登录优先）
 window.addEventListener('load', () => {
   if (isMobile() && window.location.pathname !== '/mobile') {
-    // 检查登录状态：未登录则跳登录，已登录则跳移动端
     const isAuthorized = http.checkAuthorization();
     if (!isAuthorized) {
+      // 未登录：跳登录（避免重复跳转）
       if (window.location.pathname !== '/login') {
         router.push('/login').catch(err => {
           if (!err.message.includes('NavigationDuplicated')) {
@@ -163,6 +166,7 @@ window.addEventListener('load', () => {
         });
       }
     } else {
+      // 已登录：跳移动端
       router.push('/mobile').catch(err => {
         if (!err.message.includes('NavigationDuplicated')) {
           console.error('刷新时跳转移动端路由失败：', err);
@@ -173,7 +177,6 @@ window.addEventListener('load', () => {
 });
 
 export default {
-  // 把MobileRedirectGuard放在最前面，优先执行移动端检测
   before: [ProgressGuard.before, MobileRedirectGuard, loginGuard, AuthGuard.before, ForbiddenGuard.before, NotFoundGuard.before],
   after: [ProgressGuard.after],
 };

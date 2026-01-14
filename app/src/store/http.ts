@@ -47,22 +47,24 @@ http.interceptors.response.use(
         const accountStore = useAccountStore();
         accountStore.setLogged(false);
         message.warning('登录状态已过期，请重新登录');
+        setTimeout(() => {
 
-        const redirectPath = router.currentRoute.value.fullPath;
-        if (redirectPath !== '/login') {
-          router.push({
-            path: '/login',
-            query: { redirect: redirectPath }
-          }).then(() => {
-            console.log('跳转登录页成功');
-          }).catch((err) => {
-            console.error('跳转登录页失败：', err);
-          }).finally(() => {
+          const redirectPath = router.currentRoute.value.fullPath;
+          if (redirectPath !== '/login') {
+            router.push({
+              path: '/login',
+              query: { redirect: redirectPath }
+            }).then(() => {
+              console.log('跳转登录页成功');
+            }).catch((err) => {
+              console.error('跳转登录页失败：', err);
+            }).finally(() => {
+              isRedirecting = false;
+            });
+          } else {
             isRedirecting = false;
-          });
-        } else {
-          isRedirecting = false;
-        }
+          }
+        }, 100);
       }
       // 新增结束
     } else {
