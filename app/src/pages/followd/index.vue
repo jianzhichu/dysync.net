@@ -54,9 +54,9 @@
                 {{ item.uperName }}
                 <!-- 非关注小标记 -->
                 <span v-if="item.isNoFollowed" class="no-followed-badge">非关注</span>
-                <!-- 删除按钮（仅非关注项显示，放在名字+非关注后面） -->
-                <a-button v-if="item.isNoFollowed" type="text" class="delete-btn" @click="(e) => { e.stopPropagation(); handleDeleteItem(item); }" :disabled="item.isSaving" title="删除该非关注博主">
-                  <DeleteOutlined />
+                <!-- 删除按钮（仅非关注项显示，放在名字+非关注后面）v-if="item.isNoFollowed"  -->
+                <a-button type="text" class="delete-btn" @click="(e) => { e.stopPropagation(); handleDeleteItem(item); }" :disabled="item.isSaving" title="删除该非关注博主">
+                  <close-outlined />
                 </a-button>
               </div>
               <!-- 签名多行显示：高度控制 + 溢出截断 + Tooltip气泡 -->
@@ -842,7 +842,7 @@ const goDouyinUp = (item) => {
   height: 24px !important;
   width: 24px !important;
   color: #ef4444 !important;
-  border-radius: 4px !important;
+  border-radius: 50% !important;
   transition: all 0.2s ease;
   vertical-align: middle;
 }

@@ -33,7 +33,7 @@ namespace dy.net.extension
             public string Title { get; set; }
         }
 
-
+        public static string FnDataFolder = string.Empty;
         private static DbType GetDBType(IConfiguration configuration)
         {
             DbType dbType = DbType.Sqlite;
@@ -68,6 +68,11 @@ namespace dy.net.extension
             if (!string.IsNullOrEmpty(dbPath))
             { 
                 fileFloder= Path.Combine(dbPath, "db");
+                FnDataFolder = Path.Combine(dbPath, "mp3");
+                if ((!Directory.Exists(FnDataFolder)))
+                {
+                    Directory.CreateDirectory(FnDataFolder);
+                }
             }
             else
             {

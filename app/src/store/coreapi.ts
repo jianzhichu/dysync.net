@@ -31,18 +31,25 @@ import { Response } from '@/types';
 export const useApiStore = defineStore('coreapi', () => {
 
 
-
-  //获取配置
   async function apiGetConfig() {
-    return http
-      .request<any, Response<any>>('/api/config/GetConfig', 'GET')
-      .then((res) => {
-        return res;
-      })
-      .finally(() => {
+    return http.request<any, Response<any>>('/api/config/GetConfig', 'get').then(r => {
+      return r;
+    }).finally(() => {
 
-      });
+    });
   }
+
+  // //获取配置
+  // async function apiGetConfig() {
+  //   return http
+  //     .request<any, Response<any>>('/api/config/GetConfig', 'GET')
+  //     .then((res) => {
+  //       return res;
+  //     })
+  //     .finally(() => {
+
+  //     });
+  // }
   //修改配置
   async function apiUpdateConfig(request: object) {
     return http
@@ -201,6 +208,14 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  //批量删除
+  async function BathRealDelete(param: object) {
+    return http.request<any, Response<any>>('/api/video/vdelete/batch', 'post_json', param).then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
   //删除
   async function DeleteVideo(param: string) {
     return http.request<any, Response<any>>('/api/video/vdelete/' + param, 'get').then(r => {
@@ -209,9 +224,17 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
-  //删除
+  //查询已删除
   async function GetDeleteViedos() {
     return http.request<any, Response<any>>('/api/video/vdelete/get', 'get').then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+  //删除博主全部视频
+  async function DeleteByAuthor(param: string) {
+    return http.request<any, Response<any>>('/api/video/vdelete/byauthor/' + param, 'get').then(r => {
       return r;
     }).finally(() => {
 
@@ -227,6 +250,16 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+
+  async function mp3List() {
+    return http.request<any, Response<any>>('/api/config/mp3List', 'get').then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+
+
   //快速停止或启动cookie配置
   async function SwitchCookieStatus(param: object) {
     return http.request<any, Response<any>>('/api/config/switch', 'post_json', param).then(r => {
@@ -331,6 +364,9 @@ export const useApiStore = defineStore('coreapi', () => {
   }
 
   return {
+    mp3List,
+    BathRealDelete,
+    DeleteByAuthor,
     Renfo,
     apiUploadAudio,
     GetAppPort,

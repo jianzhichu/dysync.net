@@ -10,6 +10,8 @@
 
         public string Icon { get; set; }
 
+        public string UperId { get; set; }
+
     }
 
 

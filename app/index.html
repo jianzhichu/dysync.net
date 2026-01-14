@@ -4,114 +4,140 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/logo.png" />
-  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0" /> -->
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>抖小云</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      background-color: #ffffff;
+      height: 100vh;
+      overflow: hidden;
+      font-family: "Microsoft YaHei", sans-serif;
+    }
+
+    /* ######### 核心修改：区分 #stepin-app 的两个状态 ######### */
+    /* 1. 加载阶段：#stepin-app 仅包含加载动画（或为空），应用 flex 居中，保留原有样式 */
+    #stepin-app {
+      /* 加载阶段默认样式：flex 居中，保留呼吸圆环效果 */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 35px;
+    }
+
+    /* 2. Vue 挂载后：#stepin-app 非空（包含 Vue 组件），覆盖为普通块级元素，解除约束 */
+    #stepin-app:not(:has(.breath-ring)) {
+      /* 核心：取消 flex 布局，改为普通块级元素 */
+      display: block !important;
+      /* 覆盖原有 flex 相关属性，解除居中约束 */
+      align-items: unset !important;
+      justify-content: unset !important;
+      /* 确保页面撑满横向宽度 */
+      width: 100% !important;
+      /* 保留高度，确保 Vue 页面正常占满视口 */
+      height: 100% !important;
+      /* 移除 gap，避免影响 Vue 页面布局 */
+      gap: 0 !important;
+      /* 恢复页面滚动功能，解除 overflow: hidden 的限制 */
+      overflow: auto !important;
+    }
+
+    /* 核心呼吸圆环容器（原有样式保留，无修改） */
+    .breath-ring {
+      width: 60px;
+      height: 60px;
+      position: relative;
+    }
+
+    /* 圆环基础样式（原有样式保留，无修改） */
+    .breath-ring::before,
+    .breath-ring::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      opacity: 0.6;
+    }
+
+    /* 内层圆环：细圆环 + 渐变（原有样式保留，无修改） */
+    .breath-ring::before {
+      border: 3px solid transparent;
+      border-top-color: #1890ff;
+      border-right-color: #722ed1;
+      animation: ringRotate 1.5s linear infinite;
+    }
+
+    /* 外层圆环：呼吸扩散动画（原有样式保留，无修改） */
+    .breath-ring::after {
+      border: 2px solid #1890ff;
+      animation: ringBreath 2s ease-in-out infinite;
+    }
+
+    /* 加载文字：极简高级（原有样式保留，无修改） */
+    .loading-text {
+      color: #222222;
+      font-size: 17px;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+
+    .loading-tip {
+      color: #aaaaaa;
+      font-size: 13px;
+      margin-top: -10px;
+    }
+
+    /* 圆环旋转动画（原有样式保留，无修改） */
+    @keyframes ringRotate {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 圆环呼吸扩散动画（原有样式保留，无修改） */
+    @keyframes ringBreath {
+      0% {
+        transform: scale(0.8);
+        opacity: 0.8;
+      }
+
+      50% {
+        transform: scale(1.2);
+        opacity: 0.2;
+      }
+
+      100% {
+        transform: scale(0.8);
+        opacity: 0.8;
+      }
+    }
+  </style>
 </head>
 
 <body>
   <div id="stepin-app">
-    <style>
-      html {
-        overflow: hidden;
-      }
-
-      body {
-        height: 100vh;
-        text-align: center;
-        align-items: center;
-        background-color: #011627;
-        display: flex;
-        justify-content: center;
-        overflow: hidden;
-      }
-
-      .loader {
-        color: rgb(201, 195, 195);
-        font-family: "Poppins", sans-serif;
-        font-weight: 500;
-        font-size: 20px;
-        -webkit-box-sizing: content-box;
-        box-sizing: content-box;
-        height: 40px;
-        padding: 10px 10px;
-        display: -webkit-box;
-        display: -ms-flexbox;
-        display: flex;
-        text-align: center;
-        justify-content: center;
-        border-radius: 8px;
-      }
-
-      .words {
-        overflow: hidden;
-      }
-
-      .word {
-        display: block;
-        height: 100%;
-        padding-left: 6px;
-        color: #ffca29;
-        animation: spin_4991 4s infinite;
-      }
-
-      @keyframes spin_4991 {
-        10% {
-          -webkit-transform: translateY(-105%);
-          transform: translateY(-105%);
-        }
-
-        25% {
-          -webkit-transform: translateY(-100%);
-          transform: translateY(-100%);
-        }
-
-        35% {
-          -webkit-transform: translateY(-205%);
-          transform: translateY(-205%);
-        }
-
-        50% {
-          -webkit-transform: translateY(-200%);
-          transform: translateY(-200%);
-        }
-
-        60% {
-          -webkit-transform: translateY(-305%);
-          transform: translateY(-305%);
-        }
-
-        75% {
-          -webkit-transform: translateY(-300%);
-          transform: translateY(-300%);
-        }
-
-        85% {
-          -webkit-transform: translateY(-405%);
-          transform: translateY(-405%);
-        }
-
-        100% {
-          -webkit-transform: translateY(-400%);
-          transform: translateY(-400%);
-        }
-      }
-    </style>
-    <!-- <img style="margin-bottom: 8px;" width="64px" src="/vite.svg" /> -->
-    <div class="loader">
-      <!-- <img src="/vite.svg"> -->
-      <div> loading ...</div>
-      <!-- <div class="words">
-        <span class="word">buttons</span>
-        <span class="word">forms</span>
-        <span class="word">switches</span>
-        <span class="word">cards</span>
-        <span class="word">buttons</span>
-      </div> -->
-    </div>
-    <div class="" style="font-size: 15px; color: rgba(249, 244, 244, 0.55)">首次加载可能较慢，请耐心等待...</div>
+    <!-- <div class="loading-text">正在加载资源，请稍候...</div> -->
+    <!-- 呼吸圆环加载组件 -->
+    <div class="breath-ring"></div>
+    <!-- <div class="loading-tip">首次加载较慢，请耐心等待...</div> -->
   </div>
+
   <script type="module" src="/src/main.ts"></script>
   <script>
     if (!global) {
@@ -119,12 +145,5 @@
     }
   </script>
 </body>
-
-<!-- <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/5.15.4/css/all.min.css"> -->
-<style>
-  html {
-    overflow: hidden;
-  }
-</style>
 
 </html>

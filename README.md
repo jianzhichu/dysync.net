@@ -137,6 +137,8 @@ services:
     volumes:
       # 基础路径映射
       - /vol2/1000/media/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
+       # 默认音频目录（用于图文和动态视频合成时遇到因版权无法下载的音频时用作合成视频所需要的音频）
+      - /vol2/1000/media/dysync/mp3:/app/mp3         
       - /vol2/1000/media/dysync/dy1/coll:/app/collect   # 个人收藏视频目录
       - /vol2/1000/media/dysync/dy1/fav:/app/favorite  # 个人喜欢视频目录
       - /vol2/1000/media/dysync/dy1/imgv:/app/images    # 图文视频目录

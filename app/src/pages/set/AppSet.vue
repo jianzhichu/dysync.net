@@ -25,7 +25,7 @@
           <a-switch v-model:checked="formState.OnlySyncNew" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>开启后，仅同步最近收藏的20条，以及未来新收藏的，不会去同步之前的视频，默认开启， 避免突然大量下载，导致风控</span>
+            <span>开启后，仅同步最近的20条，以及未来新加入收藏、喜欢、关注的视频，不会去同步之前的视频，默认开启， 避免突然大量下载，导致风控</span>
           </div>
         </a-form-item>
       </div>
@@ -113,32 +113,44 @@
           </div>
         </a-form-item>
 
-        <a-form-item v-if="formState.DownImageVideo" has-feedback label="默认音频" name="AudioFile" :wrapper-col="{ span: 20 }">
-          <!-- 音频上传与播放器容器 -->
-          <div class="audio-upload-player-wrapper" style="display: flex; align-items: center; gap: 16px;">
-            <a-upload :before-upload="beforeUpload" :custom-request="customUpload" :show-upload-list="false" accept=".mp3,.wav">
-              <a-button type="default">
-                <UploadOutlined /> 选择文件
-              </a-button>
-            </a-upload>
-
-            <!-- 新增：启用原生完整控件（controls属性），自带可拖拽进度条 -->
-            <div class="audio-player" v-if="audioUrl" style="flex: 1; max-width: 500px;">
-              <audio ref="audioInstance" :src="audioUrl" controls controlsList="nodownload" @ended="() => isPlaying = false" @pause="() => isPlaying = false" @play="() => isPlaying = true" class="native-audio-player">
-                您的浏览器不支持HTML5音频播放，请升级至现代浏览器。
-              </audio>
-            </div>
+        <a-form-item has-feedback label="默认音频" name="AudioFile" :wrapper-col="{ span: 20 }">
+          <!-- 仅保留检测按钮 -->
+          <div class="audio-check-wrapper" style="display: flex; align-items: center; gap: 16px;">
+            <a-button type="primary" @click="checkAudioList">
+              <play-circle-outlined /> 音频列表
+            </a-button>
           </div>
 
+          <!-- 提示文本调整 -->
           <div class="flex items-start mt-1 text-sm text-gray-500" style="color:red">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>当下载图文视频时，音频因版权原因无法下载时，将用该音频文件作为合成视频的音频</span>
           </div>
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>支持格式：MP3、WAV、AAC、FLAC、OGG、M4A、WMA，单个文件最大20MB</span>
-          </div>
         </a-form-item>
+
+        <a-modal v-model:visible="audioListModalVisible" title="发现音频" width="666px" destroyOnClose @ok="closeAudioListModal" @cancel="closeAudioListModal">
+          <div class="audio-list-container" style="max-height: 500px; overflow-y: auto; padding: 10px 0;">
+            <!-- 空列表提示 -->
+            <div v-if="audioList.length === 0" style="text-align: center; padding: 40px; color: #999;">
+              暂无可用音频文件
+            </div>
+
+            <!-- 音频列表（嵌入原生audio播放器） -->
+            <a-list v-else bordered :data-source="audioList" item-layout="horizontal">
+              <template #renderItem="{item}">
+                <a-list-item>
+                  <a-list-item-meta :title="item.filename " />
+                  <template #actions>
+                    <!-- 替换原播放按钮，嵌入原生HTML音频播放器 -->
+                    <audio class="native-audio-player" controls :src="'/api/config/getmp3?name='+item.filename" preload="none" @play="handleAudioPlay($event.target)">
+                      您的浏览器不支持HTML5音频播放器，请升级浏览器后重试。
+                    </audio>
+                  </template>
+                </a-list-item>
+              </template>
+            </a-list>
+          </div>
+        </a-modal>
       </div>
 
       <div class="form-section">
@@ -226,7 +238,7 @@
     <input ref="importFileInput" type="file" accept=".json" class="import-file-input" @change="handleImportFile">
   </div>
   <div class="top-right-float-btn-container">
-    <a-tooltip title="重新对同步好的视频文件进行刮削" placement="bottom">
+    <a-tooltip title="重置所有刮削" placement="bottom">
       <a-button class="top-right-float-btn" type="primary" shape="circle" @click="renfo">
         <bulb-outlined />
       </a-button>
@@ -275,9 +287,6 @@ const downImgVideo = ref(true);
 // 新增：悬浮菜单相关状态
 const floatMenuVisible = ref(false);
 const importFileInput = ref<HTMLInputElement | null>(null);
-
-// 新增：文件上传相关状态（已删除 uploadFileList，仅保留 isUploading 可选）
-const isUploading = ref(false);
 
 //开启或关闭合成视频
 const downImageVideoHandler = () => {
@@ -405,7 +414,11 @@ const getConfig = () => {
 
         tagData.value = JSON.parse(res.data.priorityLevel || '[]');
       } else {
-        message.error(res.message || '获取配置失败', 8);
+        if (res.message.indexOf('401') == -1) {
+          message.error(res.message || '获取配置失败', 8);
+        } else {
+          console.error('获取配置失败:', res);
+        }
       }
     })
     .catch((error) => {
@@ -443,135 +456,65 @@ const updateTagSort = () => {
   });
 };
 
-// ========== 文件上传相关方法（已修改：移除进度条逻辑） ==========
+// 音频列表相关状态
+const audioListModalVisible = ref(false); // 弹窗显隐
+const audioList = ref<any[]>([]); // 存储接口返回的音频列表
+const currentPlayingAudio = ref<HTMLAudioElement | null>(null); // 核心：存储当前正在播放的音频
+
 /**
- * 上传前校验
+ * 音频播放互斥处理（核心：同一时间只播放一个音频）
+ * @param target 事件目标元素（EventTarget 类型）
  */
-const beforeUpload: UploadProps['beforeUpload'] = (file) => {
-  // 1. 校验文件大小（10MB）
-  const isLt20M = file.size / 1024 / 1024 < 20;
-  if (!isLt20M) {
-    message.error('文件大小不能超过20MB!');
-    return false;
+const handleAudioPlay = (target: EventTarget | null) => {
+  // 1. 校验元素是否存在，且是 HTMLAudioElement 类型
+  if (!target || !(target instanceof HTMLAudioElement)) {
+    return; // 非音频元素，直接返回，避免报错
   }
 
-  // 2. 校验文件类型
-  const acceptTypes = ['.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a', '.wma'];
-  const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
-  if (!acceptTypes.includes(fileExt || '')) {
-    message.error('仅支持MP3、WAV、AAC、FLAC、OGG、M4A、WMA格式的音频文件!');
-    return false;
+  // 2. 此时 target 已被确认是 HTMLAudioElement 类型，可安全操作
+  const audioEl = target;
+  // 3. 原有互斥逻辑
+  if (currentPlayingAudio.value && currentPlayingAudio.value !== audioEl) {
+    currentPlayingAudio.value.pause();
   }
-
-  return true;
-};
-// 1. 新增音频播放相关状态（放在现有状态定义区域，如 isUploading 下方）
-const audioUrl = ref('/api/config/defaudio'); // 上传成功后的音频文件URL
-const isPlaying = ref(false); // 音频是否正在播放
-const audioInstance = ref<HTMLAudioElement | null>(null); // 音频播放器实例
-
-// 2. 改造原有 customUpload 方法，保存上传成功后的音频URL
-const customUpload: UploadProps['customRequest'] = (options) => {
-  const { file, onSuccess, onError } = options;
-  isUploading.value = true;
-
-  // 构造FormData
-  const formData = new FormData();
-  formData.append('file', file);
-
-  useApiStore()
-    .apiUploadAudio(formData)
-    .then((res) => {
-      console.log(res);
-      if (res.code === 0) {
-        // message.success('音频文件上传成功!');
-        audioUrl.value = `/api/config/defaudio?t=${Date.now()}`;
-        onSuccess(res);
-      } else {
-        message.error(res.message || '文件上传失败!');
-        onError(new Error(res.message || '上传失败'), file);
-      }
-    })
-    .catch((error) => {
-      console.error('文件上传失败:', error);
-      message.error('文件上传失败，请稍后重试!');
-      onError(error, file);
-    })
-    .finally(() => {
-      isUploading.value = false;
-    });
+  currentPlayingAudio.value = audioEl;
 };
 
-// 新增：封装 load() 为 Promise （可复用）
-const audioLoadPromise = (audio: HTMLAudioElement): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    // 加载成功回调
-    const onLoadSuccess = () => {
-      audio.removeEventListener('canplaythrough', onLoadSuccess);
-      audio.removeEventListener('error', onLoadError);
-      resolve();
-    };
-
-    // 加载失败回调
-    const onLoadError = () => {
-      audio.removeEventListener('canplaythrough', onLoadSuccess);
-      audio.removeEventListener('error', onLoadError);
-      reject(new Error('音频加载失败'));
-    };
-
-    audio.addEventListener('canplaythrough', onLoadSuccess);
-    audio.addEventListener('error', onLoadError);
-    audio.load();
-  });
-};
-// 修改 refreshAudioPlayer 为 async 方法
-const refreshAudioPlayer = async () => {
-  if (!audioInstance.value) return;
-
+/**
+ * 检测音频列表：调用mp3List接口并展示弹窗
+ */
+const checkAudioList = async () => {
   try {
-    // 1. 暂停播放、重置状态
-    audioInstance.value.pause();
-    audioInstance.value.currentTime = 0;
-    isPlaying.value = false;
-
-    // 2. 等待加载完成（核心：解决时序冲突）
-    await audioLoadPromise(audioInstance.value);
-
-    // 3. 加载完成后，安全调用 play()
-    await audioInstance.value.play();
-    isPlaying.value = true;
-    // message.success('音频已自动播放');
-  } catch (err) {
-    if ((err as Error).message !== '音频加载失败') {
-      // 区分加载失败和自动播放失败
-      message.warning('自动播放失败，请手动点击播放按钮（浏览器限制）');
-    } else {
-      message.error('音频加载失败，无法自动播放');
+    // 步骤1：打开弹窗前，先暂停上一次可能残留的播放音频
+    if (currentPlayingAudio.value) {
+      currentPlayingAudio.value.pause();
+      currentPlayingAudio.value = null;
     }
-    console.log('错误详情:', err);
-    isPlaying.value = false;
+
+    // 步骤2：调用接口获取音频列表
+    const res = await useApiStore().mp3List();
+    if (res.code === 0) {
+      audioList.value = res.data || [];
+      audioListModalVisible.value = true;
+    } else {
+      message.error(res.message || '获取音频列表失败');
+    }
+  } catch (error) {
+    console.error('检测音频列表失败:', error);
+    message.error('获取音频列表失败，请稍后重试');
   }
 };
-// 监听 audioUrl 变化，重置播放状态（可选，优化用户体验）
-watch(
-  audioUrl,
-  (newVal, oldVal) => {
-    // 排除初始值（仅当 url 发生有效变更时刷新）
-    if (newVal && newVal !== oldVal) {
-      isPlaying.value = false;
-      // 核心：调用刷新方法，强制加载新音频
-      refreshAudioPlayer();
-    } else if (!newVal) {
-      // 若 url 为空，仅重置状态
-      isPlaying.value = false;
-      if (audioInstance.value) {
-        audioInstance.value.currentTime = 0;
-      }
-    }
-  },
-  { immediate: false }
-); // 关闭 immediate，避免初始加载时触发
-
+/**
+ * 关闭音频列表弹窗
+ */
+const closeAudioListModal = () => {
+  audioListModalVisible.value = false;
+  // 清理当前播放的音频，避免弹窗关闭后仍在播放或残留实例
+  if (currentPlayingAudio.value) {
+    currentPlayingAudio.value.pause();
+    currentPlayingAudio.value = null;
+  }
+};
 // 组件挂载时获取配置
 onMounted(async () => {
   getConfig();
@@ -938,29 +881,24 @@ const renfo = () => {
 :deep(.ant-upload.ant-upload-select) {
   display: inline-block;
 }
+// 音频列表弹窗样式优化
+:deep(.audio-list-container .ant-list) {
+  .ant-list-item {
+    padding: 12px 16px;
+    &:hover {
+      background-color: #fafafa;
+    }
+  }
 
-// 音频上传与播放器容器样式
-.audio-upload-player-wrapper {
-  flex-wrap: wrap;
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
+  .ant-list-item-meta-title {
+    font-weight: 500;
+    color: #333;
   }
 }
 
-// 音频播放器样式优化
-:deep(.audio-player audio) {
-  // border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  padding: 2px;
-  &:hover {
-    border-color: #1890ff;
-  }
-}
-
-// 播放/清空按钮 hover 效果
-:deep(.audio-player .ant-btn-text:hover) {
-  background-color: #f5f5f5;
+// 检测按钮样式
+.audio-check-wrapper {
+  padding: 8px 0;
 }
 
 // 右上角悬浮按钮容器
@@ -986,5 +924,33 @@ const renfo = () => {
     transform: scale(1.05); // 轻微放大，提升交互体验（可选，可删除）
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); // 悬浮时阴影加深（可选，可删除）
   }
+}
+
+// 原生音频播放器样式优化
+.native-audio-player {
+  width: 200px; // 固定宽度，适配列表布局
+  height: 32px; // 统一高度，与列表项对齐
+  outline: none; // 移除聚焦轮廓
+  border: 1px solid #d9d9d9; // 添边框，与AntD风格统一
+  border-radius: 4px; // 圆角，与AntD风格统一
+  background-color: #fafafa; // 浅背景色，提升质感
+
+  // 优化播放器内部控件样式（部分浏览器支持）
+  &::-webkit-media-controls {
+    background-color: #fafafa;
+  }
+
+  // 悬浮效果
+  &:hover {
+    border-color: #1890ff; // 悬浮时边框变主色，提升交互感
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1); // 轻微发光效果
+  }
+}
+
+// 音频列表项适配，保证播放器与内容对齐
+:deep(.ant-list-item-actions) {
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
 }
 </style>

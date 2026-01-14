@@ -1,5 +1,6 @@
 ﻿using ClockSnowFlake;
 using dy.net.dto;
+using dy.net.extension;
 using dy.net.utils;
 using Serilog;
 using System.Collections.Generic;
@@ -66,7 +67,13 @@ namespace dy.net.service
         {
             var allowedExtensions = new HashSet<string> { ".mp3", ".wav" };
             string mergMusic = Path.Combine(AppContext.BaseDirectory, "mp3", "silent_10.mp3");//默认音频
-            var customMusics = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
+
+            var mp3folder = Path.Combine(AppContext.BaseDirectory, "mp3");
+            if (!string.IsNullOrWhiteSpace(ServiceExtension.FnDataFolder))
+            {
+                mp3folder = ServiceExtension.FnDataFolder;//飞牛数据目录
+            }
+            var customMusics = Directory.GetFiles(mp3folder)
               .Where(filePath =>
                   allowedExtensions.Contains(Path.GetExtension(filePath).ToLowerInvariant()) &&
                   Path.GetFileNameWithoutExtension(filePath) != "silent_10")

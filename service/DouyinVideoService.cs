@@ -4,6 +4,7 @@ using dy.net.model;
 using dy.net.repository;
 using dy.net.utils;
 using Newtonsoft.Json;
+using SqlSugar;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
@@ -13,13 +14,16 @@ namespace dy.net.service
     public class DouyinVideoService
     {
 
+        private readonly ISqlSugarClient sqlSugarClient;
+
         private readonly DouyinVideoRepository _dyCollectVideoRepository;
         private readonly DouyinCookieRepository douyinCookieRepository;
 
-        public DouyinVideoService(DouyinVideoRepository dyCollectVideoRepository, DouyinCookieRepository douyinCookieRepository)
+        public DouyinVideoService(DouyinVideoRepository dyCollectVideoRepository, DouyinCookieRepository douyinCookieRepository, ISqlSugarClient sqlSugarClient)
         {
             _dyCollectVideoRepository = dyCollectVideoRepository;
             this.douyinCookieRepository = douyinCookieRepository;
+            this.sqlSugarClient = sqlSugarClient;
         }
 
 
@@ -125,7 +129,13 @@ namespace dy.net.service
                     data.GraphicVideoSize = "<0.01";//避免显示0.00误导用户
                 }
             }
-            data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount(), Icon = x.LastOrDefault().AuthorAvatarUrl }).OrderByDescending(d => d.Count).ToList();
+            data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto
+            {
+                Name = x.Key,
+                Count = x.LongCount(),
+                Icon = x.LastOrDefault()?.AuthorAvatarUrl,
+                UperId = x.LastOrDefault()?.AuthorId ?? x.LastOrDefault()?.DyUserId
+            }).OrderByDescending(d => d.Count).ToList();
             return data;
         }
 
@@ -183,7 +193,7 @@ namespace dy.net.service
         /// <returns>是否执行成功（true=流程执行完成，false=无有效数据或执行失败）</returns>
         /// <exception cref="ArgumentNullException">DTO或ID列表为空时抛出</exception>
         /// <exception cref="IOException">文件操作失败时抛出（可根据业务调整处理方式）</exception>
-        public async Task<bool> ReDownloadViedoAsync(ReDownViedoDto dto)
+        public async Task<bool> ReDownloadViedoAsync(ReDownViedoDto dto, bool forever = false)
         {
             // 1. 严格参数校验（避免无效流程）
             if (dto == null)
@@ -205,7 +215,7 @@ namespace dy.net.service
 
             // 3. 构建重新下载记录（提前准备数据，避免事务内耗时操作）
             var reDownList = new List<DouyinReDownload>();
-            var filePathsToDelete = new List<(string path,bool onlyImgOrMp3)>(); // 收集待删除文件路径，统一处理
+            var filePathsToDelete = new List<(string path, bool onlyImgOrMp3)>(); // 收集待删除文件路径，统一处理
 
             foreach (var video in videos)
             {
@@ -227,7 +237,7 @@ namespace dy.net.service
                     CookieId = video.CookieId
                 });
 
-                filePathsToDelete.Add((video.VideoSavePath,video.OnlyImgOrOnlyMp3));
+                filePathsToDelete.Add((video.VideoSavePath, video.OnlyImgOrOnlyMp3));
             }
 
             // 无有效重新下载记录时直接返回
@@ -319,7 +329,8 @@ namespace dy.net.service
                     await douyinCookieRepository.UpdateAsync(cookie);
 
                 }
-                Serilog.Log.Debug("重新下载视频流程执行完成：成功创建{0}条重新下载记录，删除{1}个文件,等待重新下载...", reDownList.Count, filePathsToDelete.Count);
+                if (!forever)
+                    Serilog.Log.Debug("重新下载视频流程执行完成：成功创建{0}条重新下载记录，删除{1}个文件,等待重新下载...", reDownList.Count, filePathsToDelete.Count);
                 return true;
             }
             catch (Exception ex)
@@ -331,7 +342,7 @@ namespace dy.net.service
 
 
 
-        public async Task<List<DouyinVideoTopDto>> GetLastSyncTop(int top=5)
+        public async Task<List<DouyinVideoTopDto>> GetLastSyncTop(int top = 5)
         {
             return await _dyCollectVideoRepository.GetTopsOrderBySyncTime(top);
         }
@@ -343,10 +354,10 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<List<DeleteInvalidVideoDto>> DeleteInvalidVideo()
         {
-            var videos=await _dyCollectVideoRepository.GetAllAsync();
+            var videos = await _dyCollectVideoRepository.GetAllAsync();
             List<DeleteInvalidVideoDto> vList = new List<DeleteInvalidVideoDto>();
 
-            List<string> douyinVideoIds=new List<string>();
+            List<string> douyinVideoIds = new List<string>();
             foreach (var v in videos)
             {
                 if (!File.Exists(v.VideoSavePath))
@@ -358,10 +369,92 @@ namespace dy.net.service
 
             if (douyinVideoIds.Any())
             {
-              await  _dyCollectVideoRepository.DeleteByIdsAsync(douyinVideoIds);
+                await _dyCollectVideoRepository.DeleteByIdsAsync(douyinVideoIds);
             }
 
             return vList;
         }
+
+        /// <summary>
+        /// 根据博主ID获取视频列表
+        /// </summary>
+        /// <param name="uperUid"></param>
+        /// <returns></returns>
+        internal async Task<List<DouyinVideo>> GetByAuthorId(string uperUid)
+        {
+            return await _dyCollectVideoRepository.GetListAsync(x => x.DyUserId == uperUid);
+        }
+
+
+        internal async Task<int> AddDeleteVideo(List<DouyinVideo> videos)
+        {
+            var deletes = videos.Select(video => new DouyinVideoDelete
+            {
+                ViedoId = video.AwemeId,
+                VideoTitle = video.VideoTitle,
+                VideoSavePath = video.VideoSavePath,
+                Id = IdGener.GetLong().ToString(),
+                DeleteTime = DateTime.Now
+            })?.ToList();
+
+            return await sqlSugarClient.Insertable<DouyinVideoDelete>(deletes).ExecuteCommandAsync();
+        }
+
+        /// <summary>
+        /// 彻底删除视频
+        /// </summary>
+        /// <param name="Ids"></param>
+        /// <returns></returns>
+        public async Task<bool> RealDeleteVideos(List<string> Ids)
+        {
+            if (Ids == null || !Ids.Any())
+                return false;
+            var videos = await _dyCollectVideoRepository.GetListAsync(x => Ids.Contains(x.Id));
+
+            if (videos != null && videos.Count > 0)
+            {
+                if (videos.Count <= 30)
+                {
+                    var result = await ReDownloadViedoAsync(new ReDownViedoDto { Ids = videos.Select(x => x.Id)?.ToList() }, true);
+                    if (result)
+                    {
+                        //加入删除逻辑
+                        var deletes = await AddDeleteVideo(videos);
+                        Serilog.Log.Debug($"批量永久删除博主{videos.FirstOrDefault()?.Author}，共{deletes}条记录");
+                        return true;
+                    }
+                    else
+                    {
+                        Serilog.Log.Error($"批量删除{videos.FirstOrDefault()?.Author}视频失败");
+                        return false;
+                    }
+                }
+                else
+                {
+                    Task.Run(async () =>
+                    {
+                        var result = await ReDownloadViedoAsync(new ReDownViedoDto { Ids = videos.Select(x => x.Id)?.ToList() }, true);
+                        if (result)
+                        {
+                            //加入删除逻辑
+                            var deletes = await AddDeleteVideo(videos);
+                            Serilog.Log.Debug($"批量永久删除博主{videos.FirstOrDefault()?.Author}，{deletes}条记录");
+                        }
+                        else
+                        {
+                            Serilog.Log.Error($"批量删除{videos.FirstOrDefault()?.Author}视频失败");
+                        }
+                    });
+                    return true;
+                }
+            }
+            else
+            {
+                Serilog.Log.Error($"没有查询到可删除的视频");
+                return false;
+            }
+
+        }
+
     }
 }

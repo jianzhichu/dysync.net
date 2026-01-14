@@ -55,12 +55,15 @@ namespace dy.net.job
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
         {
             #region 默认使用UP主名称作为文件夹名称，若关注列表中有自定义保存路径则使用自定义路径
-            var authorName = string.IsNullOrWhiteSpace(item.Author?.Nickname) ? "UnknownAuthor" : DouyinFileNameHelper.SanitizeLinuxFileName(item.Author.Nickname,"",true);
-            var folder = Path.Combine(cookie.UpSavePath, authorName);
-            if (followed != null && !string.IsNullOrWhiteSpace(followed.SavePath)) 
-            {
-                folder = Path.Combine(cookie.UpSavePath, followed.SavePath);
-            }
+            // 1. 优先获取有效的作者名称（遵循原有优先级：followed.UperName > item.Author.Nickname > 默认值）
+            var rawAuthorName = followed?.UperName ?? item?.Author?.Nickname;
+            var authorName = string.IsNullOrWhiteSpace(rawAuthorName)
+                ? "UnknownAuthor"
+                : DouyinFileNameHelper.SanitizeLinuxFileName(rawAuthorName, "", true);
+            // 2. 确定最终文件夹路径（遵循原有优先级：followed.SavePath > authorName > 基础路径）
+            var targetFolderName = !string.IsNullOrWhiteSpace(followed?.SavePath) ? followed.SavePath : authorName;
+            var folder = Path.Combine(cookie.UpSavePath, targetFolderName);
+
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             #endregion
 

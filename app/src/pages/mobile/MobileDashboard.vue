@@ -185,23 +185,24 @@
       </div>
     </div>
 
-    <!-- 新增：视频播放弹窗（移动端适配） -->
+    <!-- 新增：视频播放弹窗（全屏适配+暂停显示删除按钮） -->
     <div v-if="showVideoPlayer" class="video-modal-mask" @click="closeVideoPlayer">
       <div class="video-modal-content" @click.stop>
-        <div class="video-modal-header">
-          <h3 class="video-title-text"></h3>
-          <button class="video-close-btn" @click="closeVideoPlayer">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
+        <!-- 移除原有标题栏，将关闭按钮直接放在内容容器内，实现悬浮 -->
+        <button class="video-close-btn floating-close-btn" @click="closeVideoPlayer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
         <div class="video-modal-body">
+          <!-- 加载中状态 -->
           <div v-if="videoLoading" class="video-loading">
             <div class="loading-spinner"></div>
             <p>加载视频中...</p>
           </div>
+          <!-- 错误状态 -->
           <div v-else-if="videoError" class="video-error">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f44336" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -211,15 +212,24 @@
             <p>视频加载失败</p>
             <button class="retry-btn" @click="loadVideo(currentVideo)">重试</button>
           </div>
-          <video v-else class="video-player" controls autoplay playsinline :src="videoPlayUrl" @error="handleVideoError">
-            您的浏览器不支持HTML5视频播放
-          </video>
+          <!-- 视频播放区域：添加ref用于获取视频实例，绑定暂停/播放事件 -->
+          <div v-else class="video-player-wrapper">
+            <video ref="videoPlayerRef" class="video-player" controls autoplay playsinline :src="videoPlayUrl" @error="handleVideoError" @pause="onVideoPause" @play="onVideoPlay">
+              您的浏览器不支持HTML5视频播放
+            </video>
+            <!-- 悬浮透明删除X按钮：仅暂停时显示 -->
+            <button class="video-delete-btn" v-show="isVideoPaused" @click.stop="deleteCurrentVideo" title="删除该视频">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
-
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue';
 import { useApiStore } from '@/store';
@@ -286,6 +296,9 @@ const currentVideo = ref<TopVideoItem | null>(null);
 const videoPlayUrl = ref<string>('');
 const videoLoading = ref<boolean>(false);
 const videoError = ref<boolean>(false);
+// 新增：视频实例引用和暂停状态
+const videoPlayerRef = ref<HTMLVideoElement | null>(null);
+const isVideoPaused = ref<boolean>(false); // 控制删除按钮显示
 
 // 过滤后的日志列表
 const filteredLogs = computed(() => {
@@ -453,7 +466,12 @@ const openVideoPlayer = (video: TopVideoItem) => {
 
   currentVideo.value = video;
   showVideoPlayer.value = true;
-  loadVideo(video);
+  loadVideo(video).then(() => {
+    // 视频加载完成后触发播放，避免浏览器拦截
+    if (videoPlayerRef.value) {
+      videoPlayerRef.value.play().catch((err) => console.log('自动播放被拦截：', err));
+    }
+  });
 };
 
 // 新增：加载视频播放地址
@@ -479,12 +497,30 @@ const closeVideoPlayer = () => {
   videoPlayUrl.value = '';
   videoLoading.value = false;
   videoError.value = false;
+  isVideoPaused.value = false; // 重置暂停状态
 };
 
 // 新增：处理视频播放错误
 const handleVideoError = () => {
   videoError.value = true;
   console.error('视频播放出错');
+};
+
+// 新增：视频暂停回调
+const onVideoPause = () => {
+  isVideoPaused.value = true;
+};
+
+// 新增：视频播放回调
+const onVideoPlay = () => {
+  isVideoPaused.value = false;
+};
+
+const deleteCurrentVideo = async () => {
+  // 关闭播放弹窗，刷新视频列表
+  closeVideoPlayer();
+  TopVideo(); // 重新加载最新视频列表
+  loadDashboardData(); // 刷新仪表盘统计数据
 };
 </script>
 
@@ -1003,68 +1039,58 @@ const handleVideoError = () => {
 .copy-btn:hover:not(:disabled) {
   background-color: #43a047;
 }
-
-/* 新增：视频播放弹窗样式（移动端适配） */
+/* 视频播放弹窗样式（纯全屏+悬浮右上角关闭按钮） */
 .video-modal-mask {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: #000; /* 纯黑背景更贴合全屏播放 */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  padding: 0px;
+  padding: 0;
   box-sizing: border-box;
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 .video-modal-content {
-  width: 100%;
-  max-width: 100%;
+  width: 100vw; /* 视口宽度100% */
+  height: 100vh; /* 视口高度100% */
+  max-width: none; /* 移除原有最大宽度限制 */
+  max-height: none; /* 移除原有最大高度限制 */
   background-color: #111;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  max-height: 80vh;
+  border-radius: 0; /* 全屏移除圆角 */
+  box-shadow: none; /* 全屏无需阴影 */
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative; /* 为悬浮关闭按钮提供定位上下文 */
 }
-.video-modal-header {
-  padding: 5px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #222;
-}
-.video-title-text {
-  font-size: 14px;
-  color: #fff;
-  font-weight: 500;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80%;
-}
-.video-close-btn {
-  background: transparent;
+/* 悬浮右上角关闭按钮样式 */
+.floating-close-btn {
+  position: absolute;
+  top: 20px; /* 右上角间距，可调整 */
+  right: 20px; /* 右上角间距，可调整 */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
   border: none;
   cursor: pointer;
   color: #fff;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 2010; /* 确保在视频上方 */
+  backdrop-filter: blur(2px);
 }
-.video-close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.floating-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
 }
 .video-modal-body {
   padding: 0;
@@ -1074,13 +1100,44 @@ const handleVideoError = () => {
   justify-content: center;
   background-color: #000;
   position: relative;
+  width: 100%;
+  height: 100%; /* 完全填充父容器，无高度损耗 */
+}
+/* 新增：视频播放器容器（用于定位删除按钮） */
+.video-player-wrapper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
 }
 .video-player {
   width: 100%;
   height: 100%;
-  min-height: 200px;
-  max-height: 60vh;
-  object-fit: contain;
+  object-fit: contain; /* 保持视频比例，全屏填充无黑边（也可改为 cover 强制填充，可能裁剪视频） */
+}
+/* 悬浮透明删除X按钮样式 */
+.video-delete-btn {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: all 0.2s ease;
+  z-index: 2010;
+  backdrop-filter: blur(2px);
+}
+.video-delete-btn:hover,
+.video-delete-btn:active {
+  background-color: rgba(244, 67, 54, 0.5);
+  transform: translateY(-50%) scale(1.1);
 }
 /* 视频加载状态 */
 .video-loading {
@@ -1090,6 +1147,8 @@ const handleVideoError = () => {
   justify-content: center;
   color: #fff;
   padding: 40px 20px;
+  width: 100%;
+  height: 100%;
 }
 .loading-spinner {
   width: 40px;
@@ -1114,6 +1173,8 @@ const handleVideoError = () => {
   color: #fff;
   padding: 40px 20px;
   text-align: center;
+  width: 100%;
+  height: 100%;
 }
 .video-error p {
   margin: 16px 0 24px;
@@ -1275,6 +1336,15 @@ html.dark-mode .close-btn {
 html.dark-mode .close-btn:hover {
   background-color: #2a2a4a;
   color: #ffffff;
+}
+
+/* 夜间模式 - 视频弹窗样式适配 */
+html.dark-mode .video-delete-btn {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+html.dark-mode .video-delete-btn:hover,
+html.dark-mode .video-delete-btn:active {
+  background-color: rgba(244, 67, 54, 0.6);
 }
 
 .ant-message {

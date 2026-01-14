@@ -156,7 +156,7 @@
           <!-- 作者统计 -->
           <div v-if="currentTab === 'author'" key="author-view" class="stats-content">
             <div class="authors-grid">
-              <div class="author-card" v-for="(author, index) in authors" :key="index">
+              <div class="author-card" v-for="(author, index) in authors" :key="index" @dblclick="handleDeleteItem(author)">
                 <!-- 新增横向容器：包裹头像和作者信息 -->
                 <div class="author-info-row">
                   <div class="author-avatar">
@@ -209,7 +209,7 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue';
 import { useApiStore } from '@/store';
-
+import { message, Spin, Empty, Tooltip, Modal, Form, FormInstance, Popconfirm } from 'ant-design-vue';
 // 类型接口
 interface Author {
   name: string;
@@ -312,6 +312,37 @@ const getRandomElements = (arr: any[], n: number) => {
   if (n <= 0) return [];
   if (n >= arr.length) return [...arr];
   return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+};
+
+const handleDeleteItem = (item: any) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除博主「${item.name}」所有视频吗？删除后将无法恢复。`,
+    okText: '确认删除',
+    cancelText: '取消',
+    okType: 'danger',
+    maskClosable: false,
+    onOk: () => {
+      return new Promise((resolve, reject) => {
+        useApiStore()
+          .DeleteByAuthor(item.uperId)
+          .then((res) => {
+            if (res.code === 0) {
+              message.success('根据视频数量，需要时常不确定，可以稍后去日志查看...');
+              resolve(true);
+            } else {
+              message.error('删除博主视频失败' + (res.message || '未知错误'));
+              reject(false);
+            }
+          })
+          .catch((err) => {
+            console.error('删除博主视频异常', err);
+            message.error('删除博主视频异常' + err);
+            reject(false);
+          });
+      });
+    },
+  });
 };
 </script>
 <style scoped>

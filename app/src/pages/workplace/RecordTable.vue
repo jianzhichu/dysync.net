@@ -44,18 +44,24 @@
             <a-space size="middle" class="button-group">
               <a-button success @click="handleBatchShare" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
                 <ShareAltOutlined />
-                分享选中
+                批量分享
               </a-button>
-              <a-button type="danger" @click="handleBatchDelete" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
+              <a-button danger @click="handleBatchSync" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
                 <SyncOutlined />
-                重新同步
+                重新下载
+              </a-button>
+              <a-button danger @click="handleBatchDelete" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
+                <close-outlined />
+                批量删除
               </a-button>
             </a-space>
           </a-form-item>
           <!-- 按钮代码 -->
           <a-form-item class="form-item delete-btn-2-wrapper">
-            <a-button danger @click="handShowDeleteVideos" class="delete-button-2">
-              <ClearOutlined /> <!-- 注意首字母大写，Antd图标命名规范 -->
+            <a-button type="primary" danger @click="handShowDeleteVideos" class="delete-button-2">
+              <!-- <ClearOutlined />  -->
+              <!-- 注意首字母大写，Antd图标命名规范 -->
+              <delete-outlined />
               已删除
             </a-button>
           </a-form-item>
@@ -79,9 +85,9 @@
               </span>
             </div>
 
-            <a-button type="text" size="small" class="copy-delete-video-btn" @click="(e) => copyVideoPath(item.videoSavePath)">
+            <!-- <a-button type="text" size="small" class="copy-delete-video-btn" @click="(e) => copyVideoPath(item.videoSavePath)">
               <CopyOutlined /> 复制
-            </a-button>
+            </a-button> -->
           </a-list-item>
         </template>
       </a-list>
@@ -639,9 +645,9 @@ watch(
 
 // -------------------------- 批量操作和操作列事件 --------------------------
 /** 批量删除事件 */
-const handleBatchDelete = () => {
+const handleBatchSync = () => {
   if (selectedRowKeys.value.length === 0) {
-    message.warning('请先选择要删除的视频');
+    message.warning('请先选择要重新下载的视频');
     return;
   }
 
@@ -653,6 +659,24 @@ const handleBatchDelete = () => {
     okType: 'danger',
     onOk: async () => {
       reDownload({ ids: selectedRowKeys.value });
+    },
+  });
+};
+
+const handleBatchDelete = () => {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning('请先选择要彻底删除的视频');
+    return;
+  }
+
+  Modal.confirm({
+    title: '确认删除这些下载的视频吗',
+    content: `您确定要彻底下删除选中的 ${selectedRowKeys.value.length} 条视频数据吗？`,
+    okText: '确认彻底删除',
+    cancelText: '取消',
+    okType: 'danger',
+    onOk: async () => {
+      deleteBatch({ ids: selectedRowKeys.value });
     },
   });
 };
@@ -686,6 +710,35 @@ const reDownload = (param: object) => {
         loading.value = false;
         if (res.code === 0) {
           message.success('删除成功，下次任务执行时会重新下载');
+          // 刷新数据并清空选中状态
+          GetRecords();
+          selectedRowKeys.value = [];
+        } else {
+          message.warning(res.message || '获取数据失败');
+        }
+      })
+      .catch((error) => {
+        loading.value = false;
+      });
+  } catch (error) {
+    console.error('批量删除失败：', error);
+    message.error('删除失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deleteBatch = (param: object) => {
+  try {
+    loading.value = true;
+    console.log('执行批量删除，选中ID：', selectedRowKeys.value);
+
+    useApiStore()
+      .BathRealDelete(param)
+      .then((res) => {
+        loading.value = false;
+        if (res.code === 0) {
+          message.success('删除成功，以后都不会下载了哦，你自己选的');
           // 刷新数据并清空选中状态
           GetRecords();
           selectedRowKeys.value = [];

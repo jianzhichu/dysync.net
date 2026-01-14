@@ -140,7 +140,10 @@ namespace dy.net.job
                 Log.Debug($"{VideoType}-未获取到系统配置，任务终止!!!");
                 return;
             }
-
+            //if(VideoType!= VideoTypeEnum.dy_follows)
+            //{
+            //    return;
+            //}
 
             // 2. 从配置中获取每页请求数量--固定18
             //if (config.BatchCount > 0)
@@ -153,10 +156,10 @@ namespace dy.net.job
             var cookies = await GetValidCookies();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug($"{VideoType}-未配置cookie或为开启同步，任务终止!!!");
+                Log.Debug($"{VideoType}-无有效cookie或cookie未开启同步，任务终止!!!");
                 return;
             }
-            Log.Debug($"{VideoType}-共发现{cookies.Count}个Cookie，同步任务即将开始...");
+            Log.Debug($"{VideoType}-共发现{cookies.Count}个有效的cookie，同步任务即将开始...");
 
             // 6. 遍历每个有效的Cookie，执行同步操作
             foreach (var cookie in cookies)
@@ -446,6 +449,10 @@ namespace dy.net.job
             foreach (var item in data.AwemeList)
             {
                 //if (item.AwemeId!= "7202236830337551616")
+                //{
+                //    continue;
+                //}
+                //if (!item.Desc.Contains("小房车正式启程"))
                 //{
                 //    continue;
                 //}

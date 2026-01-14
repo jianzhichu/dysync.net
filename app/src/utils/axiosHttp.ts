@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, Method as _Method, AxiosResponse } from 'axios'; // 移除 AxiosProgressEvent
+import axios, { AxiosInstance, AxiosRequestConfig, Method as _Method, AxiosResponse } from 'axios';
 import qs from 'qs';
 import Cookie from 'js-cookie';
 
@@ -13,8 +13,8 @@ declare interface _AxiosExtend {
   request<T = any, R = AxiosResponse<T>>(
     url: string,
     method: Method,
-    params?: Record<string | number, any> | FormData, // 支持 FormData 类型
-    config?: AxiosRequestConfig & { onUploadProgress?: (progressEvent: ProgressEvent) => void } // 改用原生 ProgressEvent
+    params?: Record<string | number, any> | FormData,
+    config?: AxiosRequestConfig & { onUploadProgress?: (progressEvent: ProgressEvent) => void }
   ): Promise<R>;
   /**
    * 设置token
@@ -40,7 +40,6 @@ declare interface _AxiosExtend {
 
 export interface AxiosHttp extends Omit<AxiosInstance, 'request'>, _AxiosExtend { }
 
-// 新增 post_form / POST_FORM 类型
 export type Method = _Method | 'POST_JSON' | 'post_json' | 'PUT_JSON' | 'put_json' | 'POST_FORM' | 'post_form';
 
 /**
@@ -83,22 +82,10 @@ function toUrlencoded(params?: Record<string | number, any>) {
 function createAxiosHttp(config: AxiosRequestConfig): AxiosHttp {
   const _axios = axios.create(config);
 
-  // 添加响应拦截器处理401状态
+  // 移除 401 处理，仅保留基础的响应拦截器（可选，也可直接删除）
   _axios.interceptors.response.use(
-    // 成功响应直接返回
     response => response,
-    // 错误响应处理
-    error => {
-      // 检查是否是401未授权错误
-      if (error.response && error.response.status === 401) {
-        // 调用removeAuthorization方法清除token
-        http.removeAuthorization();
-
-        // 这里可以添加额外的处理，比如跳转到登录页
-        // 示例: window.location.href = '/login';
-      }
-      return Promise.reject(error);
-    }
+    error => Promise.reject(error)
   );
 
   const http: AxiosHttp = {
@@ -107,13 +94,12 @@ function createAxiosHttp(config: AxiosRequestConfig): AxiosHttp {
       url: string,
       method: Method,
       params?: Record<string | number, any> | FormData,
-      config?: AxiosRequestConfig & { onUploadProgress?: (progressEvent: ProgressEvent) => void } // 改用原生 ProgressEvent
+      config?: AxiosRequestConfig & { onUploadProgress?: (progressEvent: ProgressEvent) => void }
     ): Promise<R> {
       const _method = method.toUpperCase();
-      // 处理上传进度配置
       const requestConfig: AxiosRequestConfig = {
         ...config,
-        onUploadProgress: config?.onUploadProgress, // 透传上传进度回调
+        onUploadProgress: config?.onUploadProgress,
       };
 
       switch (_method) {
@@ -132,11 +118,9 @@ function createAxiosHttp(config: AxiosRequestConfig): AxiosHttp {
             ...requestConfig,
             headers: { 'Content-Type': 'application/json', ...requestConfig.headers },
           });
-        // 新增：POST_FORM 类型（适配文件上传的 FormData）
         case 'POST_FORM':
           return _axios.post(url, params, {
             ...requestConfig,
-            // FormData 不需要手动设置 Content-Type，axios 会自动处理为 multipart/form-data
             headers: { ...requestConfig.headers },
           });
         case 'PUT':

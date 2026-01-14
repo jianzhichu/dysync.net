@@ -5,6 +5,7 @@ using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Security.Cryptography;
 
 namespace dy.net.Controllers
 {
@@ -174,7 +175,6 @@ namespace dy.net.Controllers
         /// </summary>
         /// <param name="dto"></param>
         /// <returns></returns>
-
         [HttpPost("redown")]
         public async Task<IActionResult> ReDownload(ReDownViedoDto dto)
         {
@@ -195,6 +195,27 @@ namespace dy.net.Controllers
                 }
             }
         }
+
+        /// <summary>
+        /// 批量删除
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
+        [HttpPost("vdelete/batch")]
+        public async Task<IActionResult> BathRealDelete(ReDownViedoDto dto)
+        {
+            var result = await douyinVideoService.RealDeleteVideos(dto.Ids);
+            if (result)
+            {
+                return ApiResult.Success(true);
+            }
+            else
+            {
+                return ApiResult.Fail("错误");
+            }
+        }
+
+
         /// <summary>
         /// 删除视频-不再下载
         /// </summary>
@@ -209,34 +230,15 @@ namespace dy.net.Controllers
             }
             else
             {
-                var video = await douyinVideoService.GetById(vid);
-                if (video == null)
+                var res = await douyinVideoService.RealDeleteVideos(new List<string> { vid });
+                if (res)
                 {
-                    return ApiResult.Fail("请求失败");
+                    return ApiResult.Success("删除成功");
                 }
                 else
                 {
-                    var result = await douyinVideoService.ReDownloadViedoAsync(new ReDownViedoDto { Ids = new List<string> { vid } });
-                    if (result)
-                    {
-                        //加入删除逻辑
-                        await douyinCommonService.AddDeleteVideo(new DouyinVideoDelete
-                        {
-                            ViedoId = video.AwemeId,
-                            VideoTitle = video.VideoTitle,
-                            VideoSavePath = video.VideoSavePath
-                        });
-
-                        Serilog.Log.Debug($"前面的日志,你错了，这条视频是永久删除..哈哈--{video.VideoTitle}");
-                        return ApiResult.Success();
-                    }
-                    else
-                    {
-                        return ApiResult.Fail();
-                    }
-
+                    return ApiResult.Fail("删除失败");
                 }
-
             }
         }
 
@@ -249,6 +251,35 @@ namespace dy.net.Controllers
         {
             return ApiResult.Success(await douyinCommonService.GetDouyinDeleteVideos());
         }
+        /// <summary>
+        /// 根据博主id删除博主所有视频
+        /// </summary>
+        /// <param name="uperUid"></param>
+        /// <returns></returns>
+        [HttpGet("vdelete/byauthor/{uperUid}")]
+        public async Task<IActionResult> DeleteByAuthor([FromRoute] string uperUid)
+        {
+            var videos = await douyinVideoService.GetByAuthorId(uperUid);
+            if (videos != null && videos.Any())
+            {
+                var res = await douyinVideoService.RealDeleteVideos(videos.Select(x => x.Id).ToList());
+                if (res)
+                {
+                    return ApiResult.Success("删除成功");
+                }
+                else
+                {
+                    return ApiResult.Fail("删除失败");
+                }
+            }
+            return ApiResult.Fail("未找到该博主视频");
+        }
+
+        //private async Task<(bool flowControl, IActionResult value)> BatchDeleteVideos(List<DouyinVideo> videos)
+        //{
+           
+        //    return (flowControl: true, value: null);
+        //}
 
         /// <summary>
         /// 查询最新N条数据
