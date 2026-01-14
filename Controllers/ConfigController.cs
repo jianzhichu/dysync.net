@@ -28,16 +28,16 @@ namespace dy.net.Controllers
         private readonly DouyinFollowService douyinFollowService;
         private readonly DouyinCookieService douyinCookieService;
 
-        // 定义允许上传的音频扩展名（小写）
-        private readonly string[] _allowedAudioExtensions = { ".mp3", ".wav" };
+        //// 定义允许上传的音频扩展名（小写）
+        //private readonly string[] _allowedAudioExtensions = { ".mp3", ".wav" };
 
-        // 定义允许的音频 MIME 类型（增强验证）
-        private readonly string[] _allowedAudioMimeTypes = {
-            "audio/mpeg", "audio/wav"
-        };
+        //// 定义允许的音频 MIME 类型（增强验证）
+        //private readonly string[] _allowedAudioMimeTypes = {
+        //    "audio/mpeg", "audio/wav"
+        //};
 
         // 最大文件大小：20MB（可根据需求调整）
-        private const long _maxFileSize = 20 * 1024 * 1024;
+        //private const long _maxFileSize = 20 * 1024 * 1024;
 
 
         public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService, DouyinQuartzJobService quartzJobService, DouyinFollowService douyinFollowService, DouyinCookieService douyinCookieService)
@@ -388,106 +388,106 @@ namespace dy.net.Controllers
         }
 
 
-        /// <summary>
-        /// 上传音频文件接口
-        /// </summary>
-        /// <param name="file">要上传的音频文件</param>
-        /// <returns>上传结果</returns>
-        [HttpPost("UploadAudio")]
-        public IActionResult UploadAudio(IFormFile file)
-        {
-            // 1. 验证文件是否为空
-            if (file == null || file.Length == 0)
-            {
-                return BadRequest(new { success = false, message = "请选择要上传的音频文件" });
-            }
+        ///// <summary>
+        ///// 上传音频文件接口
+        ///// </summary>
+        ///// <param name="file">要上传的音频文件</param>
+        ///// <returns>上传结果</returns>
+        //[HttpPost("UploadAudio")]
+        //public IActionResult UploadAudio(IFormFile file)
+        //{
+        //    // 1. 验证文件是否为空
+        //    if (file == null || file.Length == 0)
+        //    {
+        //        return BadRequest(new { success = false, message = "请选择要上传的音频文件" });
+        //    }
 
-            try
-            {
-                // 2. 验证文件大小
-                if (file.Length > _maxFileSize)
-                {
-                    return BadRequest(new { success = false, message = $"文件大小超过限制（最大允许 {_maxFileSize / 1024 / 1024}MB）" });
-                }
+        //    try
+        //    {
+        //        // 2. 验证文件大小
+        //        if (file.Length > _maxFileSize)
+        //        {
+        //            return BadRequest(new { success = false, message = $"文件大小超过限制（最大允许 {_maxFileSize / 1024 / 1024}MB）" });
+        //        }
 
-                // 3. 获取文件扩展名并验证
-                var fileExtension = Path.GetExtension(file.FileName).ToLower();
-                if (!_allowedAudioExtensions.Contains(fileExtension))
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = $"不支持的音频格式，仅允许：{string.Join(", ", _allowedAudioExtensions)}"
-                    });
-                }
+        //        // 3. 获取文件扩展名并验证
+        //        var fileExtension = Path.GetExtension(file.FileName).ToLower();
+        //        if (!_allowedAudioExtensions.Contains(fileExtension))
+        //        {
+        //            return BadRequest(new
+        //            {
+        //                success = false,
+        //                message = $"不支持的音频格式，仅允许：{string.Join(", ", _allowedAudioExtensions)}"
+        //            });
+        //        }
 
-                // 4. 验证 MIME 类型（可选但推荐，防止扩展名伪造）
-                var contentType = file.ContentType.ToLower();
-                if (!_allowedAudioMimeTypes.Contains(contentType))
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "文件类型验证失败，请上传合法的音频文件"
-                    });
-                }
+        //        // 4. 验证 MIME 类型（可选但推荐，防止扩展名伪造）
+        //        var contentType = file.ContentType.ToLower();
+        //        if (!_allowedAudioMimeTypes.Contains(contentType))
+        //        {
+        //            return BadRequest(new
+        //            {
+        //                success = false,
+        //                message = "文件类型验证失败，请上传合法的音频文件"
+        //            });
+        //        }
 
-                //先删除
-                var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
-            .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
-            .FirstOrDefault();
-                    if (!string.IsNullOrWhiteSpace(uploadMp3) && System.IO.File.Exists(uploadMp3))
-                    {
-                        System.IO.File.Delete(uploadMp3);
-                    }
+        //        //先删除
+        //        var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
+        //    .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
+        //    .FirstOrDefault();
+        //            if (!string.IsNullOrWhiteSpace(uploadMp3) && System.IO.File.Exists(uploadMp3))
+        //            {
+        //                System.IO.File.Delete(uploadMp3);
+        //            }
 
 
-                // 5. 生成唯一文件名（避免重复）
-                var uniqueFileName = $"dysync_default{fileExtension}";
+        //        // 5. 生成唯一文件名（避免重复）
+        //        var uniqueFileName = $"dysync_default{fileExtension}";
 
-                // 6. 定义文件保存路径（建议配置在 appsettings.json 中，这里简化处理）
-                var uploadPath = Path.Combine(AppContext.BaseDirectory, "mp3");
+        //        // 6. 定义文件保存路径（建议配置在 appsettings.json 中，这里简化处理）
+        //        var uploadPath = Path.Combine(AppContext.BaseDirectory, "mp3");
 
-                // 确保目录存在
-                if (!Directory.Exists(uploadPath))
-                {
-                    Directory.CreateDirectory(uploadPath);
-                }
+        //        // 确保目录存在
+        //        if (!Directory.Exists(uploadPath))
+        //        {
+        //            Directory.CreateDirectory(uploadPath);
+        //        }
 
-                // 7. 保存文件
-                var filePath = Path.Combine(uploadPath, uniqueFileName);
+        //        // 7. 保存文件
+        //        var filePath = Path.Combine(uploadPath, uniqueFileName);
 
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                }
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    file.CopyTo(stream);
-                }
+        //        if (System.IO.File.Exists(filePath))
+        //        {
+        //            System.IO.File.Delete(filePath);
+        //        }
+        //        using (var stream = new FileStream(filePath, FileMode.Create))
+        //        {
+        //            file.CopyTo(stream);
+        //        }
 
-                // 8. 返回成功结果（可根据需求返回文件路径/URL 等）
-                return ApiResult.Success(new { fileName = uniqueFileName, filePath });
-            }
-            catch (Exception ex)
-            {
-                // 捕获异常并返回错误信息
-                return ApiResult.Fail(ex.Message);
-            }
-        }
-        [AllowAnonymous]
-        [HttpGet("defaudio")]
-        public async Task<IActionResult> GetDefaultAudioUrl()
-        {
-            var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
-           .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
-           .FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(uploadMp3) && System.IO.File.Exists(uploadMp3))
-            {
-                return File(System.IO.File.ReadAllBytes(uploadMp3), "application/octet-stream", Path.GetFileName(uploadMp3));
-            }
-            return ApiResult.Fail("未上传音频");
-        }
+        //        // 8. 返回成功结果（可根据需求返回文件路径/URL 等）
+        //        return ApiResult.Success(new { fileName = uniqueFileName, filePath });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // 捕获异常并返回错误信息
+        //        return ApiResult.Fail(ex.Message);
+        //    }
+        //}
+        //[AllowAnonymous]
+        //[HttpGet("defaudio")]
+        //public async Task<IActionResult> GetDefaultAudioUrl()
+        //{
+        //    var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
+        //   .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
+        //   .FirstOrDefault();
+        //    if (!string.IsNullOrWhiteSpace(uploadMp3) && System.IO.File.Exists(uploadMp3))
+        //    {
+        //        return File(System.IO.File.ReadAllBytes(uploadMp3), "application/octet-stream", Path.GetFileName(uploadMp3));
+        //    }
+        //    return ApiResult.Fail("未上传音频");
+        //}
 
     }
 }

@@ -2,6 +2,8 @@
 using dy.net.dto;
 using dy.net.utils;
 using Serilog;
+using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace dy.net.service
 {
@@ -44,34 +46,51 @@ namespace dy.net.service
            int width = 1080,
            int height = 1920)
         {
-            string mp3FilePath = GetDefaultAudio();
+            string mergMusicPath = GetRandomMergeMusic();
             if (!string.IsNullOrWhiteSpace(audioPath))
             {
                 var (SuccessPaths, _) = await DownloadMediaAsync(new List<string> { audioPath }, Path.GetDirectoryName(savePath), "audio_", "mp3", ck);
                 if (SuccessPaths != null && SuccessPaths.Length > 0)
                 {
-                    mp3FilePath = SuccessPaths[0];
+                    mergMusicPath = SuccessPaths[0];
                 }
             }
             var ffmpeg = new FFmpegHelper();
-            return await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mp3FilePath, savePath, width, height);
+            return await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mergMusicPath, savePath, width, height);
         }
 
 
 
 
-        private static string GetDefaultAudio()
+        private static string GetRandomMergeMusic()
         {
-            string mp3FilePath = Path.Combine(AppContext.BaseDirectory, "mp3", "silent_10.mp3");
-            var uploadMp3 = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
-           .Where(filePath => Path.GetFileNameWithoutExtension(filePath) != "silent_10")
-           .FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(uploadMp3) && File.Exists(uploadMp3))
+            var allowedExtensions = new HashSet<string> { ".mp3", ".wav" };
+            string mergMusic = Path.Combine(AppContext.BaseDirectory, "mp3", "silent_10.mp3");//默认音频
+            var customMusics = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "mp3"))
+              .Where(filePath =>
+                  allowedExtensions.Contains(Path.GetExtension(filePath).ToLowerInvariant()) &&
+                  Path.GetFileNameWithoutExtension(filePath) != "silent_10")
+              .ToList();
+
+            if (customMusics != null && customMusics.Any()) 
             {
-                mp3FilePath = uploadMp3;
+                if (customMusics.Count() == 1)
+                    return customMusics.FirstOrDefault();
+
+                // 使用加密级别的随机数生成器（RNGCryptoServiceProvider）获取高随机性的索引
+                using (var rng = RandomNumberGenerator.Create())
+                {
+                    byte[] randomNumber = new byte[4];
+                    rng.GetBytes(randomNumber);
+
+                    // 将随机字节转换为非负整数，并取模得到有效索引
+                    int randomIndex = Math.Abs(BitConverter.ToInt32(randomNumber, 0)) % customMusics.Count();
+
+                    return customMusics.ToList()[randomIndex];
+                }
             }
 
-            return mp3FilePath;
+            return mergMusic;
         }
 
 
@@ -171,8 +190,8 @@ namespace dy.net.service
 
                         if (rawAudios.Length == 0)
                         {
-                            var mp3Path = GetDefaultAudio();
-                            rawAudios = new string[] { mp3Path };
+                            var musicPath = GetRandomMergeMusic();
+                            rawAudios = new string[] { musicPath };
                             Log.Debug("版权原因无法下载音频，使用默认无声音频文件");
                         }
 
