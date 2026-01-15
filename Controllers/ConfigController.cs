@@ -1,5 +1,6 @@
 ﻿using ClockSnowFlake;
 using dy.net.dto;
+using dy.net.extension;
 using dy.net.model;
 using dy.net.service;
 using dy.net.utils;
@@ -395,11 +396,23 @@ namespace dy.net.Controllers
         public async Task<IActionResult> GetExistMps()
         {
             var path = Path.Combine(AppContext.BaseDirectory, "mp3");
+
+            if (!string.IsNullOrWhiteSpace(ServiceExtension.FnDataFolder))
+            {
+                path = ServiceExtension.FnDataFolder;
+            }
+
             if (Directory.Exists(path))
             {
-                var audioFiles = Directory.GetFiles(path);
+                var allowedExtensions = new HashSet<string> { ".mp3", ".wav" };
 
-                var fileNames = audioFiles.Select(f => new {filename= Path.GetFileName(f) }).Where(x=>x.filename!= "silent_10.mp3").ToList();
+                var customMusics = Directory.GetFiles(path)
+                 .Where(filePath =>
+                     allowedExtensions.Contains(Path.GetExtension(filePath).ToLowerInvariant()) &&
+                     Path.GetFileNameWithoutExtension(filePath) != "silent_10")
+                 .ToList();
+
+                var fileNames = customMusics.Select(f => new {filename= Path.GetFileName(f) }).Where(x=>x.filename!= "silent_10.mp3").ToList();
                 return ApiResult.Success(fileNames);
             }
             else
@@ -418,6 +431,11 @@ namespace dy.net.Controllers
         public async Task<IActionResult> GetMp3([FromQuery] string name)
         {
             var path = Path.Combine(AppContext.BaseDirectory, "mp3", name);
+            if (!string.IsNullOrWhiteSpace(ServiceExtension.FnDataFolder))
+            {
+                path = Path.Combine(ServiceExtension.FnDataFolder, name);
+            }
+
             if (System.IO.File.Exists(path))
             {
                 //返回mp3文件流

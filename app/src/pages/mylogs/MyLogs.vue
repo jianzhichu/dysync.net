@@ -1,196 +1,293 @@
 <template>
-  <div style="margin: 5px 0;">
-    <!-- 日志类型按钮组 -->
-    <a-button-group>
-      <a-button :type="typeValue === 'debug' ? 'primary' : 'default'" @click="typeValue = 'debug'; loadLogs()" class="type-btn">
-        普通日志
+  <a-form layout="inline" style="margin-top:5px;margin-bottom:5px;align-items: center;">
+
+    <!-- 日期控制 -->
+    <a-form-item>
+      <div class="date-control-group">
+        <a-button type="text" @click="handleDateMinus" class="date-btn"><left-outlined /></a-button>
+        <span class="current-date-text">{{ currentDateText }}</span>
+        <a-button type="text" @click="handleDatePlus" class="date-btn" :disabled="isToday"><right-outlined /></a-button>
+      </div>
+    </a-form-item>
+    <!-- debug/error单选按钮 -->
+    <a-form-item>
+      <a-radio-group class="log-type-radio-group" v-model:value="typeValue" @change="typeChange" button-style="solid">
+        <a-radio-button value="debug">debug</a-radio-button>
+        <a-radio-button value="error">error</a-radio-button>
+      </a-radio-group>
+    </a-form-item>
+    <!-- 复制按钮 - 同一行最右侧 -->
+    <a-form-item style="margin-left: auto;">
+      <a-button type="text" size="small" @click="copyLogs" class="copy-btn">
+        <copy-outlined />
       </a-button>
-      <a-button :type="typeValue === 'error' ? 'primary' : 'default'" @click="typeValue = 'error'; loadLogs()" class="type-btn">
-        错误日志
-      </a-button>
-    </a-button-group>
-
-    <!-- 日期操作按钮组（核心调整颜色） -->
-    <a-button-group style="margin-left: 10px;" class="date-btn-group">
-      <a-button @click="changeDate('prev')">前一天</a-button>
-      <a-button class="today-btn" @click="changeDate('current')">今天</a-button>
-      <a-button @click="changeDate('next')">下一天</a-button>
-    </a-button-group>
-
-  </div>
-
-  <!-- 日志展示区域 -->
-  <div class="log-container">
-    <a-card bordered>
-      <pre class="log-content">{{ logs }}</pre>
+    </a-form-item>
+  </a-form>
+  <div class="container">
+    <a-card title="" :bordered="true" :class="{ 'log-error': typeValue === 'error' }">
+      <pre class="card-width-pre">{{ logs }}</pre>
     </a-card>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useApiStore } from '@/store';
-import dayjs from 'dayjs';
-import 'dayjs/locale/zh-cn';
+import dayjs, { Dayjs } from 'dayjs';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 
-// 初始化dayjs中文环境
 dayjs.locale('zh-cn');
 
-// 核心变量（极简：只维护两个核心变量）
-const typeValue = ref<string>('debug'); // 日志类型
-const currentDate = ref<dayjs.Dayjs>(dayjs()); // 当前选中的日期（唯一日期变量）
-const logs = ref<string>('加载中...'); // 日志内容
+const currentDate = ref<Dayjs>(dayjs());
+const typeValue = ref<string>('debug');
+const iframeUrl = ref<string>('');
+const logs = ref<string>('');
 
-// 计算可访问的日期范围（近10天：今天 ~ 9天前）
-const maxDate = computed(() => dayjs()); // 最大日期：今天
-const minDate = computed(() => dayjs().subtract(9, 'day')); // 最小日期：9天前
+const currentDateText = computed(() => {
+  return currentDate.value.format('YYYYMMDD');
+});
 
-// 格式化日期文本（供显示和请求使用）
-const currentDateText = computed(() => currentDate.value.format('YYYYMMDD'));
-const minDateText = computed(() => minDate.value.format('YYYYMMDD'));
-const maxDateText = computed(() => maxDate.value.format('YYYYMMDD'));
+const isToday = computed(() => {
+  return currentDate.value.isSame(dayjs(), 'day');
+});
 
-// 日期切换核心逻辑（极简：直接修改currentDate）
-const changeDate = (action: 'prev' | 'current' | 'next') => {
-  let newDate: dayjs.Dayjs;
+const handleDateMinus = () => {
+  currentDate.value = currentDate.value.subtract(1, 'day');
+  updateIframeUrlAndLoadLogs();
+};
 
-  switch (action) {
-    case 'prev':
-      newDate = currentDate.value.subtract(1, 'day');
-      break;
-    case 'next':
-      newDate = currentDate.value.add(1, 'day');
-      break;
-    case 'current':
-    default:
-      newDate = dayjs();
-      break;
-  }
+const handleDatePlus = () => {
+  if (isToday.value) return;
+  currentDate.value = currentDate.value.add(1, 'day');
+  updateIframeUrlAndLoadLogs();
+};
 
-  // 范围校验：限制在10天内
-  if (newDate.isBefore(minDate.value)) {
-    newDate = minDate.value;
-    logs.value = `已到最早可查看日期(${minDateText.value})，无法继续往前`;
-  } else if (newDate.isAfter(maxDate.value)) {
-    newDate = maxDate.value;
-    logs.value = `已到最新可查看日期(${maxDateText.value})，无法继续往后`;
-  }
-
-  // 更新当前日期并加载日志
-  currentDate.value = newDate;
+const updateIframeUrlAndLoadLogs = () => {
+  iframeUrl.value = `${typeValue.value}/${currentDateText.value}`;
   loadLogs();
 };
 
-// 加载日志数据
-const loadLogs = () => {
-  // 拼接请求参数
-  const params = `${typeValue.value}/${currentDateText.value}`;
+const typeChange = (e: any) => {
+  typeValue.value = e.target.value;
+  updateIframeUrlAndLoadLogs();
+};
 
-  // 调用接口加载日志
+const formatLogTime = (logContent: string) => {
+  const timeRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d+ \+08:00/g;
+  return logContent.replace(timeRegex, '$1');
+};
+
+const loadLogs = () => {
   useApiStore()
-    .apiGetLogs(params)
-    .then((logContent) => {
-      if (!logContent) {
-        logs.value = `【${currentDateText.value}】暂无${typeValue.value === 'debug' ? '普通' : '错误'}日志数据`;
-        return;
-      }
-      // 格式化日志时间（移除毫秒和时区）
-      const formatLog = logContent.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d+ \+08:00/g, '$1');
-      // 倒序显示
-      logs.value = formatLog.split('\n').reverse().join('\n');
+    .apiGetLogs(iframeUrl.value)
+    .then((log) => {
+      log = formatLogTime(log);
+      const lines = log.split('\n');
+      const reversedLines = lines.reverse();
+      const reversedText = reversedLines.join('\n');
+      logs.value = reversedText;
     })
     .catch((err) => {
       console.error('加载日志失败：', err);
-      logs.value = `加载日志失败：${err.message || '网络异常'}`;
+      logs.value = '日志加载失败，请稍后重试';
     });
 };
 
-// 页面挂载时加载初始日志
+// 复制日志内容的核心函数
+const copyLogs = async () => {
+  try {
+    // 空内容判断
+    if (!logs.value || logs.value === '日志加载失败，请稍后重试') {
+      message.warning('暂无可复制的日志内容');
+      return;
+    }
+    // 使用浏览器剪贴板API复制内容
+    await navigator.clipboard.writeText(logs.value);
+    message.success('日志内容复制成功！');
+  } catch (err) {
+    console.error('复制失败：', err);
+    // 降级方案：兼容不支持Clipboard API的浏览器
+    const textArea = document.createElement('textarea');
+    textArea.value = logs.value;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    // 提示反馈
+    message.success('日志内容复制成功！');
+  }
+};
+
 onMounted(() => {
-  loadLogs();
+  updateIframeUrlAndLoadLogs();
 });
 </script>
 
 <style lang='less' scoped>
-// 日志展示容器样式
-.log-container {
+// 基础样式：仅清理默认margin/padding，不设置全屏
+html,
+body {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+// 表单容器：正常宽度，保留少量间距
+:deep(.ant-form) {
   width: 100%;
-  height: calc(100vh - 80px);
-  margin-top: 10px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  margin: 0;
+}
 
-  .log-content {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    height: 100%;
-    max-height: 100%;
-    overflow-y: auto;
-    margin: 0;
-    padding: 15px;
-    background: #f9f9f9;
-    font-size: 14px;
-    line-height: 1.5;
+// 日志容器：正常宽度（继承父元素），高度适配
+.container {
+  width: 100%; // 继承父元素宽度，非全屏
+  height: calc(100vh - 50px); // 留出顶部表单高度，固定高度不溢出
+  padding: 0 8px; // 保留少量左右间距，视觉更友好
+  box-sizing: border-box;
+  overflow: hidden; // 新增：隐藏容器外溢出内容，避免挤压footer
+}
+// pre样式：继承card-body宽度（核心）
+.card-width-pre {
+  width: 100% !important; // 完全继承父元素（card-body）宽度
+  min-width: 100%;
+  padding: 8px; // 合理内边距，避免内容贴边
+  margin: 0 !important;
+  white-space: pre-wrap;
+  word-break: break-all;
+  height: 100%; // 继承card-body高度
+  max-height: calc(100vh - 66px); // 新增：严格限制最大高度，避开表单+卡片内边距
+  box-sizing: border-box;
+  overflow-y: auto; // 保留：纵向滚动（优先显示垂直滚动条）
+  overflow-x: auto; // 保留：横向滚动（日志行过长时）
+  font-size: 14px;
+  line-height: 1.5;
+  // 可选：美化滚动条（适配现代浏览器）
+  &::-webkit-scrollbar {
+    width: 6px; // 垂直滚动条宽度
+    height: 6px; // 水平滚动条高度
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.2);
   }
 }
 
-// 按钮组基础样式
-:deep(.ant-btn-group) {
-  .ant-btn {
-    height: 36px;
-    padding: 0 18px;
+.date-control-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  .date-btn {
+    width: 36px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .current-date-text {
     font-size: 14px;
-    border-radius: 0 !important; // 按钮组圆角处理
-    transition: all 0.2s ease;
-  }
-  // 第一个按钮左圆角
-  .ant-btn:first-child {
-    border-radius: 6px 0 0 6px !important;
-  }
-  // 最后一个按钮右圆角
-  .ant-btn:last-child {
-    border-radius: 0 6px 6px 0 !important;
-  }
-}
-
-// ========== 核心修改：日期按钮颜色 ==========
-.date-btn-group {
-  :deep(.ant-btn) {
-    // 日期按钮默认样式
-    background: #fff;
-    border-color: #e6e6e6;
-    color: #333;
-
-    &:hover {
-      background: #f0f9ff;
-      border-color: #00b42a; // hover时边框变绿色
-      color: #00b42a;
-    }
-  }
-
-  // “今天”按钮高亮样式（核心颜色修改处）
-  :deep(.today-btn) {
-    background: #00b42a !important; // 深绿色背景（可替换成你想要的颜色）
-    border-color: #00b42a !important;
-    color: #fff !important;
+    color: #1f2329;
     font-weight: 500;
+    min-width: 80px;
+    text-align: center;
+  }
+}
 
-    &:hover {
-      background: #00c834 !important; // hover时稍浅的绿色
-      border-color: #00c834 !important;
+// 复制按钮样式
+.copy-btn {
+  // height: 32px; /* 和日期按钮/单选按钮高度一致 */
+  // padding: 0 16px;
+  color: #722ed1;
+}
+
+// card-body样式：恢复默认内边距，作为pre的宽度基准
+:deep(.ant-card-body) {
+  padding: 4px; // 恢复合理内边距，作为pre的宽度容器
+  height: 100%; // 全屏继承容器高度
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; // 新增：隐藏卡片内溢出，确保pre独占滚动区域
+}
+
+// error状态下pre文字颜色
+.log-error {
+  .card-width-pre {
+    color: #f5222d !important;
+  }
+}
+
+// radio-button样式（保留之前的修正版）
+:deep(.log-type-radio-group) {
+  .ant-radio-button-wrapper:first-child {
+    &.ant-radio-button-wrapper-checked {
+      background-color: #52c41a !important;
+      border-color: #52c41a !important;
+      color: #fff !important;
+
+      &:hover,
+      &:active {
+        background-color: #389e0d !important;
+        border-color: #389e0d !important;
+      }
+    }
+
+    &:not(.ant-radio-button-wrapper-checked):hover {
+      border-color: #73d13d !important;
+      color: #52c41a !important;
+    }
+  }
+
+  .ant-radio-button-wrapper:last-child {
+    &.ant-radio-button-wrapper-checked {
+      background-color: #f5222d !important;
+      border-color: #f5222d !important;
+      color: #fff !important;
+
+      &:hover,
+      &:active {
+        background-color: #cf1322 !important;
+        border-color: #cf1322 !important;
+      }
+    }
+
+    &:not(.ant-radio-button-wrapper-checked):hover {
+      border-color: #ff4d4f !important;
+      color: #f5222d !important;
+    }
+  }
+
+  .ant-radio-button-wrapper {
+    &:first-child {
+      border-radius: 6px 0 0 6px !important;
+    }
+    &:last-child {
+      border-radius: 0 6px 6px 0 !important;
+    }
+
+    &:not(:first-child) {
+      margin-left: -1px !important;
+    }
+  }
+
+  .ant-radio-button-wrapper-checked {
+    &:first-child {
+      &::before {
+        background-color: transparent !important;
+      }
     }
   }
 }
 
-// ========== 可选：日志类型按钮颜色也同步调整（可选） ==========
-.type-btn {
-  :deep(&.ant-btn-primary) {
-    background: #722ed1 !important; // 日志类型选中用紫色（可改）
-    border-color: #722ed1 !important;
-    color: #fff !important;
-
-    &:hover {
-      background: #8046e0 !important;
-      border-color: #8046e0 !important;
-    }
-  }
+// 调整form布局，让复制按钮靠右
+:deep(.ant-form-inline) {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 </style>

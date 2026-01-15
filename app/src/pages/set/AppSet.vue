@@ -124,7 +124,7 @@
           <!-- 提示文本调整 -->
           <div class="flex items-start mt-1 text-sm text-gray-500" style="color:red">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>当下载图文视频时，音频因版权原因无法下载时，将用该音频文件作为合成视频的音频</span>
+            <span>当下载图文视频时，音频因版权原因无法下载时，将用该音频文件作为合成视频的音频(仅支持mp3、wav)</span>
           </div>
         </a-form-item>
 

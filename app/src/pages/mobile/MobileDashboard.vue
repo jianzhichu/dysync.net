@@ -3,14 +3,12 @@
     <div class="dashboard-container">
       <!-- 看板 Tab 内容 -->
       <div v-if="activeTab === 'dashboard'" class="tab-content">
-        <!-- 仅显示核心统计概览（无底部详细数据） -->
         <section class="stats-overview">
-          <!-- 合并后的总视频数和空间总计卡片（保留原有移动端样式） -->
+          <!-- 合并后的总视频数和空间总计卡片 -->
           <div class="stat-card primary-card main-card">
             <div class="stat-header">
               <div class="header-left">
                 <span class="stat-meta">视频统计</span>
-                <!-- 拆分视频总数和总空间到左右两侧 -->
                 <div class="stat-value-container">
                   <div class="stat-value video-count">
                     {{ totalVideos }}
@@ -21,7 +19,6 @@
                   </div>
                 </div>
               </div>
-              <!-- 移除SVG图标 -->
             </div>
             <div class="stat-subitems">
               <div class="subitem" :title="`我喜欢的视频数: ${favoriteCount} (占用: ${favoriteSize}G)`">
@@ -30,7 +27,6 @@
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                   </svg>
                 </div>
-                <!-- 子项调整：数量放在label后，占用空间单独显示 -->
                 <span class="subitem-meta">我喜欢的 <span class="subitem-count">({{ favoriteCount }})</span></span>
                 <span class="subitem-size">{{ favoriteSize }}G</span>
               </div>
@@ -69,19 +65,16 @@
             </div>
           </div>
 
-          <!-- 新增 Top Videos 列表（使用原有移动端卡片样式体系） -->
+          <!-- 最新同步视频列表 -->
           <div class="stat-card secondary-card main-card">
             <div class="stat-header">
               <div class="header-left">
                 <span class="stat-meta">最新同步</span>
-                <!-- <div class="stat-value">TOP {{ topVideos.length }}</div> -->
               </div>
-              <!-- 移除SVG图标 -->
             </div>
             <div class="stat-subitems video-list-container">
               <div v-for="(video, index) in topVideos" :key="index" class="subitem video-item" :title="video.title">
                 <div class="video-info">
-                  <!-- 点击标题播放视频 -->
                   <span class="subitem-meta video-title" @click="openVideoPlayer(video)">{{ video.title }}</span>
                   <span class="subitem-value video-time">{{ video.time }}</span>
                 </div>
@@ -94,7 +87,7 @@
         </section>
       </div>
 
-      <!-- 日志 Tab 内容（完全保留原有样式） -->
+      <!-- 日志 Tab 内容 -->
       <div v-if="activeTab === 'log'" class="tab-content log-tab">
         <div class="log-header">
           <h2 class="log-title">系统日志</h2>
@@ -129,7 +122,7 @@
       </div>
     </div>
 
-    <!-- 底部导航菜单（完全保留原有样式） -->
+    <!-- 底部导航菜单 -->
     <div class="bottom-nav">
       <div class="nav-item" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -150,7 +143,7 @@
       </div>
     </div>
 
-    <!-- 日志详情弹窗（完全保留原有样式） -->
+    <!-- 日志详情弹窗 -->
     <div v-if="showLogModal" class="log-modal-mask" @click="closeLogModal">
       <div class="log-modal-content" @click.stop>
         <div class="log-modal-header">
@@ -169,7 +162,7 @@
         </div>
 
         <div class="log-modal-body">
-          <div class="file-name">{{ currentLog?.fileName }}</div>
+          <!-- <div class="file-name">{{ currentLog?.fileName }}</div> -->
           <pre class="log-content">{{ logContent || '加载日志内容中...' }}</pre>
         </div>
 
@@ -179,16 +172,15 @@
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
-            复制日志
+            复制
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 新增：视频播放弹窗（全屏适配+暂停显示删除按钮） -->
+    <!-- 视频播放弹窗（竖屏铺满+横屏适配，无旋转） -->
     <div v-if="showVideoPlayer" class="video-modal-mask" @click="closeVideoPlayer">
       <div class="video-modal-content" @click.stop>
-        <!-- 移除原有标题栏，将关闭按钮直接放在内容容器内，实现悬浮 -->
         <button class="video-close-btn floating-close-btn" @click="closeVideoPlayer">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -197,12 +189,10 @@
         </button>
 
         <div class="video-modal-body">
-          <!-- 加载中状态 -->
           <div v-if="videoLoading" class="video-loading">
             <div class="loading-spinner"></div>
             <p>加载视频中...</p>
           </div>
-          <!-- 错误状态 -->
           <div v-else-if="videoError" class="video-error">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f44336" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -212,24 +202,18 @@
             <p>视频加载失败</p>
             <button class="retry-btn" @click="loadVideo(currentVideo)">重试</button>
           </div>
-          <!-- 视频播放区域：添加ref用于获取视频实例，绑定暂停/播放事件 -->
           <div v-else class="video-player-wrapper">
-            <video ref="videoPlayerRef" class="video-player" controls autoplay playsinline :src="videoPlayUrl" @error="handleVideoError" @pause="onVideoPause" @play="onVideoPlay">
+            <video ref="videoPlayerRef" class="video-player" controls autoplay playsinline :src="videoPlayUrl" @error="handleVideoError" @pause="onVideoPause" @play="onVideoPlay" width="100%" height="100%" preload="auto" @loadedmetadata="handleVideoLoadedMetadata">
               您的浏览器不支持HTML5视频播放
             </video>
-            <!-- 悬浮透明删除X按钮：仅暂停时显示 -->
-            <button class="video-delete-btn" v-show="isVideoPaused" @click.stop="deleteCurrentVideo" title="删除该视频">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
+
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue';
 import { useApiStore } from '@/store';
@@ -258,14 +242,13 @@ interface LogItem {
   fileName: string;
 }
 
-// 新增 TopVideo 类型接口（增加videoId字段）
 interface TopVideoItem {
   title: string;
   time: string;
-  id: string; // 视频ID
+  id: string;
 }
 
-// 状态管理（仅保留核心数据）
+// 状态管理
 const totalVideos = ref<number>(0);
 const fileSizeTotal = ref<string>('0.00');
 const favoriteCount = ref<number>(0);
@@ -290,15 +273,14 @@ const logContent = ref<string>('');
 // Top Videos 相关状态
 const topVideos = ref<TopVideoItem[]>([]);
 
-// 新增：视频播放相关状态
+// 视频播放相关状态（无旋转相关）
 const showVideoPlayer = ref<boolean>(false);
 const currentVideo = ref<TopVideoItem | null>(null);
 const videoPlayUrl = ref<string>('');
 const videoLoading = ref<boolean>(false);
 const videoError = ref<boolean>(false);
-// 新增：视频实例引用和暂停状态
 const videoPlayerRef = ref<HTMLVideoElement | null>(null);
-const isVideoPaused = ref<boolean>(false); // 控制删除按钮显示
+const isVideoPaused = ref<boolean>(false);
 
 // 过滤后的日志列表
 const filteredLogs = computed(() => {
@@ -315,7 +297,7 @@ defineOptions({ name: 'StatsDashboardMobile' });
 onMounted(() => {
   loadDashboardData();
   loadLogData();
-  TopVideo(); // 加载热门视频数据
+  TopVideo();
 });
 
 const loadDashboardData = async () => {
@@ -336,7 +318,6 @@ const loadDashboardData = async () => {
   }
 };
 
-// 加载日志数据（模拟接口，实际项目中替换为真实接口）
 const loadLogData = async () => {
   try {
     useApiStore()
@@ -351,7 +332,6 @@ const loadLogData = async () => {
   }
 };
 
-// 加载最新同步的视频10个
 const TopVideo = () => {
   useApiStore()
     .TopVideo(10)
@@ -362,21 +342,18 @@ const TopVideo = () => {
     });
 };
 
-// 打开日志详情弹窗
 const openLogDetail = (log: LogItem) => {
   currentLog.value = log;
   showLogModal.value = true;
   loadLogDetailContent(log);
 };
 
-// 关闭日志详情弹窗
 const closeLogModal = () => {
   showLogModal.value = false;
   currentLog.value = null;
   logContent.value = '';
 };
 
-// 加载日志详情内容
 const loadLogDetailContent = (log: LogItem) => {
   try {
     const type = log.type.toLowerCase();
@@ -402,19 +379,16 @@ const loadLogDetailContent = (log: LogItem) => {
   }
 };
 
-// 格式化日期显示（20251211 → 2025-12-11）
 const formatShowDate = (dateStr?: string) => {
   if (!dateStr || dateStr.length !== 8) return dateStr || '';
   return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 };
 
-// 处理日志时间戳，仅保留时分秒
 const formatLogTime = (logContent: string) => {
   const timeRegex = /\d{4}-\d{2}-\d{2} (\d{2}:\d{2}:\d{2})\.\d+ \+08:00/g;
   return logContent.replace(timeRegex, '$1');
 };
 
-// 复制日志内容（移动端兼容）
 const copyLogContent = () => {
   if (!logContent.value) {
     message.warn('暂无日志内容可复制');
@@ -433,7 +407,6 @@ const copyLogContent = () => {
   }
 };
 
-// 复制降级方案（适配移动端）
 const fallbackCopyTextToClipboard = (text: string) => {
   const textArea = document.createElement('textarea');
   textArea.value = text;
@@ -457,7 +430,6 @@ const fallbackCopyTextToClipboard = (text: string) => {
   document.body.removeChild(textArea);
 };
 
-// 新增：打开视频播放弹窗
 const openVideoPlayer = (video: TopVideoItem) => {
   if (!video.id) {
     message.warn('视频ID不存在，无法播放');
@@ -467,20 +439,22 @@ const openVideoPlayer = (video: TopVideoItem) => {
   currentVideo.value = video;
   showVideoPlayer.value = true;
   loadVideo(video).then(() => {
-    // 视频加载完成后触发播放，避免浏览器拦截
     if (videoPlayerRef.value) {
       videoPlayerRef.value.play().catch((err) => console.log('自动播放被拦截：', err));
     }
   });
 };
 
-// 新增：加载视频播放地址
 const loadVideo = async (video: TopVideoItem) => {
   try {
     videoLoading.value = true;
     videoError.value = false;
     const timestamp = new Date().getTime();
     videoPlayUrl.value = `${import.meta.env.VITE_API_URL}api/Video/play/${video.id}?t=${timestamp}`;
+    if (videoPlayerRef.value) {
+      videoPlayerRef.value.style.width = '100%';
+      videoPlayerRef.value.style.height = '100%';
+    }
   } catch (err) {
     console.error('加载视频失败：', err);
     videoError.value = true;
@@ -490,60 +464,117 @@ const loadVideo = async (video: TopVideoItem) => {
   }
 };
 
-// 新增：关闭视频播放弹窗
 const closeVideoPlayer = () => {
   showVideoPlayer.value = false;
   currentVideo.value = null;
   videoPlayUrl.value = '';
   videoLoading.value = false;
   videoError.value = false;
-  isVideoPaused.value = false; // 重置暂停状态
+  isVideoPaused.value = false;
+  if (videoPlayerRef.value) {
+    videoPlayerRef.value.pause();
+    videoPlayerRef.value.style.width = '100%';
+    videoPlayerRef.value.style.height = '100%';
+  }
 };
 
-// 新增：处理视频播放错误
 const handleVideoError = () => {
   videoError.value = true;
   console.error('视频播放出错');
 };
 
-// 新增：视频暂停回调
 const onVideoPause = () => {
   isVideoPaused.value = true;
 };
 
-// 新增：视频播放回调
 const onVideoPlay = () => {
   isVideoPaused.value = false;
 };
 
 const deleteCurrentVideo = async () => {
-  // 关闭播放弹窗，刷新视频列表
   closeVideoPlayer();
-  TopVideo(); // 重新加载最新视频列表
-  loadDashboardData(); // 刷新仪表盘统计数据
+  TopVideo();
+  loadDashboardData();
+};
+// 视频加载完成后，动态获取视频尺寸并调整容器
+const handleVideoLoadedMetadata = () => {
+  if (!videoPlayerRef.value) return;
+
+  // 获取视频原宽高比
+  const videoWidth = videoPlayerRef.value.videoWidth;
+  const videoHeight = videoPlayerRef.value.videoHeight;
+  const videoRatio = videoWidth / videoHeight; // 宽/高：>1 横向，≤1 竖向
+
+  // 获取播放器容器
+  const wrapper = document.querySelector('.video-player-wrapper');
+  if (!wrapper) return;
+  const wrapperWidth = wrapper.clientWidth;
+  const wrapperHeight = wrapper.clientHeight;
+
+  const video = videoPlayerRef.value;
+
+  // 1. 竖向视频（高≥宽）：全屏填满，无黑边
+  if (videoRatio <= 1) {
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover'; // 填满容器，裁剪多余部分
+    video.style.margin = '0';
+    video.style.position = 'static';
+  }
+  // 2. 横向视频（宽>高）：居中显示，完整保留，上下黑边
+  else {
+    // 重置为 contain，确保视频完整显示
+    video.style.objectFit = 'contain';
+    video.style.width = '100%';
+    video.style.height = '100%';
+    // 强制视频垂直+水平居中，解决下方没填满的问题
+    video.style.position = 'absolute';
+    video.style.top = '50%';
+    video.style.left = '50%';
+    video.style.transform = 'translate(-50%, -50%)';
+    // 可选：限制横向视频最大高度不超过容器，避免溢出
+    video.style.maxHeight = '100%';
+    video.style.maxWidth = '100%';
+  }
 };
 </script>
+<!-- 全局样式，放在 scoped 样式外 -->
+<style>
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+#app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+</style>
 
 <style scoped>
-/* 完全保留原有移动端样式 */
 .stats-dashboard-mobile {
   min-height: 100vh;
   background-color: #ffffff;
   color: #333333;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 15px 0;
+  padding: 5px 0;
   display: flex;
   flex-direction: column;
-  padding-bottom: 80px; /* 为底部导航留出空间 */
+  padding-bottom: 80px;
   position: relative;
 }
 .dashboard-container {
   width: 100%;
-  padding: 0 15px;
+  padding: 0 5px;
   box-sizing: border-box;
   flex: 1;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* 移动端弹性滚动 */
+  -webkit-overflow-scrolling: touch;
 }
 .tab-content {
   width: 100%;
@@ -553,10 +584,10 @@ const deleteCurrentVideo = async () => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
 }
 .main-card {
-  padding: 20px 16px;
+  padding: 0px 10px;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
@@ -588,7 +619,6 @@ const deleteCurrentVideo = async () => {
   letter-spacing: 0.4px;
   font-weight: 500;
 }
-/* 新增：视频总数和总空间容器样式 */
 .stat-value-container {
   display: flex;
   justify-content: space-between;
@@ -683,7 +713,6 @@ const deleteCurrentVideo = async () => {
   background-color: rgba(255, 159, 64, 0.1);
   color: #d9091a;
 }
-/* 视频列表图标样式（沿用原有样式体系） */
 .video-list-icon {
   background-color: rgba(33, 150, 243, 0.15);
   color: #2196f3;
@@ -698,27 +727,24 @@ const deleteCurrentVideo = async () => {
   font-weight: 500;
   flex: 1;
 }
-/* 新增：子项数量样式 */
 .subitem-count {
   color: #222;
   font-weight: 600;
   margin-left: 4px;
 }
-/* 新增：子项占用空间样式 */
 .subitem-size {
   font-size: 12px;
   color: #999;
   font-weight: 400;
 }
-/* 视频列表文字样式（适配移动端） */
 .video-title {
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* 显示2行 */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.4;
-  max-height: 2.8em; /* 2行 * line-height */
+  max-height: 2.8em;
   width: 100%;
   padding-right: 4px;
   cursor: pointer;
@@ -733,8 +759,8 @@ const deleteCurrentVideo = async () => {
   margin-top: 2px;
   font-weight: 300 !important;
   display: flex;
-  align-items: center; /* 垂直居中 */
-  justify-content: flex-end; /* 水平右对齐 */
+  align-items: center;
+  justify-content: flex-end;
 }
 .video-info {
   flex: 1;
@@ -759,16 +785,14 @@ const deleteCurrentVideo = async () => {
 .secondary-card {
   border-top: 3px solid #2196f3;
 }
-
-/* 空视频列表样式（适配移动端） */
 .empty-video-list {
   text-align: center;
-  padding: 20px 0;
+  padding: 10px 0;
   color: #999;
   font-size: 14px;
 }
 
-/* 底部导航样式（完全保留） */
+/* 底部导航样式 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -809,9 +833,9 @@ const deleteCurrentVideo = async () => {
   transform: scale(1.1);
 }
 
-/* 日志 Tab 样式（完全保留） */
+/* 日志 Tab 样式 */
 .log-tab {
-  padding: 10px 0;
+  padding: 5px 0;
 }
 .log-header {
   display: flex;
@@ -851,15 +875,15 @@ const deleteCurrentVideo = async () => {
   color: #333333;
 }
 
-/* 日志列表样式（完全保留） */
+/* 日志列表样式 */
 .log-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .log-item {
-  padding: 15px;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: 5px;
   border: 1px solid #f0f0f0;
   background-color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -912,7 +936,7 @@ const deleteCurrentVideo = async () => {
   font-size: 14px;
 }
 
-/* 日志详情弹窗样式（完全保留） */
+/* 日志详情弹窗样式 */
 .log-modal-mask {
   position: fixed;
   top: 0;
@@ -924,7 +948,7 @@ const deleteCurrentVideo = async () => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 10px;
   box-sizing: border-box;
 }
 .log-modal-content {
@@ -938,7 +962,7 @@ const deleteCurrentVideo = async () => {
   flex-direction: column;
 }
 .log-modal-header {
-  padding: 10px;
+  padding: 5px;
   border-bottom: 1px solid #f0f0f0;
   display: flex;
   justify-content: space-between;
@@ -1014,7 +1038,7 @@ const deleteCurrentVideo = async () => {
   color: #333;
 }
 .log-modal-footer {
-  padding: 16px 20px;
+  padding: 5px 20px;
   border-top: 1px solid #f0f0f0;
   display: flex;
   justify-content: flex-end;
@@ -1039,41 +1063,66 @@ const deleteCurrentVideo = async () => {
 .copy-btn:hover:not(:disabled) {
   background-color: #43a047;
 }
-/* 视频播放弹窗样式（纯全屏+悬浮右上角关闭按钮） */
+/* 视频弹窗遮罩：确保全屏无偏移 */
 .video-modal-mask {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #000; /* 纯黑背景更贴合全屏播放 */
+  background-color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   padding: 0;
+  margin: 0;
   box-sizing: border-box;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  overflow: hidden;
 }
+
+/* 视频弹窗内容：全屏铺满，无内边距 */
 .video-modal-content {
-  width: 100vw; /* 视口宽度100% */
-  height: 100vh; /* 视口高度100% */
-  max-width: none; /* 移除原有最大宽度限制 */
-  max-height: none; /* 移除原有最大高度限制 */
-  background-color: #111;
-  border-radius: 0; /* 全屏移除圆角 */
-  box-shadow: none; /* 全屏无需阴影 */
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  background-color: #000; /* 改为纯黑，即使有微小留白也不明显 */
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative; /* 为悬浮关闭按钮提供定位上下文 */
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0; /* 确保无内边距 */
+  box-sizing: border-box;
+  /* iOS安全区域适配：不额外增加留白，直接填充状态栏 */
+  padding-top: env(safe-area-inset-top);
+  height: calc(100vh - env(safe-area-inset-top));
 }
-/* 悬浮右上角关闭按钮样式 */
+
+/* 视频播放器容器：全屏铺满，无额外空间 */
+.video-player-wrapper {
+  position: relative; /* 新增：为视频绝对定位提供参考 */
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* 消除安全区域带来的高度偏差 */
+  height: calc(100% - env(safe-area-inset-top));
+  /* 新增：确保容器内内容垂直居中（兜底） */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .floating-close-btn {
   position: absolute;
-  top: 20px; /* 右上角间距，可调整 */
-  right: 20px; /* 右上角间距，可调整 */
+  top: env(safe-area-inset-top);
+  right: 0px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -1085,7 +1134,7 @@ const deleteCurrentVideo = async () => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  z-index: 2010; /* 确保在视频上方 */
+  z-index: 2010;
   backdrop-filter: blur(2px);
 }
 .floating-close-btn:hover {
@@ -1101,20 +1150,29 @@ const deleteCurrentVideo = async () => {
   background-color: #000;
   position: relative;
   width: 100%;
-  height: 100%; /* 完全填充父容器，无高度损耗 */
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
 }
-/* 新增：视频播放器容器（用于定位删除按钮） */
 .video-player-wrapper {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: calc(100% - env(safe-area-inset-top));
 }
 .video-player {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* 保持视频比例，全屏填充无黑边（也可改为 cover 强制填充，可能裁剪视频） */
+  object-fit: cover;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  display: block;
 }
-/* 悬浮透明删除X按钮样式 */
 .video-delete-btn {
   position: fixed;
   top: 50%;
@@ -1139,7 +1197,6 @@ const deleteCurrentVideo = async () => {
   background-color: rgba(244, 67, 54, 0.5);
   transform: translateY(-50%) scale(1.1);
 }
-/* 视频加载状态 */
 .video-loading {
   display: flex;
   flex-direction: column;
@@ -1164,7 +1221,6 @@ const deleteCurrentVideo = async () => {
     transform: rotate(360deg);
   }
 }
-/* 视频错误状态 */
 .video-error {
   display: flex;
   flex-direction: column;
@@ -1194,7 +1250,7 @@ const deleteCurrentVideo = async () => {
   background-color: #1976d2;
 }
 
-/* 夜间模式（完全保留原有样式） */
+/* 夜间模式 */
 html.dark-mode .stats-dashboard-mobile {
   background-color: #1a1a2e;
   color: #eaeaea;
@@ -1338,7 +1394,7 @@ html.dark-mode .close-btn:hover {
   color: #ffffff;
 }
 
-/* 夜间模式 - 视频弹窗样式适配 */
+/* 夜间模式 - 视频弹窗样式适配（移除旋转按钮相关） */
 html.dark-mode .video-delete-btn {
   background-color: rgba(0, 0, 0, 0.4);
 }
