@@ -448,10 +448,10 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                //if (item.AwemeId != "7440444948844956985")
-                //{
-                //    continue;
-                //}
+                if (item.AwemeId != "7440444948844956985")
+                {
+                    continue;
+                }
                 //if (!item.Desc.Contains("小房车正式启程"))
                 //{
                 //    continue;
@@ -495,7 +495,7 @@ namespace dy.net.job
                 {
 
                     //处理多个视频-组合的图文视频--类似动图。
-                    List<string> dynamicVideoUrls = new List<string>();
+                    List<DouyinDynamicVideoDto> dynamicVideoUrls = new List<DouyinDynamicVideoDto>();
                     // 当需要下载动态视频时，获取其他URL
                     if (config.DownDynamicVideo && item.Images != null && item.Images.Count > 0)
                     {
@@ -507,7 +507,17 @@ namespace dy.net.job
                                 {
                                     var targetUrl = btv.PlayAddr?.UrlList?.FirstOrDefault(x => x.StartsWith("https://www.douyin.com/aweme/v1/play"));
                                     if (targetUrl != null)
-                                        dynamicVideoUrls.Add(targetUrl);
+                                    {
+                                        var height = btv.PlayAddr?.Height ?? 1920;
+                                        var width = btv.PlayAddr?.Width ?? 1080;
+                                        DouyinDynamicVideoDto info = new DouyinDynamicVideoDto
+                                        {
+                                            Path = targetUrl,
+                                            Height = height,
+                                            Width = width
+                                        };
+                                        dynamicVideoUrls.Add(info);
+                                    }
                                 }
                             }
                         }
@@ -522,37 +532,34 @@ namespace dy.net.job
                         {
                             if (!string.IsNullOrEmpty(dynamicVideo.DynamicVideos))
                             {
-                                var dynamicVideos = JsonConvert.DeserializeObject<List<string>>(dynamicVideo.DynamicVideos);
+                                var dynamicVideos = JsonConvert.DeserializeObject<List<DouyinDynamicVideoDto>>(dynamicVideo.DynamicVideos);
                                 Log.Debug($"{VideoType}-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideos?.Count}个视频...");
                                 if (dynamicVideos != null && dynamicVideos.Count > 0)
                                 {
-                                    int width = 1080;
-                                    int height = 1920;
-                                    var bit = item?.Video?.BitRate?.FirstOrDefault();
-                                    if (bit != null)
-                                    {
-                                        width = bit.PlayAddr.Width;
-                                        height = bit.PlayAddr.Height;
-                                    }
+                                 
                                     var savePath = DouyinFileNameHelper.RemoveNumberSuffix(dynamicVideo.VideoSavePath);
                                     
-                                    //下载音频文件
+                                    //音频文件下载地址
                                     var mp3Url= item?.Music?.PlayUrl?.UrlList?.FirstOrDefault();
                                
 
-                                    var outPath = await douyinMergeVideoService.MergeMultipleVideosAsync(dynamicVideos,mp3Url, savePath,cookie.Cookies, width, height);
-                                    if(!string.IsNullOrWhiteSpace(outPath))
+                                    var outPath = await douyinMergeVideoService.MergeMultipleVideosAsync(dynamicVideos,mp3Url, savePath,cookie.Cookies);
+                                    if(!string.IsNullOrWhiteSpace(outPath.mp4Path))
                                     {
-                                        if (File.Exists(outPath))
+                                        if (File.Exists(outPath.mp4Path))
                                         {
-                                            dynamicVideo.VideoSavePath = outPath;
+                                            dynamicVideo.VideoSavePath = outPath.mp4Path;
                                             if (!config.KeepDynamicVideo)
                                             {
+                                                if (File.Exists(outPath.mp3Path))
+                                                {
+                                                    File.Delete(outPath.mp3Path);
+                                                }
                                                 //不保留原视频-删除
                                                 foreach (var opath in dynamicVideos)
                                                 {
-                                                    if (File.Exists(opath))
-                                                        File.Delete(opath);
+                                                    if (File.Exists(opath.Path))
+                                                        File.Delete(opath.Path);
                                                 }
                                             }
                                         }
@@ -829,7 +836,7 @@ namespace dy.net.job
 
 
 
-        protected async Task<DouyinVideo> ProcessDynamicVideo(List<string> dynamicUrls, DouyinCookie cookie, Aweme item, DouyinVideoInfo data, AppConfig config, DouyinFollowed followed = null)
+        protected async Task<DouyinVideo> ProcessDynamicVideo(List<DouyinDynamicVideoDto> dynamicUrls, DouyinCookie cookie, Aweme item, DouyinVideoInfo data, AppConfig config, DouyinFollowed followed = null)
         {
 
 
@@ -848,28 +855,29 @@ namespace dy.net.job
             // 随机延迟
             int i = 1;
 
-            List<string> dynamicSavePaths = new List<string>();
+            List<DouyinDynamicVideoDto> dynamicSavePaths = new List<DouyinDynamicVideoDto>();
             foreach (var dynamicUrl in dynamicUrls)
             {
                 // 下载动态视频
                 var dynamicSavePath = savePath.Replace(".mp4", $"_00{i}.mp4");
-                i++;
+                DouyinDynamicVideoDto v = new DouyinDynamicVideoDto() { Height = dynamicUrl.Height, Width = dynamicUrl.Width,Path= dynamicSavePath };
 
+                i++;
                 // 如果文件已存在，跳过
                 if (File.Exists(dynamicSavePath))
                 {
                     //Log.Debug($"{VideoType}-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
-                    dynamicSavePaths.Add(dynamicSavePath);
+                    dynamicSavePaths.Add(v);
                     continue;
                 }
-                var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(dynamicUrl, dynamicSavePath, cookie.Cookies);
+                var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(dynamicUrl.Path, dynamicSavePath, cookie.Cookies);
                 if (!Success)
                 {
                     Log.Error($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{dynamicSavePath}]-00{i},下载失败!!!");
                 }
                 else
                 {
-                    dynamicSavePaths.Add(dynamicSavePath);
+                    dynamicSavePaths.Add(v);
                     Log.Debug($"{VideoType}-{item?.Author?.Nickname ?? ""}-视频[{dynamicSavePath}]-00{i},下载完成.");
                 }
                 await Task.Delay(_random.Next(1, 4) * 1000);
@@ -890,10 +898,10 @@ namespace dy.net.job
                 {
                     Width = item?.Images?.FirstOrDefault()?.Width ?? 0,
                     Height = item?.Images?.FirstOrDefault()?.Height ?? 0,
-                    DataSize = DouyinFileUtils.GetTotalFileSize(dynamicSavePaths)  // 合成视频的文件大小
+                    DataSize = DouyinFileUtils.GetTotalFileSize(dynamicSavePaths.Select(x=>x.Path).ToList())  // 合成视频的文件大小
                 }
             };
-            return await CreateVideoEntity(config, cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault(), saveFolder, tag1, tag2, tag3, "", "", data, dynamicSavePaths);
+            return await CreateVideoEntity(config, cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault()?.Path, saveFolder, tag1, tag2, tag3, "", "", data, dynamicSavePaths);
         }
 
 
@@ -1285,7 +1293,7 @@ namespace dy.net.job
         /// <returns>创建的视频实体对象</returns>
         private async Task<DouyinVideo> CreateVideoEntity(AppConfig config,
             DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string saveFolder,
-            string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfo data, List<string> dynamicVideos = null)
+            string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfo data, List<DouyinDynamicVideoDto> dynamicVideos = null)
         {
             var diffs = GetVideoEntityDifferences(cookie, item);
 

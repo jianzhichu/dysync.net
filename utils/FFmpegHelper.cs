@@ -1,18 +1,19 @@
-﻿using Serilog;
+﻿using dy.net.dto;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace dy.net.utils
 {
     public class FFmpegHelper : IDisposable
     {
-
-
         private string _ffmpegExecutablePath;
         private string _ffprobeExecutablePath;
 
@@ -52,7 +53,6 @@ namespace dy.net.utils
         public int VideoCrf { get; set; } = 23;
         public string AudioCodec { get; set; } = "aac";
         public string AudioBitrate { get; set; } = "192k";
-
 
         /// <summary>
         /// 将多张图片和一个音频文件合成为视频（最终终极版）。
@@ -141,7 +141,6 @@ namespace dy.net.utils
                     Serilog.Log.Error($"获取音频时长失败，将使用图片总时长 ({audioDurationSeconds:F2}s) 作为视频时长: {ex.Message}");
                 }
 
-
                 // 计算图片序列需要循环的次数
                 int loopCount = 1;
                 int imageCount = imageList.Count; // 要循环的图片总数（对应loop的size参数）
@@ -218,7 +217,6 @@ namespace dy.net.utils
                 {
                     throw new InvalidOperationException("视频合成失败，未生成输出文件。");
                 }
-
             }
             finally
             {
@@ -232,48 +230,173 @@ namespace dy.net.utils
 
 
         /// <summary>
-        /// 合并多个视频文件为一个MP4视频（嵌入指定音频文件）
+        /// 将单个视频转封装为统一编码/分辨率的临时视频（解决concat合并兼容问题）
+        /// </summary>
+        /// <param name="videoDto">待转封装的视频Dto</param>
+        /// <param name="targetWidth">目标输出宽度</param>
+        /// <param name="targetHeight">目标输出高度</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>统一参数后的临时视频路径</returns>
+        private async Task<string> CreateUnifiedTempVideoAsync(
+            DouyinDynamicVideoDto videoDto,
+            int targetWidth, // 外部传入的动态目标宽（已取所有视频的最大值，偶数）
+            int targetHeight, // 外部传入的动态目标高（已取所有视频的最大值，偶数）
+            CancellationToken cancellationToken)
+        {
+            // 1. 生成临时视频路径
+            string tempVideoDir = Path.Combine(AppContext.BaseDirectory, "temp");
+            if (!Directory.Exists(tempVideoDir))
+            {
+                Directory.CreateDirectory(tempVideoDir);
+            }
+            string tempVideoPath = Path.Combine(tempVideoDir, $"{Guid.NewGuid()}.mp4");
+
+            // 2. 构建【动态适配不固定尺寸】的极简滤镜字符串（核心修改）
+            // 无需写死尺寸，直接使用传入的动态目标分辨率（已保证为偶数）
+            // scale=targetWidth:-2：宽度最大为动态目标宽，高度按原比例自动缩放，-2强制高度为偶数（满足H264）
+            // pad=targetWidth:targetHeight：居中补黑边到动态目标分辨率，缩放后尺寸≤目标尺寸，无矛盾
+            // 核心：动态双向限制滤镜（不写死任何尺寸，使用传入的targetWidth/targetHeight）
+            // scale={0}:{1}:force_original_aspect_ratio=decrease：双向限制不超出动态目标尺寸，保持原比例
+            // pad={0}:{1}：动态填充到目标尺寸，无尺寸矛盾，无硬编码
+            string videoFilter = string.Format(CultureInfo.InvariantCulture,
+                "scale={0}:{1}:force_original_aspect_ratio=decrease,pad={0}:{1}:(ow-iw)/2:(oh-ih)/2:black",
+                targetWidth,  // 动态传入的目标宽度（无硬编码）
+                targetHeight  // 动态传入的目标高度（无硬编码）
+            );
+
+            // 3. 打印滤镜字符串（用于调试，验证动态尺寸是否正确）
+            //Log.Debug($"待执行的动态滤镜（适配不固定尺寸）：{videoFilter}");
+
+            // 4. 构建FFmpeg参数（无需对滤镜做任何转义，保留原有编码配置）
+            var arguments = new List<string>
+    {
+        "-y",
+        "-hide_banner",
+        "-loglevel", "error",
+        "-i", videoDto.Path,
+        "-vf", // 滤镜参数标识（独立参数）
+        videoFilter, // 动态滤镜字符串（独立参数，ArgumentList自动处理逗号）
+        "-c:v", VideoCodec,
+        "-preset", VideoPreset,
+        "-crf", $"{VideoCrf}",
+        "-pix_fmt", "yuv420p",
+        "-profile:v", "main",
+        // 关键帧计算也适配动态目标宽，保留原有逻辑
+        "-g", $"{(targetWidth < 1080 ? 60 : 120)}",
+        "-sc_threshold", "0",
+        "-c:a", AudioCodec,
+        "-b:a", AudioBitrate,
+        "-ac", "2",
+        "-ar", "44100",
+        "-strict", "-2",
+        "-f", "mp4",
+        "-movflags", "+faststart",
+        tempVideoPath
+    };
+
+            try
+            {
+                // 5. 复用现有ExecuteFFmpegAsync（已使用ArgumentList，自动处理特殊字符）
+                await ExecuteFFmpegAsync(arguments, null, cancellationToken);
+
+                if (File.Exists(tempVideoPath))
+                {
+                    //Log.Debug($"视频转封装为统一参数成功，临时路径：{tempVideoPath}");
+                    return tempVideoPath;
+                }
+                else
+                {
+                    //Log.Error($"视频转封装失败，未生成临时文件，原路径：{videoDto.Path}");
+                    return string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"视频转封装异常，原路径：{videoDto.Path}");
+                if (File.Exists(tempVideoPath))
+                {
+                    File.Delete(tempVideoPath);
+                }
+                return string.Empty;
+            }
+        }
+        /// <summary>
+        /// 合并多个视频文件为一个MP4视频（嵌入指定音频文件）【已优化：移除冗余width/height参数，自动提取基准分辨率】
         /// </summary>
         /// <param name="videoFilePaths">待合并的视频路径列表（按合并顺序排列）</param>
         /// <param name="audioPath">音频文件（可为null/空，为空则保留视频原音频（若有））</param>
         /// <param name="savePath">输出视频的保存路径</param>
-        /// <param name="width">输出视频宽度（自动修正为偶数）</param>
-        /// <param name="height">输出视频高度（自动修正为偶数）</param>
         /// <param name="progress">进度回调</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>输出视频路径</returns>
+        // 移除了 width = 1080 和 height = 1920 两个传入参数
         public async Task<string> MergeMultipleVideosAsync(
-            List<string> videoFilePaths,
+            List<DouyinDynamicVideoDto> videoFilePaths,
             string audioPath,
             string savePath,
-            int width = 1080,
-            int height = 1920,
             IProgress<double> progress = null,
             CancellationToken cancellationToken = default)
         {
+            List<DouyinDynamicVideoDto> validVideoList = new List<DouyinDynamicVideoDto>();
+            List<string> tempUnifiedVideoPaths = new List<string>();
+
             // 输入验证
             if (videoFilePaths == null || !videoFilePaths.Any())
-                throw new ArgumentException("视频路径列表不能为空。", nameof(videoFilePaths));
-
-            foreach (var videoPath in videoFilePaths)
             {
-                if (!File.Exists(videoPath))
-                    throw new FileNotFoundException("视频文件未找到。", videoPath);
+                //Serilog.Log.Error("待合并视频列表为空。");
+                return string.Empty;
+            }
+
+            // 筛选有效视频 + 修正Dto中的视频自身宽高为偶数（H264编码要求）
+            foreach (var videoDto in videoFilePaths)
+            {
+                if (videoDto == null || string.IsNullOrEmpty(videoDto.Path) || !File.Exists(videoDto.Path))
+                {
+                    //Serilog.Log.Error($"视频文件未找到:{videoDto?.Path ?? "空路径"}");
+                    continue;
+                }
+
+                // 修正视频自身宽高（无效值赋予类默认分辨率，偶数修正）
+                videoDto.Width = videoDto.Width <= 0 ? this.VideoWidth : (videoDto.Width % 2 != 0 ? videoDto.Width + 1 : videoDto.Width);
+                videoDto.Height = videoDto.Height <= 0 ? this.VideoHeight : (videoDto.Height % 2 != 0 ? videoDto.Height + 1 : videoDto.Height);
+
+                validVideoList.Add(videoDto);
+            }
+
+            // 无有效视频直接返回
+            if (!validVideoList.Any())
+            {
+                Serilog.Log.Error("无可用的有效视频文件，无法进行合并。");
+                return string.Empty;
             }
 
             if (string.IsNullOrEmpty(savePath))
-                throw new ArgumentNullException(nameof(savePath));
+            {
+                //Serilog.Log.Error("合并视频输出文件名为空");
+                return string.Empty;
+            }
 
-            // 音频文件验证（若传入非空路径，则校验文件是否存在）
+            // 自动创建输出目录
+            var saveDir = Path.GetDirectoryName(savePath);
+            if (!string.IsNullOrEmpty(saveDir) && !Directory.Exists(saveDir))
+            {
+                Directory.CreateDirectory(saveDir);
+            }
+
+            // 音频文件验证
             bool hasCustomAudio = !string.IsNullOrEmpty(audioPath) && File.Exists(audioPath);
-            //if (!string.IsNullOrEmpty(audioPath) && !hasCustomAudio)
-            //    throw new FileNotFoundException("指定的音频文件未找到。", audioPath);
 
-            // 自动修正分辨率为偶数（H264编码要求）
-            if (width % 2 != 0) width++;
-            if (height % 2 != 0) height++;
+            // 核心修改：提取第一个有效视频的分辨率作为基准输出分辨率（替代传入的width/height）
+            // 进阶：动态计算最优分辨率（取所有有效视频的最大宽、最大高）
+            int targetWidth = validVideoList.Max(v => v.Width);
+            int targetHeight = validVideoList.Max(v => v.Height);
+            // 再次确认偶数（双重保障，避免Dto修正逻辑遗漏）
+            targetWidth = targetWidth % 2 != 0 ? targetWidth + 1 : targetWidth;
+            targetHeight = targetHeight % 2 != 0 ? targetHeight + 1 : targetHeight;
 
-            // 步骤1：创建临时文件列表（FFmpeg合并视频需要先生成文件列表）
+            //Log.Debug($"动态计算最优分辨率：{targetWidth}x{targetHeight}（适配所有视频）");
+
+            // 步骤1：创建临时文件列表
             string tempListFile = Path.Combine(AppContext.BaseDirectory, "temp", $"{Guid.NewGuid()}.txt");
             var tempDir = Path.GetDirectoryName(tempListFile);
             if (!Directory.Exists(tempDir))
@@ -283,87 +406,97 @@ namespace dy.net.utils
 
             try
             {
-                // 生成FFmpeg识别的文件列表（格式：file '绝对路径'）
-                var fileListContent = new StringBuilder();
-                foreach (var videoPath in videoFilePaths)
+                // 转封装所有有效视频为统一参数的临时视频（使用基准分辨率）
+                List<string> unifiedVideoPaths = new List<string>();
+                foreach (var videoDto in validVideoList)
                 {
-                    // 处理路径中的特殊字符，确保跨平台兼容
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        //Log.Error("视频合并流程被取消，终止临时视频转封装");
+                        return string.Empty;
+                    }
+
+                    // 传入基准分辨率（替代原来的传入参数width/height）
+                    string tempUnifiedVideo = await CreateUnifiedTempVideoAsync(videoDto, targetWidth, targetHeight, cancellationToken);
+                    if (string.IsNullOrEmpty(tempUnifiedVideo) || !File.Exists(tempUnifiedVideo))
+                    {
+                        //Log.Error($"视频转封装失败，跳过该视频：{videoDto.Path}");
+                        continue;
+                    }
+
+                    tempUnifiedVideoPaths.Add(tempUnifiedVideo);
+                    unifiedVideoPaths.Add(tempUnifiedVideo);
+                }
+
+                if (!unifiedVideoPaths.Any())
+                {
+                    Log.Error("统一转码成功的视频为空，无法进行下一步合并操作");
+                    return string.Empty;
+                }
+
+                // 生成FFmpeg识别的文件列表
+                var fileListContent = new StringBuilder();
+                foreach (var videoPath in unifiedVideoPaths)
+                {
                     string escapedPath = videoPath.Replace("\\", "/").Replace("'", "\\'");
                     fileListContent.AppendLine($"file '{escapedPath}'");
                 }
                 File.WriteAllText(tempListFile, fileListContent.ToString(), new UTF8Encoding(false));
 
-                // 步骤2：构建FFmpeg合并+音频嵌入参数
+                // 构建FFmpeg合并参数（使用基准分辨率targetWidth/targetHeight）
                 var arguments = new List<string>();
 
-                // 核心修改：支持双输入（视频列表 + 自定义音频）
                 if (hasCustomAudio)
                 {
-                    // 输入1：视频文件列表（仅读取视频流，忽略原音频）
                     arguments.AddRange(new[]
                     {
-                "-y", // 覆盖输出文件
-                "-f", "concat",
-                "-safe", "0",
-                "-i", tempListFile,
-                // 输入2：自定义音频文件
-                "-i", audioPath,
-                // 映射流：输入0的视频流 → 输出视频流；输入1的音频流 → 输出音频流
-                "-map", "0:v",
-                "-map", "1:a",
-                // 音频同步：保证视频与音频时长匹配（若音频较短，循环音频；若较长，截断音频）
-                "-shortest", // 以较短的流时长为准，避免无意义的空帧/静音
-                "-filter:a", "apad=pad_len=0" // 音频补全，防止音频时长略短于视频导致的截断
+                "-y", "-f", "concat", "-safe", "0",
+                "-i", tempListFile, "-i", audioPath,
+                "-map", "0:v", "-map", "1:a",
+                "-shortest", "-filter:a", "apad=pad_len=0"
             });
                 }
                 else
                 {
-                    // 无自定义音频：仅合并视频，保留原视频音频（若有）
                     arguments.AddRange(new[]
                     {
-                "-y", // 覆盖输出文件
-                "-f", "concat",
-                "-safe", "0",
+                "-y", "-f", "concat", "-safe", "0",
                 "-i", tempListFile,
-                // 映射流：保留原视频的视频流和音频流
-                "-map", "0:v",
-                "-map", "0:a?", // "?" 表示若存在音频流则映射，不存在则忽略，避免报错
+                "-map", "0:v", "-map", "0:a?",
                 "-shortest"
             });
                 }
 
-                // 视频编码参数（复用现有类的编码配置，保证输出格式统一）
+                // 核心：动态双向限制滤镜（不写死任何尺寸，使用传入的targetWidth/targetHeight）
+                // scale={0}:{1}:force_original_aspect_ratio=decrease：双向限制不超出动态目标尺寸，保持原比例
+                // pad={0}:{1}：动态填充到目标尺寸，无尺寸矛盾，无硬编码
+                string videoFilter = string.Format(CultureInfo.InvariantCulture,
+                    "scale={0}:{1}:force_original_aspect_ratio=decrease,pad={0}:{1}:(ow-iw)/2:(oh-ih)/2:black",
+                    targetWidth,  // 动态传入的目标宽度（无硬编码）
+                    targetHeight  // 动态传入的目标高度（无硬编码）
+                );
+
+                arguments.AddRange(new[] { "-vf", videoFilter });
+
+                // 后续编码参数、执行逻辑均不变（使用基准分辨率）
                 arguments.AddRange(new[]
                 {
-            "-c:v", VideoCodec,
-            "-preset", VideoPreset,
-            "-crf", $"{VideoCrf}",
-            "-s", $"{width}x{height}", // 统一输出分辨率
-            "-pix_fmt", "yuv420p", // 兼容所有播放器
-            "-profile:v", "main"
+            "-c:v", VideoCodec, "-preset", VideoPreset, "-crf", $"{VideoCrf}",
+            "-pix_fmt", "yuv420p", "-profile:v", "main"
         });
 
-                // 音频编码参数（无论是否自定义音频，统一编码格式保证兼容性）
                 arguments.AddRange(new[]
                 {
-            "-c:a", AudioCodec,
-            "-b:a", AudioBitrate,
-            "-ac", "2", // 立体声
-            "-ar", "44100" // 标准采样率
+            "-c:a", AudioCodec, "-b:a", AudioBitrate,
+            "-ac", "2", "-ar", "44100"
         });
 
-                // 封装优化
                 arguments.AddRange(new[]
                 {
-            "-f", "mp4",
-            "-movflags", "+faststart" // 适合网络播放（将moov原子移至文件头部）
+            "-f", "mp4", "-movflags", "+faststart", savePath
         });
 
-                // 输出路径
-                arguments.Add(savePath);
-
-                //Log.Error($"savePath={savePath}");
-                // 执行FFmpeg合并+音频嵌入命令
+                // 执行FFmpeg命令
                 await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
 
                 // 验证输出文件
@@ -375,15 +508,25 @@ namespace dy.net.utils
                 else
                 {
                     Log.Error("视频合成失败，未生成输出文件。");
-                    return "";
+                    return string.Empty;
                 }
             }
             finally
             {
-                // 清理临时文件
+                // 清理临时文件（原有逻辑不变）
                 if (File.Exists(tempListFile))
                 {
-                    File.Delete(tempListFile);
+                    try { File.Delete(tempListFile); }
+                    catch (IOException ex) { Log.Warning($"清理临时文件列表失败：{ex.Message}"); }
+                }
+
+                foreach (var tempVideoPath in tempUnifiedVideoPaths)
+                {
+                    if (File.Exists(tempVideoPath))
+                    {
+                        try { File.Delete(tempVideoPath); }
+                        catch (IOException ex) { Log.Warning($"清理临时视频失败：{ex.Message}"); }
+                    }
                 }
             }
         }
@@ -463,5 +606,4 @@ namespace dy.net.utils
             _ffmpegProcess?.Dispose();
         }
     }
-
 }

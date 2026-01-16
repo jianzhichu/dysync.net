@@ -36,17 +36,14 @@ namespace dy.net.service
         /// <param name="audioPath"></param>
         /// <param name="savePath"></param>
         /// <param name="ck"></param>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
         /// <returns></returns>
-        public async Task<string> MergeMultipleVideosAsync(
-           List<string> videoFilePaths,
+        public async Task<(string mp4Path,string mp3Path)> MergeMultipleVideosAsync(
+          List<DouyinDynamicVideoDto> videoFilePaths,
            string audioPath,
            string savePath,
-           string ck,
-           int width = 1080,
-           int height = 1920)
+           string ck)
         {
+            string mp3Path = string.Empty;
             string mergMusicPath = GetRandomMergeMusic();
             if (!string.IsNullOrWhiteSpace(audioPath))
             {
@@ -54,10 +51,12 @@ namespace dy.net.service
                 if (SuccessPaths != null && SuccessPaths.Length > 0)
                 {
                     mergMusicPath = SuccessPaths[0];
+                    mp3Path= SuccessPaths[0];
                 }
             }
             var ffmpeg = new FFmpegHelper();
-            return await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mergMusicPath, savePath, width, height);
+            var mp4Path= await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mergMusicPath, savePath);
+            return (mp4Path, mp3Path);
         }
 
 
