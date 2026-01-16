@@ -141,40 +141,40 @@ body {
   margin: 0;
 }
 
-// 日志容器：正常宽度（继承父元素），高度适配
+// 日志容器：自适应高度，无固定上限，保留上下留白
 .container {
-  width: 100%; // 继承父元素宽度，非全屏
-  height: calc(100vh - 50px); // 留出顶部表单高度，固定高度不溢出
-  padding: 0 8px; // 保留少量左右间距，视觉更友好
+  width: 100%;
+  padding: 0 8px;
+  margin: 16px 0; // 上下留白，远离屏幕边缘
   box-sizing: border-box;
-  overflow: hidden; // 新增：隐藏容器外溢出内容，避免挤压footer
+  overflow: hidden;
 }
-// pre样式：继承card-body宽度（核心）
+// pre样式：自适应高度，内容过多时内部滚动
 .card-width-pre {
-  width: 100% !important; // 完全继承父元素（card-body）宽度
+  width: 100% !important;
   min-width: 100%;
-  padding: 8px; // 合理内边距，避免内容贴边
+  padding: 8px;
   margin: 0 !important;
   white-space: pre-wrap;
   word-break: break-all;
-  height: 100%; // 继承card-body高度
-  max-height: calc(100vh - 66px); // 新增：严格限制最大高度，避开表单+卡片内边距
+  // 核心：最小高度保证容器不塌陷，最大高度限制不超视口一半
+  min-height: 200px;
+  max-height: calc(67vh); // 最多占视口一半，绝对不会满屏
   box-sizing: border-box;
-  overflow-y: auto; // 保留：纵向滚动（优先显示垂直滚动条）
-  overflow-x: auto; // 保留：横向滚动（日志行过长时）
+  overflow-y: auto;
+  overflow-x: auto;
   font-size: 14px;
   line-height: 1.5;
-  // 可选：美化滚动条（适配现代浏览器）
+  // 滚动条美化（保留）
   &::-webkit-scrollbar {
-    width: 6px; // 垂直滚动条宽度
-    height: 6px; // 水平滚动条高度
+    width: 6px;
+    height: 6px;
   }
   &::-webkit-scrollbar-thumb {
     border-radius: 3px;
     background-color: rgba(0, 0, 0, 0.2);
   }
 }
-
 .date-control-group {
   display: flex;
   align-items: center;

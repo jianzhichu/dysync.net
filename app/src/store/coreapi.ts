@@ -241,7 +241,14 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
 
+  //检查版本
+  async function getVer() {
+    return http.request<any, Response<any>>('/api/config/mytag', 'get').then(r => {
+      return r;
+    }).finally(() => {
 
+    });
+  }
   //检查版本
   async function CheckTag() {
     return http.request<any, Response<any>>('/api/config/checktag', 'get').then(r => {
@@ -364,6 +371,7 @@ export const useApiStore = defineStore('coreapi', () => {
   }
 
   return {
+    getVer,
     mp3List,
     BathRealDelete,
     DeleteByAuthor,

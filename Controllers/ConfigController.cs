@@ -342,7 +342,11 @@ namespace dy.net.Controllers
         [HttpGet("mytag")]
         public async Task<IActionResult> GetMyTag()
         {
-            return ApiResult.Success(Appsettings.Get("tagName"));
+            var deploy = Appsettings.Get("deploy");
+            var tag = Appsettings.Get("tagName");
+            tag = deploy == "fn" ? "fn_" + Appsettings.Get("fnVersion") : tag;
+            deploy = deploy == "fn" ? "fnos" : "docker";
+            return ApiResult.Success(new { tag, deploy });
         }
 
         [AllowAnonymous]
@@ -359,7 +363,7 @@ namespace dy.net.Controllers
             {
                 if (deploy == "fn")//飞牛
                 {
-                    return ApiResult.Success(new List<string> { "beta_" + Appsettings.Get("fnVersion") });
+                    return ApiResult.Success(new List<string> { "fn_" + Appsettings.Get("fnVersion") });
                 }
                 else
                 {

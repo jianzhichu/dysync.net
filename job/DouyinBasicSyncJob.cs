@@ -156,10 +156,10 @@ namespace dy.net.job
             var cookies = await GetValidCookies();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug($"{VideoType}-无有效cookie或cookie未开启同步，任务终止!!!");
+                Log.Debug($"{VideoType}-无有效cookie或{VideoType}已关闭同步，任务终止!!!");
                 return;
             }
-            Log.Debug($"{VideoType}-共发现{cookies.Count}个有效的cookie，同步任务即将开始...");
+            Log.Debug($"{VideoType}-共发现{cookies.Count}个有效的cookie，同步即将开始...");
 
             // 6. 遍历每个有效的Cookie，执行同步操作
             foreach (var cookie in cookies)
@@ -356,7 +356,7 @@ namespace dy.net.job
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{VideoType}-Cookie[{cookie.Id}]同步出错!!!");
+                Log.Error(ex, $"{VideoType}-Cookie[{cookie.Id}]同步出错!!!,{ex.StackTrace}");
             }
         }
 
@@ -369,7 +369,7 @@ namespace dy.net.job
                 var data = await FetchVideoData(cookie, cursor, followed == null ? "" : followed?.SecUid);
                 if (data == null)
                 {
-                    Log.Debug($"{VideoType}-Cookie[{cookie.UserName}]读取数据失败!!!");
+                    Log.Debug($"{VideoType}-Cookie[{cookie.UserName}]同步数据失败!!!");
                     break;
                 }
 
@@ -448,7 +448,7 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                //if (item.AwemeId!= "7202236830337551616")
+                //if (item.AwemeId != "7440444948844956985")
                 //{
                 //    continue;
                 //}

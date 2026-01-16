@@ -7,13 +7,17 @@ import DayNightSwitch from '@/components/switch/DayNightSwitch.vue';
 import { TagsOutlined, CopyOutlined, GithubOutlined } from '@ant-design/icons-vue';
 import Fullscreen from '../fullscreen/Fullscreen.vue';
 import { useApiStore } from '@/store';
-import { message, Popover } from 'ant-design-vue'; // 移除 notification
+import { message, Popover, Badge } from 'ant-design-vue'; // 新增：导入 Badge 组件用于气泡提示
 
 // 版本数据和当前版本状态
 const dyVersions = ref<string[]>([]);
 const copyLoading = ref<Record<string, boolean>>({});
 // 版本 popover 显隐控制
 const versionPopoverVisible = ref<boolean>(false);
+// 新增：是否有新版本（用于气泡提示）
+const hasNewVersion = ref<boolean>(false);
+// 新增：localStorage 缓存 key（统一命名，方便维护）
+const VERSION_CACHE_KEY = 'dysync_version_cache';
 
 // 仓库地址常量
 const gitRepos = ref([
@@ -118,27 +122,64 @@ const copyGitUrl = (repo: { name: string; url: string; color: string }) => {
   doCopy();
 };
 
-// 版本查看方法（获取数据后控制 popover 显隐）
+// 新增：统一处理版本数据的方法（提取公共逻辑，避免冗余）
+const handleVersionData = (rawData: string[]) => {
+  const newVersions = [...rawData];
+  const versionLen = newVersions.length;
+
+  if (versionLen > 0) {
+    if (versionLen === 1) {
+      newVersions[0] = `${newVersions[0]}（最新版）`;
+      hasNewVersion.value = false; // 只有一个版本，无新版
+    } else {
+      newVersions[0] = `${newVersions[0]}（当前版本）`;
+      const lastIndex = versionLen - 1;
+      newVersions[lastIndex] = `${newVersions[lastIndex]}（最新版）`;
+      // 判断是否有新版本：当前版本 !== 最新版本（去除备注后对比）
+      const currentVersion = newVersions[0].replace('（当前版本）', '').trim();
+      const latestVersion = newVersions[lastIndex].replace('（最新版）', '').trim();
+      hasNewVersion.value = currentVersion !== latestVersion;
+    }
+  } else {
+    hasNewVersion.value = false;
+  }
+
+  return newVersions;
+};
+
+// 新增：保存版本数据到 localStorage
+const saveVersionToLocalStorage = (versionData: string[]) => {
+  try {
+    localStorage.setItem(VERSION_CACHE_KEY, JSON.stringify(versionData));
+  } catch (error) {
+    console.warn('版本数据缓存到 localStorage 失败：', error);
+  }
+};
+
+// 新增：从 localStorage 获取缓存的版本数据
+const getVersionFromLocalStorage = (): string[] => {
+  try {
+    const cacheData = localStorage.getItem(VERSION_CACHE_KEY);
+    if (cacheData) {
+      return JSON.parse(cacheData) as string[];
+    }
+  } catch (error) {
+    console.warn('从 localStorage 读取版本缓存失败：', error);
+  }
+  return [];
+};
+
+// 改造：版本查看方法（获取数据后更新缓存，控制 popover 显隐）
 const showVersionNotification = () => {
   useApiStore()
     .CheckTag()
     .then((res) => {
       if (res.code === 0) {
-        dyVersions.value = res.data;
-        const versionLen = dyVersions.value.length;
-
-        if (versionLen > 0) {
-          const newVersions = [...dyVersions.value];
-          if (versionLen === 1) {
-            newVersions[0] = `${newVersions[0]}（最新版）`;
-          } else {
-            newVersions[0] = `${newVersions[0]}（当前版本）`;
-            const lastIndex = versionLen - 1;
-            newVersions[lastIndex] = `${newVersions[lastIndex]}（最新版）`;
-          }
-          dyVersions.value = newVersions;
-        }
-
+        // 处理版本数据（添加备注、判断新版）
+        const processedVersions = handleVersionData(res.data);
+        dyVersions.value = processedVersions;
+        // 点击后更新 localStorage 缓存
+        saveVersionToLocalStorage(processedVersions);
         // 打开版本 popover
         versionPopoverVisible.value = true;
       } else {
@@ -151,8 +192,42 @@ const showVersionNotification = () => {
     });
 };
 
+// 新增：页面加载时自动调用接口获取版本并缓存
+const fetchVersionOnMount = () => {
+  useApiStore()
+    .CheckTag()
+    .then((res) => {
+      if (res.code === 0) {
+        // 处理版本数据（添加备注、判断新版）
+        const processedVersions = handleVersionData(res.data);
+        dyVersions.value = processedVersions;
+        // 页面加载时缓存到 localStorage
+        saveVersionToLocalStorage(processedVersions);
+      } else {
+        // 接口失败时，尝试读取本地缓存
+        const cacheVersions = getVersionFromLocalStorage();
+        if (cacheVersions.length > 0) {
+          dyVersions.value = handleVersionData(cacheVersions);
+        }
+        message.error(res.message);
+      }
+    })
+    .catch((err) => {
+      // 接口异常时，尝试读取本地缓存
+      const cacheVersions = getVersionFromLocalStorage();
+      if (cacheVersions.length > 0) {
+        dyVersions.value = handleVersionData(cacheVersions);
+      }
+      message.error('获取版本列表失败，已加载本地缓存');
+      console.error(err);
+    });
+};
+
 // 全局注入加载动画样式
 onMounted(() => {
+  // 页面加载时自动调用版本接口
+  fetchVersionOnMount();
+
   if (!document.querySelector('#custom-spin-style')) {
     const style = document.createElement('style');
     style.id = 'custom-spin-style';
@@ -178,7 +253,7 @@ const showGit = () => {
     <DayNightSwitch />
   </StepinHeaderAction>
 
-  <!-- 版本查看：纯模板实现，移除 renderVersionList -->
+  <!-- 版本查看：改造为 Badge 包裹图标，实现气泡提示 -->
   <StepinHeaderAction>
     <div class="action-item">
       <a-popover v-model:visible="versionPopoverVisible" placement="bottom" trigger="click" overlay-class="version-popover-overlay" @visible-change="(visible) => versionPopoverVisible = visible">
@@ -218,14 +293,21 @@ const showGit = () => {
                 </button>
               </div>
             </div>
+            <!-- 暂无版本数据 -->
+            <div class="no-version-data" v-else>
+              暂无版本数据
+            </div>
           </div>
         </template>
-        <a-tooltip placement="bottom">
-          <template #title>
-            <span>版本查看</span>
-          </template>
+        <!-- <a-tooltip placement="bottom"> -->
+        <template #title>
+          <!-- <span>版本查看</span> -->
+        </template>
+        <!-- 改造：用 Badge 包裹图标，有新版时显示气泡提示 -->
+        <a-badge :dot="hasNewVersion">
           <TagsOutlined class="action-icon" @click="showVersionNotification" />
-        </a-tooltip>
+        </a-badge>
+        <!-- </a-tooltip> -->
       </a-popover>
     </div>
   </StepinHeaderAction>
@@ -362,7 +444,7 @@ const showGit = () => {
 .version-text {
   display: flex;
   align-items: center;
-  maxwidth: calc(100% - 40px);
+  max-width: calc(100% - 40px); /* 修正：原 maxwidth 拼写错误 */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

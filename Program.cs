@@ -38,6 +38,7 @@ namespace dy.net
             // 初始化应用服务
             InitApplicationServices(app, isDevelopment);
             Console.WriteLine();
+         
             app.Run();
         }
 
