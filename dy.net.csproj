@@ -6,10 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 	  <SpaRoot>app\</SpaRoot>
-		<DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+	  <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
 	  <GenerateDocumentationFile>True</GenerateDocumentationFile>
-
-
 	  <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 	  <ServerGarbageCollection>false</ServerGarbageCollection>
 	  <RetainVMGarbageCollection>true</RetainVMGarbageCollection>
@@ -19,6 +17,9 @@
 	  <TieredCompilation>true</TieredCompilation>
 	  <InvariantGlobalization>true</InvariantGlobalization>
 	  <DockerfileContext>.</DockerfileContext>
+	  <!-- 2. 强制禁用默认编译项（旧版VS关键配置） -->
+	  <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	  <EnableDefaultContentItems>false</EnableDefaultContentItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,11 +41,20 @@
     <None Remove="logs\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Remove="wwwroot\index.html" />
-  </ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="**/*.cs" Exclude="app\**;db\**;expand\**;logs\**;obj\**;bin\**" />
+		<Content Include="**/*.json;**/*.xml;**/*.config" Exclude="app\**;db\**;expand\**;logs\**;obj\**;bin\**" />
+	</ItemGroup>
+
 
   <ItemGroup>
+    <Content Remove="wwwroot\index.html" />
+	  
+  </ItemGroup>
+
+
+	<ItemGroup>
 	  <PackageReference Include="ClockSnowFlake" Version="1.1.0" />
 	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
 	  <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="6.0.10" />

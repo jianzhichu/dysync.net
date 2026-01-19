@@ -18,7 +18,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 关联cookieId
         /// </summary>
-        public long CookieId { get; set; }
+        public string CookieId { get; set; }
 
         /// <summary>
         /// 收藏夹名称
@@ -47,6 +47,10 @@ namespace dy.net.model.entity
         /// <summary>
         /// 收藏夹类型（0：自定义收藏夹，1：合集，2：短剧）
         /// </summary>
-        public int CollectType { get; set; }
+        public int CateType { get; set; }
+
+        public DateTime CreateTime  { get; set; }
+
+        public DateTime UpdateTime { get; set; }
     }
 }

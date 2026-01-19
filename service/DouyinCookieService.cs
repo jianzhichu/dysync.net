@@ -39,7 +39,7 @@ namespace dy.net.service
         {
             return await _cookieRepository.InsertAsync(dyUserCookies);
         }
-        public async Task<bool> Switch(DouyinCookieStopDto dto)
+        public async Task<bool> Switch(DouyinCookieSwitchDto dto)
         {
             return await _cookieRepository.SwitchAsync(dto);
         }

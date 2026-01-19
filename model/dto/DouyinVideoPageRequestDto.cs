@@ -52,4 +52,12 @@ namespace dy.net.model.dto
         public string UperId { get; set; }
 
     }
+
+
+
+    public class DouyinCollectCateRequestDto : PageRequestDto
+    {
+
+        public string cookieId { get; set; }
+    }
 }

@@ -44,7 +44,7 @@ namespace dy.net.repository
         }
 
 
-        public async Task<bool> SwitchAsync(DouyinCookieStopDto dto)
+        public async Task<bool> SwitchAsync(DouyinCookieSwitchDto dto)
         {
             var res =await Db.Updateable<DouyinCookie>().SetColumns(x => new DouyinCookie { Status = dto.Status }).Where(x => x.Id == dto.Id).ExecuteCommandAsync();
 

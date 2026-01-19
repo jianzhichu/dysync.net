@@ -222,7 +222,7 @@ namespace dy.net.Controllers
         /// 快速开启或停止
         /// </summary>
         [HttpPost("switch")]
-        public async Task<IActionResult> SwitchAsync([FromBody] DouyinCookieStopDto dto)
+        public async Task<IActionResult> SwitchAsync([FromBody] DouyinCookieSwitchDto dto)
         {
             var result = await dyCookieService.Switch(dto);
             if (result)

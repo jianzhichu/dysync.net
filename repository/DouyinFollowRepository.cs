@@ -107,6 +107,8 @@ namespace dy.net.repository
 
             try
             {
+                // 2. 开启SqlSugar事务
+                await Db.Ado.BeginTranAsync();
                 // 1. 提取当前批次的SecUid集合（去重）
                 HashSet<string> currentSecUids = followInfos.Select(x => x.SecUid).ToHashSet();
                 if (!currentSecUids.Any())
@@ -203,12 +205,15 @@ namespace dy.net.repository
                     }
                 }
 
+                // 6. 提交事务
+                await Db.Ado.CommitTranAsync();
                 // 【重要】删除逻辑已移除：增量场景下不能通过批次对比删除，需单独设计取消关注逻辑
                 Serilog.Log.Debug($"dy_followed_users（{ck.UserName}）关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条");
                 return (toAddFollows.Count, toUpdateFollows.Count, true);
             }
             catch (Exception ex)
             {
+                await Db.Ado.RollbackTranAsync();
                 Serilog.Log.Error(ex, $"同步关注列表失败（{ck.UserName}）：{ex.Message}");
                 return (0, 0, false);
 
