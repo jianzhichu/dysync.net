@@ -13,24 +13,18 @@ namespace dy.net.job
 {
     public class DouyinFollowedViedoSyncJob : DouyinBasicSyncJob
     {
-        public DouyinFollowedViedoSyncJob(DouyinCookieService douyinCookieService, DouyinHttpClientService douyinHttpClientService, DouyinVideoService douyinVideoService, DouyinCommonService douyinCommonService, DouyinFollowService douyinFollowService, DouyinMergeVideoService douyinMergeVideoService) : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService, douyinFollowService, douyinMergeVideoService)
+        public DouyinFollowedViedoSyncJob(DouyinCookieService douyinCookieService, DouyinHttpClientService douyinHttpClientService, DouyinVideoService douyinVideoService, DouyinCommonService douyinCommonService, DouyinFollowService douyinFollowService, DouyinMergeVideoService douyinMergeVideoService, DouyinCollectCateService douyinCollectCateService) : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService, douyinFollowService, douyinMergeVideoService, douyinCollectCateService)
         {
         }
-
 
         protected override VideoTypeEnum VideoType => VideoTypeEnum.dy_follows;
 
-        protected override async Task<List<DouyinCookie>> GetValidCookies()
+        protected override async Task<List<DouyinCookie>> GetSyncCookies()
         {
-            return  await douyinCookieService.GetAllOpendAsync(x => !string.IsNullOrWhiteSpace(x.UpSavePath));
+            return  await douyinCookieService.GetOpendCookiesAsync(x => !string.IsNullOrWhiteSpace(x.UpSavePath));
         }
 
-        protected override bool IsCookieValid(DouyinCookie cookie)
-        {
-            return !string.IsNullOrWhiteSpace(cookie.Cookies)&&!string.IsNullOrWhiteSpace(cookie.UpSavePath);
-        }
-
-        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectItem collectId)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed,DouyinCollectCate cate)
         {
             return await douyinHttpClientService.SyncUpderPostVideos(count, cursor, followed.SecUid, cookie.Cookies);
         }
@@ -40,10 +34,6 @@ namespace dy.net.job
             return data != null && data.HasMore == 1 && cookie.UperSyncd == 0 && followed.FullSync;
         }
 
-        protected override string GetNextCursor(DouyinVideoInfoResponse data)
-        {
-            return data?.MaxCursor ?? "0";
-        }
 
         /// <summary>
         /// 关注用户特殊处理文件夹存储路径，用户可自定义保存路径
@@ -53,7 +43,7 @@ namespace dy.net.job
         /// <param name="followed"></param>
         /// <param name="config"></param>
         /// <returns></returns>
-        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectItem collectItem)
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed,DouyinCollectCate cate)
         {
             #region 默认使用UP主名称作为文件夹名称，若关注列表中有自定义保存路径则使用自定义路径
             // 1. 优先获取有效的作者名称（遵循原有优先级：followed.UperName > item.Author.Nickname > 默认值）
@@ -168,11 +158,6 @@ namespace dy.net.job
             {
                 return base.GetNfoFileName(cookie, item, config, imageType);
             }
-        }
-
-        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
-        {
-            return Path.Combine(cookie.UpSavePath, "author");
         }
 
         protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed)

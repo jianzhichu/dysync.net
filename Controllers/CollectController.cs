@@ -46,19 +46,6 @@ namespace dy.net.Controllers
                 pageSize = dto.PageSize
             });
         }
-        /// <summary>
-        /// 重新同步-单次
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("sync")]
-        public async Task<IActionResult> SyncFollowList()
-        {
-            //后台异步
-            _douyinQuartzJobService.StartFollowJobOnceAsync();
-            await Task.Delay(1000);
-            return ApiResult.Success();
-        }
-
 
         /// <summary>
         /// 修改关注同步状态

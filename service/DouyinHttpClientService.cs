@@ -110,7 +110,10 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncCollectVideos fail: {data}");
+                    return model;
                 }
                 else
                 {
@@ -160,6 +163,8 @@ namespace dy.net.service
                 {
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinCollectListResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncCollectFolderList fail: {data}");
                     return model;
                 }
                 else
@@ -181,15 +186,15 @@ namespace dy.net.service
         /// <param name="cursor"></param>
         /// <param name="count"></param>
         /// <param name="cookie"></param>
-        /// <param name="collect"></param>
+        /// <param name="collectsId"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<DouyinVideoInfoResponse> SyncCollectVideosByCollectId(string cursor, string count, string cookie, DouyinCollectItem collect)
+        public async Task<DouyinVideoInfoResponse> SyncCollectVideosByCollectId(string cursor, string count, string cookie, string collectsId)
         {
             #region 检查参数
-            if (collect is null || string.IsNullOrWhiteSpace(collect.CollectsId))
+            if (string.IsNullOrWhiteSpace(collectsId))
             {
-                throw new ArgumentException($"“{nameof(collect)}”不能为 null 或空。", nameof(collect));
+                throw new ArgumentException($"“{nameof(collectsId)}”不能为 null 或空。", nameof(collectsId));
             }
             if (string.IsNullOrWhiteSpace(cursor))
             {
@@ -217,7 +222,7 @@ namespace dy.net.service
                 {
                     requestParameters["cursor"] = cursor;
                     requestParameters["count"] = count;
-                    requestParameters["collects_id"] = collect.CollectsId;
+                    requestParameters["collects_id"] = collectsId;
                 }
 
                 var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
@@ -225,7 +230,10 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncCollectVideosByCollectId fail: {data}");
+                    return model;
                 }
                 else
                 {
@@ -266,7 +274,7 @@ namespace dy.net.service
                 var requestParameters = DouyinRequestParamManager.DouyinMixListParams;
                 {
                     // 添加动态参数
-                    requestParameters["count"] = "20";
+                    requestParameters["count"] = "100";
                     requestParameters["cursor"] = cursor; //页码
                 }
 
@@ -275,6 +283,8 @@ namespace dy.net.service
                 {
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinMixListResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncMixList fail: {data}");
                     return model;
                 }
                 else
@@ -300,12 +310,12 @@ namespace dy.net.service
         /// <param name="mix"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<DouyinVideoInfoResponse> SyncMixViedosByMixId(string cursor, string count, string cookie, DouyinMixInfo mix)
+        public async Task<DouyinVideoInfoResponse> SyncMixViedosByMixId(string cursor, string count, string cookie, string mixId)
         {
             #region 检查参数
-            if (mix is null ||string.IsNullOrWhiteSpace(mix.MixId))
+            if (string.IsNullOrWhiteSpace(mixId))
             {
-                throw new ArgumentException($"“{nameof(mix)}”不能为 null 或空。", nameof(mix));
+                throw new ArgumentException($"“{nameof(mixId)}”不能为 null 或空。", nameof(mixId));
             }
             if (string.IsNullOrWhiteSpace(cursor))
             {
@@ -333,7 +343,7 @@ namespace dy.net.service
                 {
                     requestParameters["cursor"] = cursor;
                     requestParameters["count"] = count;
-                    requestParameters["mix_id"] = mix.MixId;
+                    requestParameters["mix_id"] = mixId;
                 }
 
                 var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
@@ -341,7 +351,10 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                  var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncMixViedosByMixId fail: {data}");
+                    return model;
                 }
                 else
                 {
@@ -365,7 +378,7 @@ namespace dy.net.service
         /// <param name="cookie"></param>
         /// <param name="cursor"></param>
         /// <returns></returns>
-        public async Task<DouyinSeriesListResponse> SyncShortList(string cookie, string cursor)
+        public async Task<DouyinSeriesListResponse> SyncSeriesList(string cookie, string cursor)
         {
             if (string.IsNullOrWhiteSpace(cookie))
             {
@@ -381,7 +394,7 @@ namespace dy.net.service
                 var requestParameters = DouyinRequestParamManager.DouyinSeriesListParams;
                 {
                     // 添加动态参数
-                    requestParameters["count"] = "20";
+                    requestParameters["count"] = "100";
                     requestParameters["cursor"] = cursor; //页码
                 }
 
@@ -390,6 +403,8 @@ namespace dy.net.service
                 {
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinSeriesListResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncShortList fail: {data}");
                     return model;
                 }
                 else
@@ -412,15 +427,15 @@ namespace dy.net.service
         /// <param name="cursor"></param>
         /// <param name="count"></param>
         /// <param name="cookie"></param>
-        /// <param name="series"></param>
+        /// <param name="seriesId"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<DouyinVideoInfoResponse> SyncSeriesViedosByMSeriesId(string cursor, string count, string cookie, DouyinShortDramaInfo series)
+        public async Task<DouyinVideoInfoResponse> SyncSeriesViedosByMSeriesId(string cursor, string count, string cookie, string seriesId)
         {
             #region 检查参数
-            if (series is null || string.IsNullOrWhiteSpace(series.DramaId))
+            if (string.IsNullOrWhiteSpace(seriesId))
             {
-                throw new ArgumentException($"“{nameof(series)}”不能为 null 或空。", nameof(series));
+                throw new ArgumentException($"“{nameof(seriesId)}”不能为 null 或空。", nameof(seriesId));
             }
             if (string.IsNullOrWhiteSpace(cursor))
             {
@@ -448,7 +463,7 @@ namespace dy.net.service
                 {
                     requestParameters["cursor"] = cursor;
                     requestParameters["count"] = count;
-                    requestParameters["series_id"] = series.DramaId;
+                    requestParameters["series_id"] = seriesId;
                 }
 
                 var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
@@ -456,7 +471,10 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncSeriesViedosByMSeriesId fail: {data}");
+                    return model;
                 }
                 else
                 {
@@ -525,7 +543,10 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncFavoriteVideos fail: {data}");
+                    return model;
                 }
                 else
                 {
@@ -594,7 +615,10 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    if (model == null)
+                        Serilog.Log.Error($"SyncUpderPostVideos fail: {data}");
+                    return model;
                 }
                 else
                 {

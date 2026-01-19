@@ -159,5 +159,11 @@ namespace dy.net.model.entity
         /// 是否仅下载图片或仅下载音频
         /// </summary>
         public bool OnlyImgOrOnlyMp3 { get; set; }
+
+        /// <summary>
+        ///  自定义收藏夹、合集、短剧 绑定的Id
+        /// </summary>
+        [SugarColumn(Length =200,IsNullable =true)]
+        public string CateId { get; set; }
     }
 }

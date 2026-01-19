@@ -63,7 +63,7 @@ namespace dy.net.repository
             return await Db.Updateable(cates).ExecuteCommandAsync() > 0;
         }
 
-        internal async Task<(int add, int update, int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId,int cateType)
+        internal async Task<(int add, int update, int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId, VideoTypeEnum cateType)
         {
             // 初始化返回结果
             int addCount = 0;
@@ -83,56 +83,60 @@ namespace dy.net.repository
                     cates = new List<DouyinCollectCate>(); // 空列表则执行删除所有操作
                 }
 
-
                 // 2. 开启SqlSugar事务
                 await Db.Ado.BeginTranAsync();
 
-                // 3. 查询数据库中当前用户的所有分类
+                // 3. 查询数据库中当前用户的所有分类，并转为Dictionary优化查找效率（核心优化1）
                 var dbCates = await Db.Queryable<DouyinCollectCate>()
                     .Where(c => c.CookieId == ckId && c.CateType == cateType)
                     .ToListAsync();
+                // 以XId为Key构建字典，避免循环内FirstOrDefault的低效查找
+                var dbCateDict = dbCates.ToDictionary(c => c.XId, c => c);
 
-                // 4. 处理新增和更新逻辑
-                var cateIds = cates.Select(c => c.Id).ToList();
+                // 4. 处理新增和【批量】更新逻辑
+                var xIds = cates.Select(c => c.XId).ToList();
+                // 定义批量更新的待处理集合（核心优化2）
+                var toUpdateCates = new List<DouyinCollectCate>();
+
                 foreach (var cate in cates)
                 {
-
-                    cate.UpdateTime = DateTime.Now; // 更新时间戳
-
-                    // 检查是否已存在
-                    if (string.IsNullOrWhiteSpace(cate.Id))
+                    // 用Dictionary查找，效率更高
+                    if (dbCateDict.TryGetValue(cate.XId, out var existCate))
                     {
-                        cate.CreateTime = DateTime.Now;
-                        cate.Id = IdGener.GetLong().ToString();
-                        // 新增
-                        await Db.Insertable(cate).ExecuteCommandAsync();
-                        addCount++;
-                    }
-                    else
-                    {
-                        var existCate = dbCates.FirstOrDefault(x => x.Id == cate.Id);
-                        if (existCate == null)
-                        {
-                            Serilog.Log.Error($" cate {cate.Id} id 不存在");
-                            continue;
-                        }
                         // 对比字段是否有变化（根据实际业务字段调整）
                         bool isChanged = !string.Equals(existCate.Name, cate.Name, StringComparison.Ordinal);
 
                         if (isChanged)
                         {
-                            // 更新（只更新有变化的字段，或全量更新）
-                            await Db.Updateable(cate)
-                                .IgnoreColumns(ignoreAllNullColumns: true) // 忽略空值字段
-                                .Where(c => c.Id == cate.Id)
-                                .ExecuteCommandAsync();
-                            updateCount++;
+                            // 补充更新信息，加入批量更新集合
+                            cate.UpdateTime = DateTime.Now;
+                            // 确保更新时的Id正确（从数据库已有记录中获取）
+                            cate.Id = existCate.Id;
+                            toUpdateCates.Add(cate);
                         }
+                    }
+                    else
+                    {
+                        // 新增逻辑保持不变
+                        cate.CreateTime = DateTime.Now;
+                        cate.Id = IdGener.GetLong().ToString();
+                        await Db.Insertable(cate).ExecuteCommandAsync();
+                        addCount++;
                     }
                 }
 
-                // 5. 处理删除逻辑：数据库中有但传入列表中没有的分类
-                var deleteCates = dbCates.Where(c => !cateIds.Contains(c.Id)).ToList();
+                // 5. 执行批量更新（核心优化3：批量提交，减少数据库IO）
+                if (toUpdateCates.Any())
+                {
+                    updateCount = await Db.Updateable(toUpdateCates)
+                        .IgnoreColumns(x => new { x.Sync, x.CreateTime, x.CookieId })
+                        .IgnoreNullColumns() // 忽略空值字段
+                        .Where(c => c.Id == c.Id) // 批量更新默认按主键匹配，此处显式指定（也可省略，SqlSugar自动识别主键）
+                        .ExecuteCommandAsync();
+                }
+
+                // 6. 处理删除逻辑：数据库中有但传入列表中没有的分类
+                var deleteCates = dbCates.Where(c => !xIds.Contains(c.XId)).ToList();
                 if (deleteCates.Any())
                 {
                     var deleteIds = deleteCates.Select(c => c.Id).ToList();
@@ -141,20 +145,20 @@ namespace dy.net.repository
                         .ExecuteCommandAsync();
                 }
 
-                // 6. 提交事务
+                // 7. 提交事务
                 await Db.Ado.CommitTranAsync();
                 isSuccess = true;
             }
             catch (Exception ex)
             {
-                // 异常时回滚事务
-                await Db.Ado.RollbackTranAsync();
+                // 异常时回滚事务（补充：避免Db.Ado未初始化事务导致的空引用）
+                await Db.Ado?.RollbackTranAsync();
                 isSuccess = false;
-                // throw;
-                Serilog.Log.Error($"同步收藏夹:类型-{cateType}异常，{ex.StackTrace}" );
+                Serilog.Log.Error($"同步收藏夹:类型-{cateType}异常，{ex.StackTrace}");
             }
 
-            // 7. 返回最终结果
+            //Serilog.Log.Debug($"本次收藏夹{cateType}同步结果,新增:{addCount},更新:{updateCount},删除:{deleteCount}");
+            // 8. 返回最终结果
             return (addCount, updateCount, deleteCount, isSuccess);
         }
     }

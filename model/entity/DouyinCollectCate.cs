@@ -1,4 +1,5 @@
-﻿using SqlSugar;
+﻿using dy.net.model.dto;
+using SqlSugar;
 
 namespace dy.net.model.entity
 {
@@ -26,7 +27,7 @@ namespace dy.net.model.entity
         [SugarColumn(Length = 500, IsNullable = false)]
         public string Name { get; set; }
         /// <summary>
-        /// 收藏夹Id
+        /// 收藏夹Id、合集Id、短剧Id
         /// </summary>
         [SugarColumn(Length =60,IsNullable =false)]
         public string XId { get; set; }
@@ -45,12 +46,16 @@ namespace dy.net.model.entity
         public bool Sync { get; set; }
 
         /// <summary>
-        /// 收藏夹类型（0：自定义收藏夹，1：合集，2：短剧）
+        /// 收藏夹类型（5：自定义收藏夹，6：合集，7：短剧）
         /// </summary>
-        public int CateType { get; set; }
+        public VideoTypeEnum CateType { get; set; }
 
         public DateTime CreateTime  { get; set; }
 
         public DateTime UpdateTime { get; set; }
+        /// <summary>
+        /// 是否已完结
+        /// </summary>
+        public bool IsEnd { get; set; }
     }
 }

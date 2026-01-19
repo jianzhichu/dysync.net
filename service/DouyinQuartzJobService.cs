@@ -57,7 +57,7 @@ namespace dy.net.service
             {
                 "follow_user",
                 new JobConfig(
-                    typeof(DouyinFollowedUsersSyncJob),
+                    typeof(DouyinFollowsAndCollnectsSyncJob),
                     "dy.job.key.follow_user",
                     "dy.trigger.key.follow_user",
                     "抖音关注同步任务")
@@ -65,7 +65,7 @@ namespace dy.net.service
             {
                 "follow_user_once",
                 new JobConfig(
-                    typeof(DouyinFollowedUsersSyncJob),
+                    typeof(DouyinFollowsAndCollnectsSyncJob),
                     "dy.job.key.follow_user_once",
                     "dy.trigger.key.follow_user_once",
                     "抖音关注同步任务(单次执行)")

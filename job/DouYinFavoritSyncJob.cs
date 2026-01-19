@@ -8,29 +8,19 @@ namespace dy.net.job
 {
     public class DouyinFavoritSyncJob : DouyinBasicSyncJob
     {
-        public DouyinFavoritSyncJob(
-       DouyinCookieService douyinCookieService,
-       DouyinHttpClientService douyinHttpClientService,
-       DouyinVideoService douyinVideoService,
-       DouyinCommonService douyinCommonService,DouyinFollowService douyinFollowService,DouyinMergeVideoService douyinMergeVideoService)
-       : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService, douyinFollowService, douyinMergeVideoService) { }
+        public DouyinFavoritSyncJob(DouyinCookieService douyinCookieService, DouyinHttpClientService douyinHttpClientService, DouyinVideoService douyinVideoService, DouyinCommonService douyinCommonService, DouyinFollowService douyinFollowService, DouyinMergeVideoService douyinMergeVideoService, DouyinCollectCateService douyinCollectCateService) : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService, douyinFollowService, douyinMergeVideoService, douyinCollectCateService)
+        {
+        }
 
 
         protected override VideoTypeEnum VideoType => VideoTypeEnum.dy_favorite;
 
-        protected override async Task<List<DouyinCookie>> GetValidCookies()
+        protected override async Task<List<DouyinCookie>> GetSyncCookies()
         {
-            return await douyinCookieService.GetAllOpendAsync(x=> !string.IsNullOrWhiteSpace(x.FavSavePath));
+            return await douyinCookieService.GetOpendCookiesAsync(x=> !string.IsNullOrWhiteSpace(x.FavSavePath)&&!string.IsNullOrWhiteSpace(x.SecUserId));
         }
 
-        protected override bool IsCookieValid(DouyinCookie cookie)
-        {
-            return !string.IsNullOrWhiteSpace(cookie.Cookies) && cookie.Cookies.Length >= 1000 &&
-                   !string.IsNullOrWhiteSpace(cookie.FavSavePath) &&
-                   !string.IsNullOrWhiteSpace(cookie.SecUserId) && cookie.SecUserId.Length >= 10;
-        }
-
-        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor,DouyinFollowed followed, DouyinCollectItem collectId)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor,DouyinFollowed followed, DouyinCollectCate cate)
         {
             return await douyinHttpClientService.SyncFavoriteVideos(count, cursor, cookie.SecUserId, cookie.Cookies);
         }
@@ -40,16 +30,6 @@ namespace dy.net.job
             return data != null && data.HasMore == 1 && cookie.FavHasSyncd == 0;
         }
 
-        protected override string GetNextCursor(DouyinVideoInfoResponse data)
-        {
-            return data?.MaxCursor ?? "0";
-        }
-
-
-        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
-        {
-            return Path.Combine(cookie.FavSavePath, "author");
-        }
 
         protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed)
         {
@@ -65,7 +45,7 @@ namespace dy.net.job
             }
         }
 
-        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectItem collectItem)
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed,DouyinCollectCate cate)
         {
             var (tag1, _, _) = GetVideoTags(item);
             var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1,"",true);

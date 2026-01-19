@@ -23,7 +23,7 @@ namespace dy.net.model.response
         //public object ShortDramaSingleInfo { get; set; } // 原始值为null，兼容扩展
 
         [JsonProperty("series_infos")]
-        public List<DouyinShortDramaInfo> ShortDramaList { get; set; }
+        public List<DouyinSeriesInfo> SeriesList { get; set; }
 
         [JsonProperty("status_code")]
         public int ResponseStatusCode { get; set; }
@@ -57,7 +57,7 @@ namespace dy.net.model.response
     /// <summary>
     /// 抖音短剧核心信息
     /// </summary>
-    public class DouyinShortDramaInfo
+    public class DouyinSeriesInfo
     {
         [JsonProperty("actors")]
         public List<object> Actors { get; set; }
@@ -78,7 +78,7 @@ namespace dy.net.model.response
         //public DouyinImageResource DarkModeIcon { get; set; }
 
         [JsonProperty("desc")]
-        public string DramaDescription { get; set; }
+        public string SeriesDescription { get; set; }
 
         //[JsonProperty("directors")]
         //public List<object> Directors { get; set; }
@@ -139,7 +139,7 @@ namespace dy.net.model.response
         /// 短剧ID
         /// </summary>
         [JsonProperty("series_id")]
-        public string DramaId { get; set; }
+        public string SeriesId { get; set; }
 
         //[JsonProperty("series_interactive")]
         //public DouyinDramaInteractiveConfig InteractiveConfig { get; set; }
@@ -147,13 +147,13 @@ namespace dy.net.model.response
         /// 短剧名称
         /// </summary>
         [JsonProperty("series_name")]
-        public string DramaName { get; set; }
+        public string SeriesName { get; set; }
 
         //[JsonProperty("series_paid_type_list")]
         //public object PaidTypeList { get; set; } // 原始值为null，兼容扩展
 
         [JsonProperty("series_price")]
-        public int DramaPrice { get; set; }
+        public int SeriesPrice { get; set; }
 
         //[JsonProperty("series_rank_info")]
         //public DouyinDramaRankInfo RankInfo { get; set; }

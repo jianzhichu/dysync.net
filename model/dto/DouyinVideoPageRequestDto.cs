@@ -59,6 +59,6 @@ namespace dy.net.model.dto
     {
 
         public string cookieId { get; set; }
-        public int cateType { get; set; }
+        public VideoTypeEnum cateType { get; set; }
     }
 }

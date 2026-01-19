@@ -24,6 +24,8 @@ namespace dy.net.service
         {
             return await douyinCollectCateRepository.InsertAsync(cate);
         }
+
+
        
 
         /// <summary>
@@ -43,7 +45,7 @@ namespace dy.net.service
         /// <param name="ckId"></param>
         /// <param name="cateType"></param>
         /// <returns></returns>
-        public async Task<(int add, int update,int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId,int cateType)
+        public async Task<(int add, int update,int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId,VideoTypeEnum cateType)
         {
             return await douyinCollectCateRepository.Sync(cates, ckId, cateType);
         }
@@ -66,7 +68,7 @@ namespace dy.net.service
         /// 获取需要同步的合集、短剧、收藏夹
         /// </summary>
         /// <returns></returns>
-        public async Task<List<DouyinCollectCate>> GetSyncCates(string cookieId,int cateType)
+        public async Task<List<DouyinCollectCate>> GetSyncCates(string cookieId, VideoTypeEnum cateType)
         {
             return await douyinCollectCateRepository.GetListAsync(x => x.CookieId == cookieId && x.CateType == cateType);
         }
