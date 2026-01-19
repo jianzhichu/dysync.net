@@ -1,4 +1,4 @@
-﻿using dy.net.dto;
+﻿using dy.net.model.dto;
 using System.Globalization;
 
 namespace dy.net.service

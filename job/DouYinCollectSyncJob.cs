@@ -1,5 +1,6 @@
-﻿using dy.net.dto;
-using dy.net.model;
+﻿using dy.net.model.dto;
+using dy.net.model.entity;
+using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
 using System;
@@ -36,21 +37,26 @@ namespace dy.net.job
         }
 
         protected override bool IsCookieValid(DouyinCookie cookie)
+
         {
             return !string.IsNullOrWhiteSpace(cookie.Cookies)&& !string.IsNullOrWhiteSpace(cookie.SavePath);
         }
 
-        protected override async Task<DouyinVideoInfo> FetchVideoData(DouyinCookie cookie, string cursor,string uperUid)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed,DouyinCollectItem collectItem=null)
         {
+            if (cookie.UseCollectFolder && collectItem != null && !string.IsNullOrWhiteSpace(collectItem.CollectsId))
+            {
+                return await douyinHttpClientService.SyncCollectVideosByCollectId(cursor, count, cookie.Cookies, collectItem);
+            }
             return await douyinHttpClientService.SyncCollectVideos(cursor, count, cookie.Cookies);
         }
 
-        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfo data, DouyinFollowed followed = null)
+        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed = null)
         {
             return data != null && data.HasMore == 1 && cookie.CollHasSyncd == 0;
         }
 
-        protected override string GetNextCursor(DouyinVideoInfo data)
+        protected override string GetNextCursor(DouyinVideoInfoResponse data)
         {
             return data?.Cursor ?? "0";
         }
@@ -80,13 +86,26 @@ namespace dy.net.job
             return new VideoEntityDifferences();
         }
 
-        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectItem collectItem)
         {
-            var (tag1, _, _) = GetVideoTags(item);
-            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1,"",true);
-            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId,true)}");
-            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-            return folder;
+            if(collectItem!=null&&cookie.UseCollectFolder &&!string.IsNullOrWhiteSpace(collectItem.CollectsId))
+            {
+                var safeCollectName = DouyinFileNameHelper.SanitizeLinuxFileName(collectItem.CollectsName, "", true);
+                var folderCollect = Path.Combine(cookie.SavePath, safeCollectName);
+                var safeVideoDesc = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
+                var folder = Path.Combine(folderCollect, safeVideoDesc);
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                return folder;
+            }
+            else
+            {
+                var (tag1, _, _) = GetVideoTags(item);
+                var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1, "", true);
+                var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}");
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                return folder;
+            }
+          
         }
     }
 }

@@ -44,7 +44,7 @@ onMounted(() => {
         </div> -->
 
         <!-- 新增：显示当前版本号，增加样式分隔提升美观度 -->
-        <span class="version-text">{{currentVersion.deploy}}_{{ currentVersion.tag }}</span>
+        <span class="version-text" v-if="currentVersion">{{currentVersion.deploy}}_{{ currentVersion.tag }}</span>
       </div>
     </div>
   </footer>

@@ -28,10 +28,5 @@ namespace dy.net.utils
             string hashString = sb.ToString();
             return hashString;
         }
-
-        public static string UPLOAD_PATH_PRO = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "upload");
-        public static string UPLOAD_PATH_DEV = Path.Combine(Directory.GetCurrentDirectory(), "upload");
-
-
     }
 }

@@ -1,17 +1,12 @@
 ﻿using ClockSnowFlake;
-using dy.net.dto;
-using dy.net.model;
+using dy.net.model.dto;
+using dy.net.model.entity;
+using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
 using Newtonsoft.Json;
 using Quartz;
-using Quartz.Util;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace dy.net.job
 {
@@ -133,26 +128,22 @@ namespace dy.net.job
         /// <returns>一个表示异步操作的任务</returns>
         public async Task Execute(IJobExecutionContext context)
         {
-            // 1. 获取应用配置
+            //if (VideoType != VideoTypeEnum.dy_follows)
+            //    return;
+
+            // 获取应用配置
             var config = douyinCommonService.GetConfig();
             if (config == null)
             {
                 Log.Debug($"{VideoType}-未获取到系统配置，任务终止!!!");
                 return;
             }
-            //if(VideoType!= VideoTypeEnum.dy_follows)
-            //{
-            //    return;
-            //}
+          
 
-            // 2. 从配置中获取每页请求数量--固定18
-            //if (config.BatchCount > 0)
-            //    count = config.BatchCount.ToString();
-
-            // 3. 在处理Cookie之前执行的预处理操作
+            // 在处理Cookie之前执行的预处理
             await BeforeProcessCookies();
 
-            // 4. 获取所有有效的Cookie
+            // 获取所有有效的Cookie
             var cookies = await GetValidCookies();
             if (cookies == null || !cookies.Any())
             {
@@ -161,7 +152,7 @@ namespace dy.net.job
             }
             Log.Debug($"{VideoType}-共发现{cookies.Count}个有效的cookie，同步即将开始...");
 
-            // 6. 遍历每个有效的Cookie，执行同步操作
+            // 遍历每个有效的Cookie，执行同步
             foreach (var cookie in cookies)
             {
                 await ProcessSyncUserCookie(cookie, config);
@@ -202,8 +193,9 @@ namespace dy.net.job
         /// <param name="cookie">用户Cookie</param>
         /// <param name="cursor">分页游标，用于获取下一页数据</param>
         /// <param name="uperUid">关注的人</param>
+        /// <param name="collectId">收藏夹ID</param>
         /// <returns>视频信息对象，包含视频列表和分页信息</returns>
-        protected abstract Task<DouyinVideoInfo> FetchVideoData(DouyinCookie cookie, string cursor, string uperUid = "");
+        protected abstract Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed uperUid , DouyinCollectItem collectId);
 
         /// <summary>
         /// 判断是否应该继续同步下一页数据
@@ -213,7 +205,7 @@ namespace dy.net.job
         /// <param name="data">当前获取到的视频数据</param>
         /// <param name="followed">关注博主</param>
         /// <returns>如果应该继续同步，则为true；否则为false</returns>
-        protected abstract bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfo data, DouyinFollowed followed);
+        protected abstract bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed);
 
         /// <summary>
         /// 获取下一页数据的游标
@@ -221,7 +213,7 @@ namespace dy.net.job
         /// </summary>
         /// <param name="data">当前获取到的视频数据</param>
         /// <returns>下一页数据的游标</returns>
-        protected abstract string GetNextCursor(DouyinVideoInfo data);
+        protected abstract string GetNextCursor(DouyinVideoInfoResponse data);
 
         /// <summary>
         /// 创建视频保存文件夹
@@ -230,9 +222,10 @@ namespace dy.net.job
         /// <param name="cookie">用户Cookie</param>
         /// <param name="item">视频信息</param>
         /// <param name="followed">关注用户</param>
+        /// <param name="collectItem">收藏夹Item</param>
         /// <param name="config">应用配置</param>
         /// <returns>创建的视频保存文件夹路径</returns>
-        protected abstract string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed);
+        protected abstract string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed,DouyinCollectItem collectItem);
 
         /// <summary>
         /// 获取视频文件名,默认就用id作文件名
@@ -279,7 +272,6 @@ namespace dy.net.job
 
         /// <summary>
         /// 获取NFO文件中的图片（如海报）文件名
-        /// 子类可以重写此方法来自定义NFO图片的命名规则
         /// </summary>
         /// <param name="cookie">当前操作的Cookie</param>
         /// <param name="item">视频信息</param>
@@ -343,16 +335,57 @@ namespace dy.net.job
                 }
                 else
                 {
-                    int syncCount = 0; // 本次同步成功的视频数量
-                    string cursor = "0"; // 初始游标
-                    bool hasMore = true; // 是否还有更多数据
-                    (syncCount, cursor, hasMore) = await GetViedos(cookie, config, syncCount, cursor, hasMore);
+                    // 仅在视频类型为抖音收藏时执行对应逻辑
+                    if (VideoType == VideoTypeEnum.dy_collects)
+                    {
+                        // 统一声明变量，避免分散定义，提升可读性
+                        int syncCount = 0; // 本次同步成功的视频数量
+                        string cursor = "0"; // 初始游标
+                        bool hasMore = true; // 是否还有更多数据
 
-                    // 处理同步完成后的操作
-                    await HandleSyncCompletion(cookie, syncCount);
+                        // 处理「使用收藏文件夹」和「不使用收藏文件夹」的统一逻辑
+                        if (cookie.UseCollectFolder)
+                        {
+                            // 获取收藏文件夹列表
+                            var folders = await douyinHttpClientService.SyncCollectFolderList(cookie.Cookies,"");
+                            Log.Debug("获取收藏文件夹列表完成，共计{Count}个包含视频的收藏夹", folders?.CollectsList?.Count(x => x.TotalNumber > 0) ?? 0);
+                            // 文件夹为空时，执行默认同步逻辑（与不使用文件夹逻辑一致）
+                            if (folders?.CollectsList == null || !folders.CollectsList.Any(x => x.TotalNumber > 0))
+                            {
+                                (syncCount, cursor, hasMore) = await GetViedos(cookie, config, syncCount, cursor, hasMore);
+                                await HandleSyncCompletion(cookie, syncCount);
+                            }
+                            // 文件夹不为空时，遍历每个文件夹同步视频
+                            else
+                            {
+                                foreach (var item in folders.CollectsList.Where(x=>x.TotalNumber>0))
+                                {
+                                    // 重置游标，每个文件夹独立从头同步
+                                    string folderCursor = "0";
+                                    await GetViedos(cookie, config, syncCount, folderCursor, hasMore, null, item);
+                                    await HandleSyncCompletion(cookie, syncCount, null);
+                                }
+                            }
+                        }
+                        // 不使用收藏文件夹，直接执行默认同步逻辑
+                        else
+                        {
+                            (syncCount, cursor, hasMore) = await GetViedos(cookie, config, syncCount, cursor, hasMore);
+                            await HandleSyncCompletion(cookie, syncCount);
+                        }
+                    }
+                    // 非抖音收藏类型，执行统一的默认同步逻辑
+                    else
+                    {
+                        // 提取重复变量，与上方逻辑保持一致命名
+                        int syncCount = 0;
+                        string cursor = "0";
+                        bool hasMore = true;
+
+                        (syncCount, cursor, hasMore) = await GetViedos(cookie, config, syncCount, cursor, hasMore);
+                        await HandleSyncCompletion(cookie, syncCount);
+                    }
                 }
-
-
             }
             catch (Exception ex)
             {
@@ -360,13 +393,13 @@ namespace dy.net.job
             }
         }
 
-        private async Task<(int syncCount, string cursor, bool hasMore)> GetViedos(DouyinCookie cookie, AppConfig config, int syncCount, string cursor, bool hasMore, DouyinFollowed followed = null)
+        private async Task<(int syncCount, string cursor, bool hasMore)> GetViedos(DouyinCookie cookie, AppConfig config, int syncCount, string cursor, bool hasMore, DouyinFollowed followed = null,DouyinCollectItem collectItem=null)
         {
             // 循环获取视频数据
             while (hasMore)
             {
                 // 获取视频数据
-                var data = await FetchVideoData(cookie, cursor, followed == null ? "" : followed?.SecUid);
+                var data = await FetchVideoData(cookie, cursor, followed,collectItem);
                 if (data == null)
                 {
                     Log.Debug($"{VideoType}-Cookie[{cookie.UserName}]同步数据失败!!!");
@@ -383,7 +416,7 @@ namespace dy.net.job
                     break;
 
                 // 处理视频列表
-                var videos = await ProcessVideoList(cookie, data, config, followed);
+                var videos = await ProcessVideoList(cookie, data, config, followed, collectItem);
                 // 保存视频信息到数据库
                 syncCount += await SaveVideos(videos);
 
@@ -435,23 +468,23 @@ namespace dy.net.job
             return false;
         }
         /// <summary>
-        /// 处理视频列表
         /// 遍历视频列表，分别处理每个视频和图片集
         /// </summary>
         /// <param name="cookie">用户Cookie</param>
         /// <param name="data">视频信息对象</param>
         /// <param name="config">应用配置</param>
         /// <param name="followed">关注的</param>
+        /// <param name="collectItem">收藏夹Item</param>
         /// <returns>处理后的视频实体列表</returns>
-        protected async Task<List<DouyinVideo>> ProcessVideoList(DouyinCookie cookie, DouyinVideoInfo data, AppConfig config, DouyinFollowed followed = null)
+        protected async Task<List<DouyinVideo>> ProcessVideoList(DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null,DouyinCollectItem collectItem=null)
         {
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                if (item.AwemeId != "7440444948844956985")
-                {
-                    continue;
-                }
+                //if (item.AwemeId != "7440444948844956985")
+                //{
+                //    continue;
+                //}
                 //if (!item.Desc.Contains("小房车正式启程"))
                 //{
                 //    continue;
@@ -488,7 +521,7 @@ namespace dy.net.job
                     }
                 }
                 // 处理单个视频
-                var video = await ProcessSingleVideo(cookie, item, data, config, followed);
+                var video = await ProcessSingleVideo(cookie, item, data, config, followed,collectItem);
                 if (video != null)
                     videos.Add(video);
                 else
@@ -578,7 +611,7 @@ namespace dy.net.job
                         // 统一处理图文视频逻辑
                         if (config.DownImageVideo || config.DownMp3 || config.DownImage)
                         {
-                            var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed);
+                            var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, data, config, followed, collectItem);
                             if (mergevideo != null)
                                 videos.Add(mergevideo);
                         }
@@ -773,8 +806,9 @@ namespace dy.net.job
         /// <param name="data">视频信息对象</param>
         /// <param name="config">应用配置</param>
         /// <param name="followed">关注</param>
+        /// <param name="collectItem">收藏夹Item</param>
         /// <returns>处理后的视频实体，如果处理失败则为null</returns>
-        protected async Task<DouyinVideo> ProcessSingleVideo(DouyinCookie cookie, Aweme item, DouyinVideoInfo data, AppConfig config, DouyinFollowed followed = null)
+        protected async Task<DouyinVideo> ProcessSingleVideo(DouyinCookie cookie, Aweme item, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null,DouyinCollectItem collectItem=null)
         {
             // 检查视频数据是否有效
             if (!IsAwemeValid(item)) return null;
@@ -790,7 +824,7 @@ namespace dy.net.job
             // 获取视频标签
             var (tag1, tag2, tag3) = GetVideoTags(item);
             // 创建保存文件夹
-            var saveFolder = CreateSaveFolder(cookie, item, config, followed);
+            var saveFolder = CreateSaveFolder(cookie, item, config, followed,collectItem);
             // 获取视频文件名
             var fileName = GetVideoFileName(cookie, item, config);
             // 拼接视频保存路径
@@ -836,14 +870,14 @@ namespace dy.net.job
 
 
 
-        protected async Task<DouyinVideo> ProcessDynamicVideo(List<DouyinDynamicVideoDto> dynamicUrls, DouyinCookie cookie, Aweme item, DouyinVideoInfo data, AppConfig config, DouyinFollowed followed = null)
+        protected async Task<DouyinVideo> ProcessDynamicVideo(List<DouyinDynamicVideoDto> dynamicUrls, DouyinCookie cookie, Aweme item, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null,DouyinCollectItem collectItem=null)
         {
 
 
             // 获取视频标签
             var (tag1, tag2, tag3) = GetVideoTags(item);
             // 创建保存文件夹
-            var saveFolder = CreateSaveFolder(cookie, item, config, followed);
+            var saveFolder = CreateSaveFolder(cookie, item, config, followed,collectItem);
             // 获取视频文件名
             //var fileName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId) + ".mp4";
 
@@ -969,7 +1003,6 @@ namespace dy.net.job
         }
 
         /// <summary>
-        /// 处理图片集并合成为视频
         /// 负责下载图片、合成视频、处理封面和头像等
         /// </summary>
         /// <param name="cookie">用户Cookie</param>
@@ -978,7 +1011,7 @@ namespace dy.net.job
         /// <param name="config">应用配置</param>
         /// <param name="followed">应用配置</param>
         /// <returns>合成后的视频实体，如果处理失败则为null</returns>
-        protected async Task<DouyinVideo> ProcessImageSetAndMergeToVideo(DouyinCookie cookie, Aweme item, DouyinVideoInfo data, AppConfig config, DouyinFollowed followed)
+        protected async Task<DouyinVideo> ProcessImageSetAndMergeToVideo(DouyinCookie cookie, Aweme item, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed,DouyinCollectItem collectItem)
         {
             try
             {
@@ -1010,7 +1043,7 @@ namespace dy.net.job
                 }
                 else
                 {
-                    fileNamefolder = CreateSaveFolder(cookie, item, config, followed);
+                    fileNamefolder = CreateSaveFolder(cookie, item, config, followed,collectItem);
                 }
                 if (!Directory.Exists(fileNamefolder)) Directory.CreateDirectory(fileNamefolder);
 
@@ -1293,7 +1326,7 @@ namespace dy.net.job
         /// <returns>创建的视频实体对象</returns>
         private async Task<DouyinVideo> CreateVideoEntity(AppConfig config,
             DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string saveFolder,
-            string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfo data, List<DouyinDynamicVideoDto> dynamicVideos = null)
+            string tag1, string tag2, string tag3, string avatarSavePath, string avatarUrl, DouyinVideoInfoResponse data, List<DouyinDynamicVideoDto> dynamicVideos = null)
         {
             var diffs = GetVideoEntityDifferences(cookie, item);
 

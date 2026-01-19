@@ -1,5 +1,5 @@
-﻿using dy.net.dto;
-using dy.net.job;
+﻿using dy.net.job;
+using dy.net.model.dto;
 using Quartz;
 using Quartz.Impl.Matchers;
 using Serilog;

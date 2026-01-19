@@ -1,7 +1,7 @@
 ﻿using ClockSnowFlake;
-using dy.net.dto;
 using dy.net.extension;
-using dy.net.model;
+using dy.net.model.dto;
+using dy.net.model.entity;
 using dy.net.service;
 using dy.net.utils;
 using dy.sync.lib;
@@ -28,26 +28,18 @@ namespace dy.net.Controllers
         private readonly DouyinQuartzJobService quartzJobService;
         private readonly DouyinFollowService douyinFollowService;
         private readonly DouyinCookieService douyinCookieService;
-
-        //// 定义允许上传的音频扩展名（小写）
-        //private readonly string[] _allowedAudioExtensions = { ".mp3", ".wav" };
-
-        //// 定义允许的音频 MIME 类型（增强验证）
-        //private readonly string[] _allowedAudioMimeTypes = {
-        //    "audio/mpeg", "audio/wav"
-        //};
-
-        // 最大文件大小：20MB（可根据需求调整）
-        //private const long _maxFileSize = 20 * 1024 * 1024;
+        private readonly DouyinHttpClientService httpClientService;
 
 
-        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService, DouyinQuartzJobService quartzJobService, DouyinFollowService douyinFollowService, DouyinCookieService douyinCookieService)
+
+        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService, DouyinQuartzJobService quartzJobService, DouyinFollowService douyinFollowService, DouyinCookieService douyinCookieService, DouyinHttpClientService httpClientService)
         {
             this.dyCookieService = dyCookieService;
             this.commonService = commonService;
             this.quartzJobService = quartzJobService;
             this.douyinFollowService = douyinFollowService;
             this.douyinCookieService = douyinCookieService;
+            this.httpClientService = httpClientService;
         }
 
 
@@ -161,6 +153,12 @@ namespace dy.net.Controllers
         public async Task<IActionResult> AddAsync([FromBody] DouyinCookie dyUserCookies)
         {
 
+            var checkCk = await httpClientService.CheckCookie(dyUserCookies);
+            if (!checkCk)
+            {
+                return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
+            }
+
             var result = await dyCookieService.Add(dyUserCookies);
             if (result)
             {
@@ -204,28 +202,20 @@ namespace dy.net.Controllers
                 return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.ImgSavePath}添加读写权限");
             }
 
+
+            var checkCk = await httpClientService.CheckCookie(dyUserCookies);
+            if (!checkCk)
+            {
+                return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
+            }
+
             var result = await dyCookieService.Add(dyUserCookies);
             if (result)
             {
-
                 return ApiResult.Success();
             }
             return ApiResult.Fail("添加失败");
         }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("appport")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetAppPort()
-        {
-            //return ApiResult.Success(10105);
-            return ApiResult.Success(string.IsNullOrWhiteSpace(Appsettings.Get("appPort")) ? 10101 : Convert.ToInt32(Appsettings.Get("appPort")));
-        }
-
-
 
 
         /// <summary>
@@ -248,6 +238,11 @@ namespace dy.net.Controllers
         [HttpPost("update")]
         public async Task<IActionResult> UpdateAsync([FromBody] DouyinCookie dyUserCookies)
         {
+            var checkCk = await httpClientService.CheckCookie(dyUserCookies);
+            if (!checkCk)
+            {
+                return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
+            }
 
             if (dyUserCookies.Id == "0")
             {

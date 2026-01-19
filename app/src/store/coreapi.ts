@@ -151,15 +151,6 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
 
-  async function GetAppPort() {
-    return http.request<any, Response<any>>('/api/config/appport', 'get').then(r => {
-      return r;
-    }).finally(() => {
-
-    });
-  }
-
-
 
   async function deleteCookie(id: string) {
     return http.request<any, Response<any>>('/api/config/delete?id=' + id, 'get').then(r => {
@@ -347,28 +338,28 @@ export const useApiStore = defineStore('coreapi', () => {
   }
 
 
-  // 音频文件上传接口
-  async function apiUploadAudio(formData: FormData, options?: { onUploadProgress?: (progressEvent: ProgressEvent) => void }) {
-    return http
-      .request<any, Response<any>>(
-        '/api/config/UploadAudio',  // 请求地址
-        'post_form',                // 使用新增的 post_form 类型
-        formData,                   // FormData 参数（文件+其他参数）
-        {
-          onUploadProgress: options?.onUploadProgress, // 上传进度回调（原生 ProgressEvent）
-          timeout: 120000 // 上传文件超时时间设为2分钟（可选）
-        }
-      )
-      .then((res) => {
-        // console.log('音频上传结果：', res);
-        // 适配你的响应格式（如果响应是包裹层，取 data）
-        return res;
-      })
-      .catch((err) => {
-        console.error('音频上传失败：', err);
-        throw err; // 抛出错误让前端捕获
-      });
-  }
+  // // 音频文件上传接口
+  // async function apiUploadAudio(formData: FormData, options?: { onUploadProgress?: (progressEvent: ProgressEvent) => void }) {
+  //   return http
+  //     .request<any, Response<any>>(
+  //       '/api/config/UploadAudio',  // 请求地址
+  //       'post_form',                // 使用新增的 post_form 类型
+  //       formData,                   // FormData 参数（文件+其他参数）
+  //       {
+  //         onUploadProgress: options?.onUploadProgress, // 上传进度回调（原生 ProgressEvent）
+  //         timeout: 120000 // 上传文件超时时间设为2分钟（可选）
+  //       }
+  //     )
+  //     .then((res) => {
+  //       // console.log('音频上传结果：', res);
+  //       // 适配你的响应格式（如果响应是包裹层，取 data）
+  //       return res;
+  //     })
+  //     .catch((err) => {
+  //       console.error('音频上传失败：', err);
+  //       throw err; // 抛出错误让前端捕获
+  //     });
+  // }
 
   return {
     getVer,
@@ -376,8 +367,7 @@ export const useApiStore = defineStore('coreapi', () => {
     BathRealDelete,
     DeleteByAuthor,
     Renfo,
-    apiUploadAudio,
-    GetAppPort,
+    // apiUploadAudio,
     AppisInit,
     DeskInitAsync,
     SwitchCookieStatus,

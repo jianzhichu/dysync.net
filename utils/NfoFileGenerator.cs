@@ -1,5 +1,5 @@
-﻿using dy.net.dto;
-using dy.net.model;
+﻿using dy.net.model.dto;
+using dy.net.model.entity;
 using System.IO;
 using System.Text;
 using System.Xml.Linq;

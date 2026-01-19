@@ -91,7 +91,7 @@ namespace dy.net.extension
             string conn = $"DataSource={filePath}";
             if (!File.Exists(filePath))
             {
-                File.Create(filePath).Close();//.Close();
+                File.Create(filePath).Close();
             }
 
             return conn;
@@ -166,7 +166,7 @@ namespace dy.net.extension
                     Type[] types = assembly.GetTypes(); // 获取程序集中的所有类型
 
                     var targetClasses = types
-                        .Where(t => t.Namespace != null && t.Namespace.StartsWith("dy.net.model"))
+                        .Where(t => t.Namespace != null && t.Namespace.StartsWith("dy.net.model.entity"))
                         .ToList();
                     db.CodeFirst.InitTables(targetClasses.ToArray());
                 });
@@ -193,59 +193,11 @@ namespace dy.net.extension
         }
 
 
-        //public static void AddHttpClients(this IServiceCollection services)
-        //{
-        //    services.AddHttpClient("dy_collect", client =>
-        //    {
-        //        client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
-        //        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
-        //        client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
-        //    });
-
-        //    services.AddHttpClient("dy_follow", client =>
-        //    {
-        //        client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
-        //    });
-
-        //    services.AddHttpClient("dy_favorite", client =>
-        //    {
-        //        client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
-        //    });
-
-        //    services.AddHttpClient("dy_uper", client =>
-        //    {
-        //        client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/MS4wLjABAAAA1zFIBhWG-3qS8MiggDMhyCpqDnvfGYf_mtsdgtBzV7A?from_tab_name=main&showTab=post&vid=7576282367263807451");
-        //    });
-        //    // 配置HttpClient（Startup.cs或Program.cs）
-        //    services.AddHttpClient("dy_download")
-        //        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-        //        {
-        //            // 控制并发连接数（根据服务器承受能力调整，建议5-20）
-        //            MaxConnectionsPerServer = 5,
-        //            // 禁用代理自动检测（减少不必要的延迟）
-        //            UseProxy = false,
-        //            // 连接超时（建立连接的超时时间）
-        //            ConnectTimeout = TimeSpan.FromSeconds(60)
-        //        })
-        //        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        //        {
-        //            ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-        //        })
-        //        // 配置客户端默认请求头
-        //        .ConfigureHttpClient(client =>
-        //        {
-        //            client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
-        //            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
-        //            client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
-        //        }); 
-        //}
-
-
 
         public static void AddHttpClients(this IServiceCollection services)
         {
             // 通用的忽略SSL证书验证的HttpMessageHandler配置
-            Func<HttpMessageHandler> ignoreSslHandlerFactory = () =>
+            static HttpMessageHandler ignoreSslHandlerFactory()
             {
                 var handler = new SocketsHttpHandler
                 {
@@ -254,7 +206,7 @@ namespace dy.net.extension
                     // 禁用代理自动检测（减少不必要的延迟）
                     UseProxy = false,
                     // 连接超时（建立连接的超时时间）
-                    ConnectTimeout = TimeSpan.FromSeconds(60),
+                    ConnectTimeout = TimeSpan.FromSeconds(120),
                     // 忽略HTTPS证书验证
                     SslOptions = new SslClientAuthenticationOptions
                     {
@@ -263,56 +215,22 @@ namespace dy.net.extension
                 };
 
                 return handler;
-            };
-
-            // 抖音采集客户端
-            services.AddHttpClient("dy_collect", client =>
+            }
+            // 抖音数据接口请求客户端
+            services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT, client =>
             {
-                client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
-                client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
-            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
-
-            // 抖音关注客户端
-            services.AddHttpClient("dy_follow", client =>
-            {
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
-            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
-
-            // 抖音收藏客户端
-            services.AddHttpClient("dy_favorite", client =>
-            {
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/self?showTab=like");
-            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
-
-            // 抖音UP主客户端
-            services.AddHttpClient("dy_uper", client =>
-            {
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com/user/MS4wLjABAAAA1zFIBhWG-3qS8MiggDMhyCpqDnvfGYf_mtsdgtBzV7A?from_tab_name=main&showTab=post&vid=7576282367263807451");
+                client.DefaultRequestHeaders.Add("User-Agent", DouyinRequestParamManager.DY_USER_AGENT);
             }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
 
             // 抖音下载客户端（单独配置，保持原有特性）
-            services.AddHttpClient("dy_download")
+            services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT_DOWN)
                 .ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory)
                 .ConfigureHttpClient(client =>
                 {
-                    client.DefaultRequestHeaders.Add("Accept-Language", "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
-                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36");
+                    client.DefaultRequestHeaders.Add("User-Agent", DouyinRequestParamManager.DY_USER_AGENT);
                     client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
                 });
 
-            // 如果你需要兼容旧版.NET（使用HttpClientHandler而非SocketsHttpHandler），可以使用以下配置：
-            // Func<HttpMessageHandler> legacyIgnoreSslHandlerFactory = () =>
-            // {
-            //     var handler = new HttpClientHandler
-            //     {
-            //         ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true,
-            //         MaxConnectionsPerServer = 5,
-            //         UseProxy = false,
-            //         ConnectTimeout = TimeSpan.FromSeconds(60)
-            //     };
-            //     return handler;
-            // };
         }
 
         /// <summary>
@@ -346,7 +264,7 @@ namespace dy.net.extension
             {
                 // 获取服务的生命周期（优先使用特性，默认 Transient）
                 var lifetime = type.GetCustomAttribute<ServiceLifetimeAttribute>()?.Lifetime
-                               ?? ServiceLifetime.Transient;
+                               ?? ServiceLifetime.Scoped;
 
                 // 查找该类实现的接口（优先注册为接口服务）
                 //var interfaces = type.GetInterfaces()
@@ -455,7 +373,7 @@ namespace dy.net.extension
         //        {
         //            Version = "v1",
         //            Title = "dy.net API Swagger Document",
-                
+
         //        });
         //        o.OrderActionsBy((apiDesc) => $"{apiDesc.ActionDescriptor.RouteValues["controller"]}_{apiDesc.HttpMethod}");
         //        o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()

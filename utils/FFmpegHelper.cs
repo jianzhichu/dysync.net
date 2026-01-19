@@ -1,4 +1,4 @@
-﻿using dy.net.dto;
+﻿using dy.net.model.dto;
 using Serilog;
 using System;
 using System.Collections.Generic;

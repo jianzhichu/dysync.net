@@ -11,7 +11,7 @@ namespace dy.net
     public class Program
     {
         // 常量定义
-        private static string DefaultListenUrl = "10101";
+        private static string DefaultListenUrl = "http://*:10101";
         private const string SpaRootPath = "app/dist";
         private const string SpaSourcePath = "app/";
         private const string SwaggerDocTitle = "dy.net WebApi Docs";
@@ -49,7 +49,6 @@ namespace dy.net
         {
             InitAppsettings(builder);
             //from docker yaml file 环境变量 或者 dockerfile 或appsettings.json 
-            DefaultListenUrl = $"http://*:{builder.Configuration.GetValue<string>(SystemStaticUtil.APP_PORT) ?? DefaultListenUrl}";
             // 设置监听地址
             builder.WebHost.UseUrls(DefaultListenUrl);
             // 配置日志

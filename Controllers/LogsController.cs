@@ -1,4 +1,4 @@
-﻿using dy.net.dto;
+﻿using dy.net.model.dto;
 using dy.net.service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

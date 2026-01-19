@@ -1,4 +1,4 @@
-﻿using dy.net.dto;
+﻿using dy.net.model.dto;
 using System.ComponentModel;
 using System.Reflection;
 

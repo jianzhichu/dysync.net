@@ -1,5 +1,5 @@
-﻿using dy.net.dto;
-using dy.net.model;
+﻿using dy.net.model.entity;
+using dy.net.model.response;
 using dy.net.service;
 using Quartz;
 using System.Collections.Generic;
@@ -70,7 +70,7 @@ namespace dy.net.job
                                 {
                                     hasmore = false;
                                 }
-                                ck.StatusMsg = err.StatusCode == 8 ? "无效" : "正 常";
+                                ck.StatusMsg = err.StatusCode == 8 ? "无效" : "正常";
                                 ck.StatusCode = err.StatusCode;
                                 await _dyCookieService.UpdateAsync(ck);
                             });

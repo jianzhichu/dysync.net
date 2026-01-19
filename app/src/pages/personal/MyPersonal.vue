@@ -1,26 +1,6 @@
 <template>
   <a-drawer v-model:visible="visible" class="custom-class" title="个人设置" placement="right" @after-visible-change="afterVisibleChange" :maskClosable="true">
     <a-tabs v-model:activeKey="activeKey">
-      <!-- <a-tab-pane key="1" style="height:100%">
-        <template #tab>
-          <span>
-            <user-outlined />
-            修改头像
-          </span>
-        </template>
-
-        <a-upload style="" v-model:file-list="fileList" name="file" list-type="picture-card" class="avatar-uploader" :show-upload-list="false" :action="uploadAction" :before-upload="beforeUpload" @change="handleChange" accept=".jpg, .jpeg, .png">
-          <img v-if="imageUrl" :src="imageUrl" alt="avatar" style="height: 112px; width: 112px; border-radius: 50%;" />
-          <div v-else>
-            <loading-outlined v-if="loading"></loading-outlined>
-            <plus-outlined v-else></plus-outlined>
-            <div class="ant-upload-text">选择图片</div>
-          </div>
-        </a-upload>
-        <div style="margin-top:20px;">
-          上传成功即修改成功
-        </div>
-      </a-tab-pane> -->
       <a-tab-pane key="2">
         <template #tab>
           <span>
@@ -60,7 +40,6 @@ import { checkPass } from '@/utils/regexHelper';
 import type { Rule } from 'ant-design-vue/es/form';
 
 const activeKey = ref<string>('2');
-const uploadAction = ref<string>('');
 const visible = ref<boolean>(false);
 
 function show(vis: boolean) {
@@ -122,7 +101,6 @@ const loadUserInfo = () => {
       if (res.code === 0) {
         if (res.data.avatar != null && res.data.avatar !== '') imageUrl.value = `/upload/${res.data.avatar}`;
         passwordFormData.UserId = res.data.id;
-        uploadAction.value = `/api/auth/UpdateUserAvatar?Uid=${res.data.id}`;
       }
     });
 };

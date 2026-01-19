@@ -1,6 +1,6 @@
-﻿using dy.net.dto;
-using dy.net.extension;
-using dy.net.model;
+﻿using dy.net.extension;
+using dy.net.model.dto;
+using dy.net.model.entity;
 using Quartz.Util;
 using SqlSugar;
 using System.Linq;

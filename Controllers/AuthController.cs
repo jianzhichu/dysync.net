@@ -7,7 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using dy.net.service;
 using dy.net.utils;
-using dy.net.dto;
+using dy.net.model.dto;
 
 namespace dy.net.Controllers
 {
@@ -50,55 +50,7 @@ namespace dy.net.Controllers
             return ApiResult.Success(new { user?.Avatar, user?.Id, user?.UserName });
         }
 
-        /// <summary>
-        /// 修改用户头像
-        /// </summary>
-        /// <param name="file"></param>
-        /// <returns></returns>
-        [Authorize]
-        [HttpPost]
-        public async Task<IActionResult> UpdateUserAvatar(IFormFile file)
-        {
-            if (file != null && file.Length > 0)
-            {
-                long maxFileSize = 5 * 1024 * 1024; // 限制文件大小为5MB
-                if (file.Length > maxFileSize)
-                {
-                    return ApiResult.Fail("文件最大只能上传5M");
-                }
-                var fileName = $"{IdGener.GetGuid()}_{file.FileName}";
-                var filePath = webHostEnvironment.IsProduction() ?
-                    Path.Combine(Md5Util.UPLOAD_PATH_PRO, fileName) : Path.Combine(Md5Util.UPLOAD_PATH_DEV, fileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-
-                    try
-                    {
-                        // 问了节约空间，删除文件夹下的所有文件
-                        string[] files = Directory.GetFiles(webHostEnvironment.IsProduction() ? Md5Util.UPLOAD_PATH_PRO : Md5Util.UPLOAD_PATH_DEV);
-                        foreach (string mfile in files)
-                        {
-                            if (!mfile.Contains(fileName))
-                                System.IO.File.Delete(mfile);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Serilog.Log.Error($"delete file error ,{ex.Message}");
-                        return ApiResult.Fail(ex.Message);
-                    }
-                    var update = await _userService.UpdateAvatar(fileName);
-
-                    return ApiResult.SuccOrFail(update , update ? fileName : "", update ? "" : "上传失败");
-                }
-            }
-            else
-            {
-                return ApiResult.Fail("无效的文件");
-            }
-        }
-
+        
 
 
         /// <summary>

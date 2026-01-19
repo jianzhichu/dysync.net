@@ -1,10 +1,8 @@
-﻿using dy.net.dto;
-using dy.net.model;
+﻿using dy.net.model.dto;
+using dy.net.model.entity;
+using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace dy.net.job
 {
@@ -32,17 +30,17 @@ namespace dy.net.job
                    !string.IsNullOrWhiteSpace(cookie.SecUserId) && cookie.SecUserId.Length >= 10;
         }
 
-        protected override async Task<DouyinVideoInfo> FetchVideoData(DouyinCookie cookie, string cursor,string uperUid)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor,DouyinFollowed followed, DouyinCollectItem collectId)
         {
             return await douyinHttpClientService.SyncFavoriteVideos(count, cursor, cookie.SecUserId, cookie.Cookies);
         }
 
-        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfo data, DouyinFollowed followed=null)
+        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed=null)
         {
             return data != null && data.HasMore == 1 && cookie.FavHasSyncd == 0;
         }
 
-        protected override string GetNextCursor(DouyinVideoInfo data)
+        protected override string GetNextCursor(DouyinVideoInfoResponse data)
         {
             return data?.MaxCursor ?? "0";
         }
@@ -67,7 +65,7 @@ namespace dy.net.job
             }
         }
 
-        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectItem collectItem)
         {
             var (tag1, _, _) = GetVideoTags(item);
             var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1,"",true);

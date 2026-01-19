@@ -1,6 +1,7 @@
 ﻿using ClockSnowFlake;
-using dy.net.dto;
-using dy.net.model;
+using dy.net.model.dto;
+using dy.net.model.entity;
+using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
 using Newtonsoft.Json;
@@ -29,17 +30,17 @@ namespace dy.net.job
             return !string.IsNullOrWhiteSpace(cookie.Cookies)&&!string.IsNullOrWhiteSpace(cookie.UpSavePath);
         }
 
-        protected override async Task<DouyinVideoInfo> FetchVideoData(DouyinCookie cookie, string cursor, string uperUid = "")
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectItem collectId)
         {
-            return await douyinHttpClientService.SyncUpderPostVideos(count, cursor, uperUid, cookie.Cookies);
+            return await douyinHttpClientService.SyncUpderPostVideos(count, cursor, followed.SecUid, cookie.Cookies);
         }
 
-        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfo data, DouyinFollowed followed)
+        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed)
         {
             return data != null && data.HasMore == 1 && cookie.UperSyncd == 0 && followed.FullSync;
         }
 
-        protected override string GetNextCursor(DouyinVideoInfo data)
+        protected override string GetNextCursor(DouyinVideoInfoResponse data)
         {
             return data?.MaxCursor ?? "0";
         }
@@ -52,7 +53,7 @@ namespace dy.net.job
         /// <param name="followed"></param>
         /// <param name="config"></param>
         /// <returns></returns>
-        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed)
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectItem collectItem)
         {
             #region 默认使用UP主名称作为文件夹名称，若关注列表中有自定义保存路径则使用自定义路径
             // 1. 优先获取有效的作者名称（遵循原有优先级：followed.UperName > item.Author.Nickname > 默认值）

@@ -1,4 +1,4 @@
-﻿using dy.net.dto;
+﻿using dy.net.model.dto;
 using System.Text.RegularExpressions;
 
 namespace dy.net.utils

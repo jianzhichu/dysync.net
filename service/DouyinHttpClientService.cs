@@ -1,23 +1,21 @@
-﻿using dy.net.dto;
+﻿using Dm;
+using dy.net.model.dto;
+using dy.net.model.entity;
+using dy.net.model.response;
 using dy.net.utils;
-using NetTaste;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
-using Serilog;
-using System;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Reflection.PortableExecutable;
-using System.Text.Json;
-using System.Threading.Tasks.Dataflow;
+using System.Web;
 
 namespace dy.net.service
 {
     public class DouyinHttpClientService
     {
-        public static readonly string DouYinApi = "https://www.douyin.com/aweme/v1/web/aweme";
-        // 随机数生成器（避免重复实例化，保证随机性）
-        private readonly IHttpClientFactory _clientFactory;
+
+
+        readonly IHttpClientFactory _clientFactory;
         public DouyinHttpClientService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
@@ -25,14 +23,62 @@ namespace dy.net.service
 
 
         /// <summary>
-        /// 查询用户收藏的视频
+        /// 异步获取HTTP响应消息（优化版）
+        /// </summary>
+        /// <param name="requestParameters">URL请求参数键值对</param>
+        /// <param name="httpMethod">HTTP请求方法（GET/POST等）</param>
+        /// <param name="requestUrl">基础请求URL</param>
+        /// <param name="refererValue">Referer请求头值（可为null/空）</param>
+        /// <param name="cookie">Cookie请求头值（可为null/空）</param>
+        /// <returns>HTTP响应消息</returns>
+        private async Task<HttpResponseMessage> GetHttpResponseMessage(
+            HttpMethod httpMethod,
+            string requestUrl,
+            Dictionary<string, string> requestParameters,
+            string refererValue,
+            string cookie)
+        {
+            string fullUrl = "{requestUrl}";
+            if (requestParameters != null && requestParameters.Count > 0)
+            {
+                fullUrl = QueryHelpers.AddQueryString(
+                    requestUrl,
+                    requestParameters.ToDictionary(
+                        kv => kv.Key,
+                        kv => new StringValues(kv.Value)
+                    )
+                );
+            }
+            using var requestMessage = new HttpRequestMessage(httpMethod, fullUrl);
+
+            if (!string.IsNullOrEmpty(refererValue) && Uri.IsWellFormedUriString(refererValue, UriKind.Absolute))
+            {
+                requestMessage.Headers.Referrer = new Uri(refererValue);
+            }
+
+            if (!string.IsNullOrEmpty(cookie))
+            {
+                // 此处兼容直接添加Cookie头，增加格式校验
+                requestMessage.Headers.TryAddWithoutValidation("Cookie", cookie);
+            }
+
+            using var httpClient = _clientFactory.CreateClient(DouyinRequestParamManager.DY_HTTP_CLIENT);
+            return await httpClient.SendAsync(requestMessage);
+        }
+
+
+        #region 收藏夹（默认，不分自定义文件夹）
+
+        /// <summary>
+        /// 查询用户默认收藏的视频
         /// </summary>
         /// <param name="cursor"></param>
         /// <param name="count"></param>
         /// <param name="cookie"></param>
         /// <returns></returns>
-        public async Task<DouyinVideoInfo> SyncCollectVideos(string cursor, string count, string cookie)
+        public async Task<DouyinVideoInfoResponse> SyncCollectVideos(string cursor, string count, string cookie)
         {
+            #region 检查参数
             if (string.IsNullOrWhiteSpace(cursor))
             {
                 throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
@@ -47,35 +93,24 @@ namespace dy.net.service
             {
                 throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
             }
+            #endregion
 
             try
             {
-                using var httpClient = _clientFactory.CreateClient("dy_collect");
-                if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
-                {
-                    httpClient.DefaultRequestHeaders.Remove("Cookie");
-                }
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
+                var requestUrl = "/aweme/v1/web/aweme/listcollection";
+                var refererValue = "https://www.douyin.com";
 
-                var dics = DouyinBaseParamDics.CollectParams;
-                dics["cursor"]=cursor;
-                dics["count"] = count;
-                try
+                var requestParameters = DouyinRequestParamManager.DouyinCollectParams;
                 {
-                    var token = await TokenManager.GenRealMsTokenAsync();
-                    dics["msToken"] = token;
+                    requestParameters["cursor"] = cursor;
+                    requestParameters["count"] = count;
                 }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Error($"获取mstoken失败{ex.Message}");
-                }
-            string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
-            var endPoint = BogusManager.XbModel2Endpoint($"{DouYinApi}/listcollection", dics, UserAgent);
-                var respose = await httpClient.PostAsync(endPoint, null);
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfo>(data);
+                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                 }
                 else
                 {
@@ -90,6 +125,356 @@ namespace dy.net.service
             }
         }
 
+        #endregion
+
+        #region 收藏夹（自定义收藏文件名称）
+
+        /// <summary>
+        /// 获取自定义收藏夹列表
+        /// </summary>
+        /// <param name="cookie"></param>
+        /// <param name="cursor"></param>
+        /// <returns></returns>
+        public async Task<DouyinCollectListResponse> SyncCollectFolderList(string cookie, string cursor)
+        {
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                Serilog.Log.Error("cookie为空，无法获取收藏夹列表 ");
+                return null;
+            }
+
+            try
+            {
+                var requestUrl = "/aweme/v1/web/collects/list";
+                var refererValue = "https://www.douyin.com/user/self?from_tab_name=main&showSubTab=favorite_folder&showTab=favorite_collection";
+
+                var requestParameters = DouyinRequestParamManager.DouyinCollectListParams;
+                {
+                    // 添加动态参数
+                    requestParameters["count"] = "100"; //一次性获取100个收藏文件夹（应该够用）
+                    requestParameters["cursor"] = cursor; //页码
+                }
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                if (respose.IsSuccessStatusCode)
+                {
+                    var data = await respose.Content.ReadAsStringAsync();
+                    var model = JsonConvert.DeserializeObject<DouyinCollectListResponse>(data);
+                    return model;
+                }
+                else
+                {
+                 Serilog.Log.Error("SyncCollectFolderList ,{StatusCode}", respose.StatusCode);
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error("SyncCollectFolderList ,{errro}", ex.StackTrace);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 根据收藏夹Id查询收藏夹的视频
+        /// </summary>
+        /// <param name="cursor"></param>
+        /// <param name="count"></param>
+        /// <param name="cookie"></param>
+        /// <param name="collect"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public async Task<DouyinVideoInfoResponse> SyncCollectVideosByCollectId(string cursor, string count, string cookie, DouyinCollectItem collect)
+        {
+            #region 检查参数
+            if (collect is null || string.IsNullOrWhiteSpace(collect.CollectsId))
+            {
+                throw new ArgumentException($"“{nameof(collect)}”不能为 null 或空。", nameof(collect));
+            }
+            if (string.IsNullOrWhiteSpace(cursor))
+            {
+                throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
+            }
+
+            if (string.IsNullOrWhiteSpace(count))
+            {
+                throw new ArgumentException($"“{nameof(count)}”不能为 null 或空。", nameof(count));
+            }
+
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
+            }
+            #endregion
+
+            try
+            {
+
+                var requestUrl = "/aweme/v1/web/collects/video/list";
+                var refererValue = "https://www.douyin.com/user/self?from_tab_name=main&showSubTab=favorite_folder&showTab=favorite_collection";
+
+                var requestParameters = DouyinRequestParamManager.DouyinFolderCollectParams;
+                {
+                    requestParameters["cursor"] = cursor;
+                    requestParameters["count"] = count;
+                    requestParameters["collects_id"] = collect.CollectsId;
+                }
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+
+                if (respose.IsSuccessStatusCode)
+                {
+                    var data = await respose.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                }
+                else
+                {
+                    Serilog.Log.Error($"SyncCollectVideosByCollectId fail: {respose.StatusCode}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"SyncCollectVideosByCollectId error: {ex.Message}");
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region 收藏夹（合集）
+
+        /// <summary>
+        /// 获取收藏合集列表
+        /// </summary>
+        /// <param name="cookie"></param>
+        /// <param name="cursor"></param>
+        /// <returns></returns>
+        public async Task<DouyinMixListResponse> SyncMixList(string cookie, string cursor)
+        {
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                Serilog.Log.Error("cookie为空，无法获取收藏夹列表 ");
+                return null;
+            }
+
+            try
+            {
+                var requestUrl = "/aweme/v1/web/mix/listcollection";
+                var refererValue = "https://www.douyin.com/user/self?";
+
+                var requestParameters = DouyinRequestParamManager.DouyinMixListParams;
+                {
+                    // 添加动态参数
+                    requestParameters["count"] = "20";
+                    requestParameters["cursor"] = cursor; //页码
+                }
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                if (respose.IsSuccessStatusCode)
+                {
+                    var data = await respose.Content.ReadAsStringAsync();
+                    var model = JsonConvert.DeserializeObject<DouyinMixListResponse>(data);
+                    return model;
+                }
+                else
+                {
+                    Serilog.Log.Error($"SyncMixList : {respose.StatusCode}");
+                    return null;
+                }
+             
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error("SyncMixList ,{errro}", ex.StackTrace);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 根据合集ID查询合集视频列表
+        /// </summary>
+        /// <param name="cursor"></param>
+        /// <param name="count"></param>
+        /// <param name="cookie"></param>
+        /// <param name="mix"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public async Task<DouyinVideoInfoResponse> SyncMixViedosByMixId(string cursor, string count, string cookie, DouyinMixInfo mix)
+        {
+            #region 检查参数
+            if (mix is null ||string.IsNullOrWhiteSpace(mix.MixId))
+            {
+                throw new ArgumentException($"“{nameof(mix)}”不能为 null 或空。", nameof(mix));
+            }
+            if (string.IsNullOrWhiteSpace(cursor))
+            {
+                throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
+            }
+
+            if (string.IsNullOrWhiteSpace(count))
+            {
+                throw new ArgumentException($"“{nameof(count)}”不能为 null 或空。", nameof(count));
+            }
+
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
+            }
+            #endregion
+
+            try
+            {
+
+                var requestUrl = "/aweme/v1/web/mix/aweme";
+                var refererValue = "https://www.douyin.com/user/self?";
+
+                var requestParameters = DouyinRequestParamManager.DouyinMixVideoParams;
+                {
+                    requestParameters["cursor"] = cursor;
+                    requestParameters["count"] = count;
+                    requestParameters["mix_id"] = mix.MixId;
+                }
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+
+                if (respose.IsSuccessStatusCode)
+                {
+                    var data = await respose.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                }
+                else
+                {
+                    Serilog.Log.Error($"SyncMixViedosByMixId fail: {respose.StatusCode}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"SyncMixViedosByMixId error: {ex.Message}");
+                return null;
+            }
+        }
+        #endregion
+
+        #region 收藏夹（短剧）
+
+        /// <summary>
+        /// 获取短剧列表
+        /// </summary>
+        /// <param name="cookie"></param>
+        /// <param name="cursor"></param>
+        /// <returns></returns>
+        public async Task<DouyinSeriesListResponse> SyncShortList(string cookie, string cursor)
+        {
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                Serilog.Log.Error("cookie为空，无法获取收藏夹列表 ");
+                return null;
+            }
+
+            try
+            {
+                var requestUrl = "/aweme/v1/web/series/collections";
+                var refererValue = "https://www.douyin.com/user/self?";
+
+                var requestParameters = DouyinRequestParamManager.DouyinSeriesListParams;
+                {
+                    // 添加动态参数
+                    requestParameters["count"] = "20";
+                    requestParameters["cursor"] = cursor; //页码
+                }
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                if (respose.IsSuccessStatusCode)
+                {
+                    var data = await respose.Content.ReadAsStringAsync();
+                    var model = JsonConvert.DeserializeObject<DouyinSeriesListResponse>(data);
+                    return model;
+                }
+                else
+                {
+                    Serilog.Log.Error($"SyncShortList fail: {respose.StatusCode}");
+                    return null;
+                }
+           
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error("SyncShortList ,{errro}", ex.StackTrace);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cursor"></param>
+        /// <param name="count"></param>
+        /// <param name="cookie"></param>
+        /// <param name="series"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public async Task<DouyinVideoInfoResponse> SyncSeriesViedosByMSeriesId(string cursor, string count, string cookie, DouyinShortDramaInfo series)
+        {
+            #region 检查参数
+            if (series is null || string.IsNullOrWhiteSpace(series.DramaId))
+            {
+                throw new ArgumentException($"“{nameof(series)}”不能为 null 或空。", nameof(series));
+            }
+            if (string.IsNullOrWhiteSpace(cursor))
+            {
+                throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
+            }
+
+            if (string.IsNullOrWhiteSpace(count))
+            {
+                throw new ArgumentException($"“{nameof(count)}”不能为 null 或空。", nameof(count));
+            }
+
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
+            }
+            #endregion
+
+            try
+            {
+
+                var requestUrl = "/aweme/v1/web/series/aweme";
+                var refererValue = "https://www.douyin.com/user/self?";
+
+                var requestParameters = DouyinRequestParamManager.DouyinSeriesVideosParams;
+                {
+                    requestParameters["cursor"] = cursor;
+                    requestParameters["count"] = count;
+                    requestParameters["series_id"] = series.DramaId;
+                }
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+
+                if (respose.IsSuccessStatusCode)
+                {
+                    var data = await respose.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                }
+                else
+                {
+                    Serilog.Log.Error($"SyncSeriesViedosByMSeriesId fail: {respose.StatusCode}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"SyncSeriesViedosByMSeriesId error: {ex.Message}");
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region 喜欢的（点赞视频同步）
+
         /// <summary>
         /// 查询用户喜欢的视频
         /// </summary>
@@ -99,11 +484,17 @@ namespace dy.net.service
         /// <param name="cookie"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<DouyinVideoInfo> SyncFavoriteVideos(string count,string cursor, string secUserId, string cookie)
+        public async Task<DouyinVideoInfoResponse> SyncFavoriteVideos(string count, string cursor, string secUserId, string cookie)
         {
+
+            #region 检查参数
             if (string.IsNullOrWhiteSpace(cursor))
             {
                 throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
+            }
+            if (string.IsNullOrWhiteSpace(count))
+            {
+                throw new ArgumentException($"“{nameof(count)}”不能为 null 或空。", nameof(count));
             }
 
             if (string.IsNullOrWhiteSpace(secUserId))
@@ -115,38 +506,33 @@ namespace dy.net.service
             {
                 throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
             }
+            #endregion
 
             try
             {
-                using var httpClient = _clientFactory.CreateClient("dy_favorite");
-                if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
-                {
-                    httpClient.DefaultRequestHeaders.Remove("Cookie");
-                }
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
+                var requestUrl = "/aweme/v1/web/aweme/favorite";
+                var refererValue = "https://www.douyin.com/user/self?showTab=like";
 
-                var dics = DouyinBaseParamDics.FavoriteParams;
+                var requestParameters = DouyinRequestParamManager.DouyinFavoriteParams;
                 {
                     // 添加动态参数
-                    dics["max_cursor"] = cursor;
-                    dics["sec_user_id"] = secUserId;
-                    dics["count"] = count;
+                    requestParameters["max_cursor"] = cursor;
+                    requestParameters["sec_user_id"] = secUserId;
+                    requestParameters["count"] = count;
                 }
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
 
-                // 构建请求URL
-                var queryString = new FormUrlEncodedContent(dics);
-                string fullUrl = $"{DouYinApi}/favorite?{await queryString.ReadAsStringAsync()}";
-                var respose = await httpClient.GetAsync(fullUrl);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfo>(data);
+                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                 }
                 else
                 {
                     Serilog.Log.Error($"SyncFavoriteVideos fail: {respose.StatusCode}");
                     return null;
                 }
+
             }
             catch (Exception ex)
             {
@@ -155,6 +541,9 @@ namespace dy.net.service
             }
         }
 
+        #endregion
+
+        #region 博主视频（关注的博主作品同步）
 
         /// <summary>
         /// 查询Up主作品
@@ -165,11 +554,16 @@ namespace dy.net.service
         /// <param name="cookie"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public async Task<DouyinVideoInfo> SyncUpderPostVideos(string count, string cursor, string secUserId, string cookie)
+        public async Task<DouyinVideoInfoResponse> SyncUpderPostVideos(string count, string cursor, string secUserId, string cookie)
         {
+            #region 检查参数
             if (string.IsNullOrWhiteSpace(cursor))
             {
                 throw new ArgumentException($"“{nameof(cursor)}”不能为 null 或空。", nameof(cursor));
+            }
+            if (string.IsNullOrWhiteSpace(count))
+            {
+                throw new ArgumentException($"“{nameof(count)}”不能为 null 或空。", nameof(count));
             }
 
             if (string.IsNullOrWhiteSpace(secUserId))
@@ -181,36 +575,26 @@ namespace dy.net.service
             {
                 throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
             }
+            #endregion
 
             try
             {
-                using var httpClient = _clientFactory.CreateClient("dy_uper");
-                if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
-                {
-                    httpClient.DefaultRequestHeaders.Remove("Cookie");
-                }
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
+                var requestUrl = "/aweme/v1/web/aweme/post";
+                var refererValue = "https://www.douyin.com/user/";
 
-                var parameters = DouyinBaseParamDics.InitializeDouyinPostParams();//修复关注的不下载图文视频
+                var requestParameters = DouyinRequestParamManager.DouyinUpderPostParams;//修复关注的不下载图文视频
                 {
                     // 添加动态参数
-                    parameters["max_cursor"] = cursor;
-                    parameters["sec_user_id"] = secUserId;
-                    parameters["count"] = count;
+                    requestParameters["max_cursor"] = cursor;
+                    requestParameters["sec_user_id"] = secUserId;
+                    requestParameters["count"] = count;
                 }
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
 
-                // 构建请求URL
-                var queryString = new FormUrlEncodedContent(parameters);
-                string fullUrl = $"{DouYinApi}/post?{await queryString.ReadAsStringAsync()}";
-                //var ablog = new ABogus();//计算X-Bogus
-                //var a_bogus = ablog.GetValue(parameters);
-
-                //fullUrl += $"&X-Bogus={a_bogus}";
-                var respose = await httpClient.GetAsync(fullUrl);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<DouyinVideoInfo>(data);
+                    return JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                 }
                 else
                 {
@@ -225,6 +609,9 @@ namespace dy.net.service
             }
         }
 
+        #endregion
+
+        #region 关注列表（同步关注列表）
 
         /// <summary>
         /// 查询我的关注用户列表
@@ -235,54 +622,70 @@ namespace dy.net.service
         /// <param name="cookie"></param>
         /// <param name="callBack"></param>
         /// <returns></returns>
-        public async Task<DouyinFollowInfo> SyncMyFollows(string count,string offset,string secUserId,string cookie,Action<FollowErrorDto> callBack)
+        public async Task<DouyinFollowInfoResponse> SyncMyFollows(string count, string offset, string secUserId, string cookie, Action<FollowErrorDto> callBack)
         {
+
+            #region 检查参数
+            if (string.IsNullOrWhiteSpace(offset))
+            {
+                throw new ArgumentException($"“{nameof(offset)}”不能为 null 或空。", nameof(offset));
+            }
+            if (string.IsNullOrWhiteSpace(count))
+            {
+                throw new ArgumentException($"“{nameof(count)}”不能为 null 或空。", nameof(count));
+            }
+
+            if (string.IsNullOrWhiteSpace(secUserId))
+            {
+                throw new ArgumentException($"“{nameof(secUserId)}”不能为 null 或空。", nameof(secUserId));
+            }
+
+            if (string.IsNullOrWhiteSpace(cookie))
+            {
+                throw new ArgumentException($"“{nameof(cookie)}”不能为 null 或空。", nameof(cookie));
+            }
+            #endregion
 
             try
             {
-                using var httpClient = _clientFactory.CreateClient("dy_follow");
-                if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
-                {
-                    httpClient.DefaultRequestHeaders.Remove("Cookie");
-                }
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
-                var dics = DouyinBaseParamDics.MyFollowParams;
+                var requestUrl = "/aweme/v1/web/user/following/list";
+                var refererValue = "https://www.douyin.com/user/self?showTab=like";
+
+                var requestParameters = DouyinRequestParamManager.DouyinMyFollowParams;
                 {
                     // 添加动态参数
-                    dics["sec_user_id"] = secUserId;
-                    dics["count"] = count;
-                    dics["offset"] = offset;
+                    requestParameters["sec_user_id"] = secUserId;
+                    requestParameters["count"] = count;
+                    requestParameters["offset"] = offset;
                 }
-                // 构建请求URL
-                var queryString = new FormUrlEncodedContent(dics);
-                string fullUrl = $"https://www.douyin.com/aweme/v1/web/user/following/list/?{await queryString.ReadAsStringAsync()}";
-                var respose = await httpClient.GetAsync(fullUrl);
+
+                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    var res= JsonConvert.DeserializeObject<DouyinFollowInfo>(data);
+                    var res = JsonConvert.DeserializeObject<DouyinFollowInfoResponse>(data);
                     if (res != null)
                     {
                         if (res.Followings == null)
                         {
                             var err = JsonConvert.DeserializeObject<FollowErrorDto>(data);
-                         
+
                             if (err != null)
                             {
                                 Serilog.Log.Error($"SyncMyFollows error: {err.StatusMsg}");
-                                callBack(err);
+                                callBack?.Invoke(err);
                             }
                             Serilog.Log.Error($"SyncMyFollows error: 关注列表为空 :{data}");
                         }
                         else
                         {
-                            callBack(new FollowErrorDto { StatusCode = 0 });
+                            callBack?.Invoke(new FollowErrorDto { StatusCode = 0 });
                         }
                     }
                     else
                     {
                         Serilog.Log.Error($"SyncMyFollows error: 反序列化结果为空,接口返回数据：{data}");
-                        callBack(new FollowErrorDto { StatusCode = 8,StatusMsg="未知" });
+                        callBack?.Invoke(new FollowErrorDto { StatusCode = 8, StatusMsg = "未知" });
                     }
                     return res;
                 }
@@ -299,10 +702,37 @@ namespace dy.net.service
             }
         }
 
+        #endregion
 
-        //
+        #region 检查cookie是否有效
+
         /// <summary>
-        /// 下载文件并保存到本地（支持重试机制，优化批量下载稳定性）
+        /// 检查cookie是否有效
+        /// </summary>
+        /// <param name="douyinCookie"></param>
+        /// <returns></returns>
+        public async Task<bool> CheckCookie(DouyinCookie douyinCookie)
+        {
+            if (douyinCookie == null || string.IsNullOrWhiteSpace(douyinCookie.Cookies)) return false;
+
+            if (!string.IsNullOrWhiteSpace(douyinCookie.SecUserId))
+            {
+                var res = await SyncMyFollows("1", "1", douyinCookie.SecUserId, douyinCookie.Cookies, null);
+                return res != null && res.status_code == 0 && res.Followings != null && res.Followings.Any();
+            }
+            else
+            {
+                var res = await SyncCollectVideos("0", "1", douyinCookie.Cookies);
+                return res != null && res.AwemeList != null && res.AwemeList.Any();
+            }
+        }
+
+        #endregion
+
+        #region 资源下载相关
+
+        /// <summary>
+        /// 下载文件并保存到本地
         /// </summary>
         /// <param name="videoUrl">文件地址</param>
         /// <param name="savePath">保存路径</param>
@@ -317,7 +747,7 @@ namespace dy.net.service
             string videoUrl,
             string savePath,
             string cookie,
-            List<string> otherUrls=null,
+            List<string> otherUrls = null,
             CancellationToken cancellationToken = default,
             TimeSpan? streamTimeout = null,
             int maxRetryCount = 3,
@@ -327,14 +757,16 @@ namespace dy.net.service
             int retryCount = 0;
             var retryDelay = initialRetryDelay ?? TimeSpan.FromSeconds(1); // 初始延迟1秒
             streamTimeout ??= TimeSpan.FromSeconds(60); // 流读取超时默认60秒
-            if (otherUrls != null) {
+            if (otherUrls != null)
+            {
                 maxRetryCount = otherUrls.Count;
             }
             while (true)
             {
                 try
                 {
-                    if (otherUrls != null&& retryCount>0) {
+                    if (otherUrls != null && retryCount > 0)
+                    {
                         return await TryDownloadOnceAsync(
                           otherUrls[retryCount], savePath, cookie, cancellationToken, streamTimeout.Value);
                     }
@@ -343,8 +775,8 @@ namespace dy.net.service
                         return await TryDownloadOnceAsync(
                             videoUrl, savePath, cookie, cancellationToken, streamTimeout.Value);
                     }
-               
-                    
+
+
                 }
                 catch (Exception ex) when (IsRetryableException(ex) && retryCount < maxRetryCount)
                 {
@@ -382,114 +814,9 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 下载文件并保存到本地（支持重试机制+单线程限制，同时只能一个下载）
-        /// </summary>
-        /// <param name="videoUrl">文件地址</param>
-        /// <param name="savePath">保存路径</param>
-        /// <param name="cookie">请求Cookie</param>
-        /// <param name="httpclientName">HttpClient名称（默认"dy_down1"）</param>
-        /// <param name="cancellationToken">取消令牌（用于终止任务）</param>
-        /// <param name="streamTimeout">流读取超时时间（默认60秒）</param>
-        /// <param name="maxRetryCount">最大重试次数（默认3次）</param>
-        /// <param name="initialRetryDelay">初始重试延迟（默认1秒，指数退避）</param>
-        /// <returns>是否下载成功</returns>
-        //public async Task<bool> DownloadAsync(
-        //       string videoUrl,
-        //       string savePath,
-        //       string cookie,
-        //       CancellationToken cancellationToken = default,
-        //       TimeSpan? streamTimeout = null,
-        //       int maxRetryCount = 3,
-        //       TimeSpan? initialRetryDelay = null)
-        //{
-        //    bool lockAcquired = false;
-        //    try
-        //    {
-        //        // 申请锁：如果已有下载任务在执行，会阻塞等待直到锁释放
-        //        // 传入cancellationToken支持取消等待
-        //        await _downloadSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        //        lockAcquired = true; // 标记锁已获取
-
-        //        // 重试参数初始化
-        //        int retryCount = 0;
-        //        var retryDelay = initialRetryDelay ?? TimeSpan.FromSeconds(1);
-        //        streamTimeout ??= TimeSpan.FromSeconds(60);
-
-        //        while (true)
-        //        {
-        //            try
-        //            {
-        //                return await TryDownloadOnceAsync(
-        //                    videoUrl, savePath, cookie, cancellationToken, streamTimeout.Value);
-        //            }
-        //            catch (Exception ex) when (IsRetryableException(ex) && retryCount < maxRetryCount)
-        //            {
-        //                retryCount++;
-        //                var delay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * Math.Pow(2, retryCount - 1));
-        //                Serilog.Log.Warning(ex, $"下载失败（第{retryCount}/{maxRetryCount}次重试）：{videoUrl}，将在{delay.TotalSeconds:F1}秒后重试");
-
-        //                try
-        //                {
-        //                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-        //                }
-        //                catch (OperationCanceledException)
-        //                {
-        //                    Serilog.Log.Information($"重试等待被取消：{videoUrl}");
-        //                    CleanupIncompleteFile(savePath);
-        //                    return false;
-        //                }
-        //            }
-        //            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        //            {
-        //                Serilog.Log.Information($"下载被取消：{videoUrl}");
-        //                CleanupIncompleteFile(savePath);
-        //                return false;
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                Serilog.Log.Error(ex, $"下载失败（不可重试）：{videoUrl}");
-        //                CleanupIncompleteFile(savePath);
-        //                return false;
-        //            }
-        //        }
-        //    }
-        //    finally
-        //    {
-        //        // 确保锁一定释放（无论是否发生异常）
-        //        if (lockAcquired)
-        //        {
-        //            _downloadSemaphore.Release();
-        //            Serilog.Log.Debug($"下载锁已释放，下一个任务可执行");
-        //        }
-        //    }
-        //}
-
-        // 辅助类：用于using语句自动释放SemaphoreSlim
-        //public sealed class SemaphoreReleaser : IDisposable
-        //{
-        //    private readonly SemaphoreSlim _semaphore;
-        //    private bool _disposed;
-
-        //    public SemaphoreReleaser(SemaphoreSlim semaphore)
-        //    {
-        //        _semaphore = semaphore ?? throw new ArgumentNullException(nameof(semaphore));
-        //    }
-
-        //    public void Dispose()
-        //    {
-        //        if (!_disposed)
-        //        {
-        //            _semaphore.Release(); // 释放锁，允许下一个任务执行
-        //            _disposed = true;
-        //        }
-        //    }
-        //}
-
-
-        /// <summary>
         /// 单次下载尝试（核心下载逻辑）
         /// </summary>
-       private async Task<(bool Success, string ActualSavePath)> TryDownloadOnceAsync(
+        private async Task<(bool Success, string ActualSavePath)> TryDownloadOnceAsync(
        string videoUrl,
        string savePath,
        string cookie,
@@ -513,130 +840,98 @@ namespace dy.net.service
             string detectedExtension = string.Empty;
 
 
-            using (var httpClient = _clientFactory.CreateClient("dy_download"))
+            using (var httpClient = _clientFactory.CreateClient(DouyinRequestParamManager.DY_HTTP_CLIENT_DOWN))
             {
                 // 配置请求头
-                httpClient.DefaultRequestHeaders.Remove("Cookie");
+                if (httpClient.DefaultRequestHeaders.Contains("Cookie"))
+                    httpClient.DefaultRequestHeaders.Remove("Cookie");
                 httpClient.DefaultRequestHeaders.Add("Cookie", cookie);
                 httpClient.Timeout = TimeSpan.FromMinutes(5); // 总请求超时
 
                 // 发送请求
-                using (var response = await httpClient.GetAsync(
+                using var response = await httpClient.GetAsync(
                     videoUrl,
                     HttpCompletionOption.ResponseHeadersRead,
-                    cancellationToken).ConfigureAwait(false))
+                    cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode(); // 验证HTTP状态
+
+                long? totalBytes = response.Content.Headers.ContentLength;
+
+                // 读取响应流
+                using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+
+                if (ext == ".mp3")
                 {
-                    response.EnsureSuccessStatusCode(); // 验证HTTP状态
-
-                    long? totalBytes = response.Content.Headers.ContentLength;
-
-                    // 读取响应流
-                    using (var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+                    var contentType = response.Content.Headers.ContentType?.MediaType;
+                    if (!string.IsNullOrEmpty(contentType))
                     {
-
-                        //if (ext == ".mp3")
-                        //{
-                        //    detectedExtension = DouyinFileUtils.GetFileExtensionByMagicNumber(responseStream);
-                        //}
-
-                        if (ext == ".mp3")
+                        if (contentType.Contains("audio/mp4") || contentType.Contains("audio/m4a"))
                         {
-                            var contentType = response.Content.Headers.ContentType?.MediaType;
-                            if (!string.IsNullOrEmpty(contentType))
-                            {
-                                if (contentType.Contains("audio/mp4") || contentType.Contains("audio/m4a"))
-                                {
-                                    detectedExtension = "m4a";
-                                }
-                                else if (contentType.Contains("audio/mpeg") || contentType.Contains("audio/mp3"))
-                                {
-                                    detectedExtension = "mp3";
-                                }
-                                else if (contentType.Contains("video/mp4"))
-                                {
-                                    detectedExtension = "mp4";
-                                }
-                            }
+                            detectedExtension = "m4a";
                         }
-
-                        if (!string.IsNullOrEmpty(detectedExtension))
+                        else if (contentType.Contains("audio/mpeg") || contentType.Contains("audio/mp3"))
                         {
-                            string extension = Path.GetExtension(actualSavePath);
-                            if (string.IsNullOrEmpty(extension))
-                            {
-                                actualSavePath += detectedExtension;
-                            }
-                            else
-                            {
-                                actualSavePath = Path.ChangeExtension(actualSavePath, detectedExtension.Trim('.'));
-                                savePath = actualSavePath;
-                            }
-                            CleanupIncompleteFile(actualSavePath);
+                            detectedExtension = "mp3";
                         }
-
-                        using (var fileStream = new FileStream(
-                            actualSavePath, // 使用修正后的保存路径
-                            FileMode.CreateNew,
-                            FileAccess.Write,
-                            FileShare.None,
-                            bufferSize: 8192,
-                            options: FileOptions.Asynchronous | FileOptions.SequentialScan))
+                        else if (contentType.Contains("video/mp4"))
                         {
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            long totalRead = 0;
-
-                            while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
-                            {
-                                // 检查流读取超时
-                                if (DateTime.UtcNow - lastStreamActivity > streamTimeout)
-                                {
-                                    throw new TimeoutException($"流读取超时（{streamTimeout.TotalSeconds}秒无数据）");
-                                }
-
-                                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
-                                totalRead += bytesRead;
-                                lastStreamActivity = DateTime.UtcNow;
-
-                                // 进度计算（可选）
-                                if (totalBytes.HasValue)
-                                {
-                                    double progress = (double)totalRead / totalBytes.Value * 100;
-                                    // 进度上报逻辑：OnProgressChanged(progress);
-                                }
-                            }
-
-                            await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false); // 确保数据写入磁盘
+                            detectedExtension = "mp4";
                         }
                     }
                 }
+
+                if (!string.IsNullOrEmpty(detectedExtension))
+                {
+                    string extension = Path.GetExtension(actualSavePath);
+                    if (string.IsNullOrEmpty(extension))
+                    {
+                        actualSavePath += detectedExtension;
+                    }
+                    else
+                    {
+                        actualSavePath = Path.ChangeExtension(actualSavePath, detectedExtension.Trim('.'));
+                        savePath = actualSavePath;
+                    }
+                    CleanupIncompleteFile(actualSavePath);
+                }
+
+                using var fileStream = new FileStream(
+                    actualSavePath, // 使用修正后的保存路径
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 8192,
+                    options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                long totalRead = 0;
+
+                while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    // 检查流读取超时
+                    if (DateTime.UtcNow - lastStreamActivity > streamTimeout)
+                    {
+                        throw new TimeoutException($"流读取超时（{streamTimeout.TotalSeconds}秒无数据）");
+                    }
+
+                    await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+                    totalRead += bytesRead;
+                    lastStreamActivity = DateTime.UtcNow;
+
+                    // 进度计算（可选）
+                    if (totalBytes.HasValue)
+                    {
+                        double progress = (double)totalRead / totalBytes.Value * 100;
+                        // 进度上报逻辑：OnProgressChanged(progress);
+                    }
+                }
+
+                await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false); // 确保数据写入磁盘
             }
 
             // 返回成功状态和实际的保存路径
             return (Success: true, ActualSavePath: actualSavePath);
         }
-
-
-        ///// <summary>下载网络文件到指定路径</summary>
-        //public async Task DownloadFileAsync(string url, string savePath)
-        //{
-        //    if (string.IsNullOrEmpty(url)) throw new ArgumentNullException(nameof(url));
-        //    if (string.IsNullOrEmpty(savePath)) throw new ArgumentNullException(nameof(savePath));
-
-        //    // 创建目录（如果不存在）
-        //    var directory = Path.GetDirectoryName(savePath)!;
-        //    if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
-
-        //    // 下载文件
-        //    using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        //    response.EnsureSuccessStatusCode(); // 非2xx状态码抛出异常
-
-        //    using var stream = await response.Content.ReadAsStreamAsync();
-        //    using var fileStream = new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-        //    await stream.CopyToAsync(fileStream);
-        //}
-
-
 
         /// <summary>
         /// 判断异常是否可重试
@@ -663,102 +958,12 @@ namespace dy.net.service
                 }
                 catch (IOException ex)
                 {
-                    Serilog.Log.Warning(ex, $"清理不完整文件失败：{savePath}（可能被占用）");
+                    Serilog.Log.Error(ex, $"清理无效文件失败：{savePath}（可能被占用）");
                 }
             }
         }
 
-
-
-
-
-        /// <summary>
-        /// 快速检测目标URL是否返回403 Forbidden状态码
-        /// </summary>
-        /// <param name="url">目标地址</param>
-        /// <returns>true=403状态，false=非403状态，null=请求异常</returns>
-        public  async Task<bool> PayUrlIsOKAsync(string url)
-        {
-            if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
-            {
-                Serilog.Log.Error("URL格式无效");
-                return false;
-            }
-
-            try
-            {
-                // 使用Head请求仅获取响应头，提升效率
-                using var request = new HttpRequestMessage(HttpMethod.Head, url);
-                using var _httpClient = _clientFactory.CreateClient("dy_download");
-                using var response = await _httpClient.SendAsync(
-                    request
-                );
-
-                // 直接判断状态码是否为403
-                bool isOk = response.StatusCode == HttpStatusCode.OK;
-
-                Log.Debug($"URL: {url} | 状态码: {(int)response.StatusCode} ({response.StatusCode})");
-                return isOk;
-            }
-            catch (HttpRequestException ex)
-            {
-                // 处理HTTP请求异常（如连接失败、DNS解析错误等）
-                Serilog.Log.Error($"请求异常: {ex.Message}");
-                return false;
-            }
-            catch (TaskCanceledException ex)
-            {
-                // 处理超时异常
-                Serilog.Log.Error($"请求超时: {ex.Message}");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                // 其他异常
-                Serilog.Log.Error($"未知异常: {ex.Message}");
-                return false;
-            }
-        }
-
-
-
-        /// <summary>
-        /// 串行逐个检测URL，找到第一个「非403/404且请求成功」的URL立即终止并返回
-        /// </summary>
-        /// <param name="urls">待检测URL列表</param>
-        /// <returns>第一个符合条件的URL（null=所有URL都是403/404，或全部请求失败）</returns>
-        public async Task<string> CheckPayUrlIsOKAsync(List<string> urls)
-        {
-            // 逐个遍历URL，串行检测
-            foreach (var url in urls)
-            {
-                try
-                {
-                    // 跳过无效URL
-                    if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
-                    {
-                        Log.Error($"URL格式无效：{url}，跳过检测");
-                        continue;
-                    }
-                    // 检测当前URL是否为403/404
-                    bool isOk = await PayUrlIsOKAsync(url);
-
-                    // 核心判断：请求成功且不是403/404 → 立即返回该URL
-                    if (isOk)
-                    {
-                        Log.Debug($"✅ 找到可以下载的地址：{url}...");
-                        return url;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, $"检查下载地址 {url} 时发生异常，继续检查下一个");
-                }
-            }
-            return null;
-        }
-
-
+        #endregion
     }
 
 

@@ -1,5 +1,5 @@
-﻿using dy.net.dto;
-using dy.net.model;
+﻿using dy.net.model.dto;
+using dy.net.model.entity;
 using dy.net.repository;
 
 namespace dy.net.service
