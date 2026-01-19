@@ -1,6 +1,7 @@
 ﻿using ClockSnowFlake;
 using dy.net.model.dto;
 using dy.net.model.entity;
+using dy.net.utils;
 using SqlSugar;
 using System.Linq.Expressions;
 
@@ -22,6 +23,7 @@ namespace dy.net.repository
         public async Task<(List<DouyinCollectCate> list, int totalCount)> GetPagedAsync(DouyinCollectCateRequestDto dto)
         {
             var where = this.Db.Queryable<DouyinCollectCate>()
+                .Where(x=>x.CateType==dto.cateType)
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.cookieId), x => x.CookieId == dto.cookieId);
 
             var totalCount = await where.CountAsync();
@@ -52,6 +54,8 @@ namespace dy.net.repository
                 if (dtoDict.TryGetValue(item.Id, out var dtocate))
                 {
                     item.Sync = dtocate.Sync;
+                    item.SaveFolder = string.IsNullOrWhiteSpace(dtocate.Folder) ? DouyinFileNameHelper.SanitizeLinuxFileName(item.Name, item.Id, true) : dtocate.Folder;
+                    item.UpdateTime = DateTime.Now;
                 }
             });
 

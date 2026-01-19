@@ -20,7 +20,10 @@ namespace dy.net.service
 
 
 
-
+        public async Task<bool> AddAsync(DouyinCollectCate cate)
+        {
+            return await douyinCollectCateRepository.InsertAsync(cate);
+        }
        
 
         /// <summary>
@@ -38,10 +41,11 @@ namespace dy.net.service
         /// </summary>
         /// <param name="cates"></param>
         /// <param name="ckId"></param>
+        /// <param name="cateType"></param>
         /// <returns></returns>
-        public async Task<(int add, int update,int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId)
+        public async Task<(int add, int update,int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId,int cateType)
         {
-            return await douyinCollectCateRepository.Sync(cates, ckId);
+            return await douyinCollectCateRepository.Sync(cates, ckId, cateType);
         }
 
 

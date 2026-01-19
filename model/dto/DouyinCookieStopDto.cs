@@ -12,5 +12,7 @@
         public string Id { get; set; }
 
         public bool Sync { get; set; }
+
+        public string Folder { get; set; }
     }
 }
