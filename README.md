@@ -152,6 +152,8 @@ services:
 
 ![输入图片说明](docs/datalist.png)
 
+![输入图片说明](docs/auth2.png)
+
 ![输入图片说明](docs/auth.png)
 
 ![输入图片说明](docs/logs.png)
