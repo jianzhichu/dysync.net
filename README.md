@@ -74,7 +74,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 ![路径配置示例](docs/auth2.png)
 
-![路径配置示例](docs/followset.png)
+![路径配置示例](docs/auth.png)
 
 ---
 
@@ -152,17 +152,16 @@ services:
 
 ![输入图片说明](docs/datalist.png)
 
-![输入图片说明](docs/auth2.png)
-
-![输入图片说明](docs/auth.png)
-
-![输入图片说明](docs/logs.png)
-
 ![输入图片说明](docs/appconf.png)
 
 ![输入图片说明](docs/player.png)
 
 ![输入图片说明](docs/follows.png)
+
+![路径配置示例](docs/followset.png)
+
+![输入图片说明](docs/logs.png)
+
 
 <div align="center">
   <img src="docs/mobile-home.png" width="30%" />
