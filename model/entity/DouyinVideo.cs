@@ -1,5 +1,6 @@
 ﻿using dy.net.extension;
 using dy.net.model.dto;
+using dy.net.utils;
 using SqlSugar;
 
 namespace dy.net.model.entity
@@ -145,7 +146,7 @@ namespace dy.net.model.entity
         public int IsMergeVideo { get; set; }
 
         [SugarColumn(IsIgnore = true)]
-        public string ViedoTypeStr  => ViedoType.GetDescription();
+        public string ViedoTypeStr  => ViedoType.GetDesc();
 
         [SugarColumn(IsIgnore = true)]
         public string ViedoCate =>(string.IsNullOrWhiteSpace(Tag1) ? "" : Tag1) + "/" + (string.IsNullOrWhiteSpace(Tag2) ? "" : Tag2);

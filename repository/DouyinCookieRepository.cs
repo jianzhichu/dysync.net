@@ -51,5 +51,16 @@ namespace dy.net.repository
 
             return res > 0;
         }
+
+        public async Task<bool> UpdateCookie(DouyinCookie cookie)
+        {
+            if (cookie != null)
+            {
+                var res = await Db.Updateable<DouyinCookie>(cookie).IgnoreColumns(x => new { x.MyUserId }).ExecuteCommandAsync();
+                return res > 0;
+            }
+            return false;
+        
+        }
     }
 }

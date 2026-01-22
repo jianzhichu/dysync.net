@@ -55,7 +55,7 @@ namespace dy.net.repository
                 if (dtoDict.TryGetValue(item.Id, out var dtocate))
                 {
                     item.Sync = dtocate.Sync;
-                    item.SaveFolder = string.IsNullOrWhiteSpace(dtocate.Folder) ? DouyinFileNameHelper.SanitizeLinuxFileName(item.Name, item.Id, true) : dtocate.Folder;
+                    item.SaveFolder = string.IsNullOrWhiteSpace(dtocate.SaveFolder) ? DouyinFileNameHelper.SanitizeLinuxFileName(item.Name, item.Id, true) : dtocate.SaveFolder;
                     item.UpdateTime = DateTime.Now;
                 }
             });

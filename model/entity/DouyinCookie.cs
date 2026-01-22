@@ -75,9 +75,14 @@ namespace dy.net.model.entity
         /// 如果是0，则同步时会获取全部数据；如果是1，则同步时只获取最新的数据（也就是只查一次）
         /// 接口可以将该值改为0，下次开始同步就会重新获取全部数据
         /// </summary>
-        //public int CollHasSyncd { get; set; }
-        //public int FavHasSyncd { get; set; }
-        //public int UperSyncd { get; set; }
+        [SugarColumn(IsNullable = true)]
+        public int CollHasSyncd { get; set; }
+
+        [SugarColumn(IsNullable = true)]
+        public int FavHasSyncd { get; set; }
+
+        [SugarColumn(IsNullable = true)]
+        public int UperSyncd { get; set; }
         /// <summary>
         /// 关注的用户sec_user_id列表 json字符串存储
         /// </summary>
@@ -116,16 +121,16 @@ namespace dy.net.model.entity
         [SugarColumn(Length = 100, IsNullable = true, ColumnName = "useSinglePath")]
         public bool UseSinglePath { get; set; } = true;//默认true
 
-        ///// <summary>
-        ///// 合集存储路径
-        ///// </summary>
-        //[SugarColumn(Length = 500, IsNullable = true)]
-        //public string MixPath { get; set; }
+        /// <summary>
+        /// 合集存储路径
+        /// </summary>
+        [SugarColumn(Length = 500, IsNullable = true)]
+        public string MixPath { get; set; }
 
-        ///// <summary>
-        ///// 短剧存储路径
-        ///// </summary>
-        //[SugarColumn(Length = 500, IsNullable = true)]
-        //public string SeriesPath { get; set; }
+        /// <summary>
+        /// 短剧存储路径
+        /// </summary>
+        [SugarColumn(Length = 500, IsNullable = true)]
+        public string SeriesPath { get; set; }
     }
 }

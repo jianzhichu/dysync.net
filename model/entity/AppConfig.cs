@@ -100,6 +100,17 @@ namespace dy.net.model.entity
         /// 保留原动态视频文件
         /// </summary>
         public bool KeepDynamicVideo { get; set; }
+
+        /// <summary>
+        /// 合集路径
+        /// </summary>
+        [SugarColumn(Length = 500, IsNullable = true)]
+        public string MixPath { get; set; }
+        /// <summary>
+        /// 短剧路径
+        /// </summary>
+        [SugarColumn(Length = 500, IsNullable = true)]
+        public string SeriesPath { get; set; }
     }
 
 }

@@ -86,6 +86,11 @@ namespace dy.net.Controllers
             var conf = dto.conf;
             if (conf != null)
             {
+                if (conf.BatchCount > 30)
+                {
+                    Serilog.Log.Debug("$对不起，为了项目能长久稳定运行，还是最大不要超过30吧。。。");
+                    conf.BatchCount = 30;
+                }
                 var update = await commonService.UpdateConfig(conf);
                 if (update)
                     Serilog.Log.Debug("系统配置导入成功");
@@ -257,7 +262,7 @@ namespace dy.net.Controllers
             }
             else
             {
-                var result = await dyCookieService.UpdateAsync(dyUserCookies);
+                var result = await dyCookieService.UpdateCookieAsync(dyUserCookies);
                 if (result)
                 {
                     ReStartJob();

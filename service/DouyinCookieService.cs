@@ -87,6 +87,12 @@ namespace dy.net.service
             return await _cookieRepository.UpdateAsync(dyUserCookies);
         }
 
+        // 更新
+        public async Task<bool> UpdateCookieAsync(DouyinCookie dyUserCookies)
+        {
+            return await _cookieRepository.UpdateCookie(dyUserCookies);
+        }
+
         // 删除（根据主键）
         public async Task<bool> DeleteByIdAsync(string id)
         {

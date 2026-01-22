@@ -30,6 +30,9 @@
               <a-radio-button value="2">收藏的</a-radio-button>
               <a-radio-button value="3">关注的</a-radio-button>
               <a-radio-button value="4" v-if="showImageViedo">图文视频</a-radio-button>
+              <a-radio-button value="5">收藏夹</a-radio-button>
+              <a-radio-button value="6">合集</a-radio-button>
+              <a-radio-button value="7">短剧</a-radio-button>
             </a-radio-group>
           </a-form-item>
 

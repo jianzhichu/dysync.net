@@ -391,10 +391,10 @@ namespace dy.net.service
                 Date = g.Key,
                 Collect = g.Count(x => x.ViedoType == VideoTypeEnum.dy_collects || x.ViedoType == VideoTypeEnum.dy_custom_collect),
                 Favorite = g.Count(x => x.ViedoType == VideoTypeEnum.dy_favorite),
-                Follow = g.Count(x => x.ViedoType != VideoTypeEnum.dy_follows),
+                Follow = g.Count(x => x.ViedoType == VideoTypeEnum.dy_follows),
                 Graphic = g.Count(x => string.IsNullOrEmpty(x.FileHash)),
-                Mix = g.Count(x => x.ViedoType != VideoTypeEnum.dy_mix),
-                Series = g.Count(x => x.ViedoType != VideoTypeEnum.dy_series),
+                Mix = g.Count(x => x.ViedoType == VideoTypeEnum.dy_mix),
+                Series = g.Count(x => x.ViedoType == VideoTypeEnum.dy_series),
             })
               .ToList();
             return resultData;

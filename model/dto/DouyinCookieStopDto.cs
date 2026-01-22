@@ -13,6 +13,6 @@
 
         public bool Sync { get; set; }
 
-        public string Folder { get; set; }
+        public string SaveFolder { get; set; }
     }
 }

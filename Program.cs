@@ -220,7 +220,7 @@ namespace dy.net
                 //commonService.UpdateAllCookieSyncedToZero();
                 // 初始化配置
                 var config = commonService.InitConfig();
-                if (!isDevelopment)
+                //if (!isDevelopment)
                 {
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
@@ -228,7 +228,7 @@ namespace dy.net
                 }
                 // 初始化Cookie
                 var deploy= Appsettings.Get("deploy");
-                if (deploy != null&&deploy=="docker")//docker环境直接初始化一个默认的配置
+                if (deploy != null && deploy == "docker")//docker环境直接初始化一个默认的配置
                 {
                     var cookieService = services.GetRequiredService<DouyinCookieService>();
                     cookieService.InitCookie();

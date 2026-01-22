@@ -30,9 +30,18 @@ namespace dy.net.job
         {
             if (cate != null)
             {
-                var folder = Path.Combine(cookie.SavePath, VideoType.GetDesc(), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
-                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                return folder;
+                if (string.IsNullOrWhiteSpace(config.SeriesPath))
+                {
+                    var folder = Path.Combine(cookie.SavePath, VideoType.GetDesc(), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
+                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                    return folder;
+                }
+                else
+                {
+                    var folder = Path.Combine(config.SeriesPath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
+                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                    return folder;
+                }
             }
             else
             {

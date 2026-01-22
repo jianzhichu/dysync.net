@@ -25,7 +25,7 @@
           <a-switch v-model:checked="formState.OnlySyncNew" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>开启后，仅同步最近的20条，以及未来新加入收藏、喜欢、关注的视频，不会去同步之前的视频，默认开启， 避免突然大量下载，导致风控</span>
+            <span>开启后，仅同步最近的一页数据（仅对默认收藏夹和点赞视频有效），避免突然大量下载，导致风控</span>
           </div>
         </a-form-item>
       </div>

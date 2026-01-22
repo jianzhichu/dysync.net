@@ -24,10 +24,10 @@ namespace dy.net.job
         // 常量定义
         private const string DEFAULT_FOLLOW_COUNT = "20";
         private const int INVALID_COOKIE_STATUS_CODE = 8;
-        private const string LOG_TAG_COLLECT = "收藏夹同步";
-        private const string LOG_TAG_MIX = "合集列表同步";
-        private const string LOG_TAG_SERIES = "短剧列表同步";
-        private const string LOG_TAG_FOLLOW = "关注列表同步";
+        private const string LOG_TAG_COLLECT = "收藏列表";
+        private const string LOG_TAG_MIX = "合集列表";
+        private const string LOG_TAG_SERIES = "短剧列表";
+        private const string LOG_TAG_FOLLOW = "关注列表";
 
         // 构造函数注入
         public DouyinFollowsAndCollnectsSyncJob(
@@ -123,7 +123,6 @@ namespace dy.net.job
                 Log.Debug($"完成[{ck.UserName}] [列表]同步， 包括 [自定义收藏夹、关注、合集、短剧] ");
             }
 
-            await _douyinCommonService.SetConfigNotFirstRunning();
         }
 
         #region 通用核心方法（无冗余，支持调试）
@@ -251,6 +250,7 @@ namespace dy.net.job
                     var (add, update, succ) = await _followService.Sync(followList, cookie);
                     Log.Information($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}");
                 }
+                await _douyinCommonService.SetConfigNotFirstRunning();
             }
             catch (Exception ex)
             {

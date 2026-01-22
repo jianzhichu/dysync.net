@@ -56,7 +56,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> BatchSave(List<DouyinCollectCateSwitchDto> dto)
         {
 
-            if(dto.Any(x=> !DouyinFileNameHelper.IsValidWithoutSpecialChars(x.Folder)))
+            if(dto.Any(x=> !DouyinFileNameHelper.IsValidWithoutSpecialChars(x.SaveFolder)))
             {
                 return ApiResult.Fail("有部分文件名不符合要求，请检查");
             }

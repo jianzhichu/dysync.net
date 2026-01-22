@@ -59,8 +59,8 @@ type DataItem = {
   useCollectFolder?: boolean;
   downMix?: boolean;
   downSeries?: boolean;
-  // mixPath?: string;
-  // seriesPath?: string;
+  mixPath?: string;
+  seriesPath?: string;
 };
 
 const loading = ref(false);
@@ -124,8 +124,8 @@ const newCookie = (cookie?: DataItem) => {
   cookie.useCollectFolder = false; //是否按收藏夹来下载。
   cookie.downMix = false; //是否下载收藏夹的合集
   cookie.downSeries = false; //是否下载短剧
-  // cookie.mixPath = undefined; //合集存储路径
-  // cookie.seriesPath = undefined; //短剧存储路径
+  cookie.mixPath = undefined; //合集存储路径
+  cookie.seriesPath = undefined; //短剧存储路径
   return cookie;
 };
 
@@ -526,17 +526,30 @@ const saveDrawerData = () => {
         </div>
       </a-form-item>
       <!-- 新增：是否全部用一个地址开关 -->
-      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="是否统一存储路径" name="useSinglePath">
+      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="统一存储路径" name="useSinglePath">
         <div style="display: flex; align-items: center;  gap: 12px;">
           <div class="form-item-div">
             <a-switch v-model:checked="form.useSinglePath" :checked-value="true" :un-checked-value="false" size="default" />
-            <span style="margin-left:10px;">{{form.useSinglePath ?'是':'否'}}</span>
+            <span style="margin-left:10px;">{{form.useSinglePath ?'':''}}</span>
           </div>
 
-          <a-alert message="开启后，所有视频都存储在收藏视频存储的路径，如果是容器部署：docker-compose配置，此时只需要映射一个路径'  " :type="form.useSinglePath?'success':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert message="开启后，喜欢、关注、收藏都存储在一个目录，如果是容器部署：docker-compose配置，只需要映射一个路径 (合集短剧存储路径需要另外设置映射)" :type="form.useSinglePath?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
+      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载自定义收藏夹" name="useCollectFolder">
+        <div style="display: flex; align-items: center;  gap: 12px;">
+          <div class="form-item-div">
+            <a-switch v-model:checked="form.useCollectFolder" :checked-value="true" :un-checked-value="false" size="default" />
+            <span style="margin-left:10px;">{{ form.useCollectFolder ? '' : '' }}</span>
+            <span>存储路径=“收藏的存储路径”</span>
+            <a-button @click="openCollectFolderSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.useCollectFolder">
+              <tag-outlined />
+            </a-button>
+          </div>
 
+          <a-alert message="开启后按照自定义收藏进行下载（需要开启收藏文件夹同步开关）且不再下载默认收藏夹视频" :type="form.useCollectFolder?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+        </div>
+      </a-form-item>
       <!-- 喜欢的存储路径 -->
       <a-form-item label="喜欢的存储路径" name="favSavePath">
         <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
@@ -552,33 +565,57 @@ const saveDrawerData = () => {
           <a-alert message="不想同步关注列表博主的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
-      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载收藏夹" name="useCollectFolder">
+
+      <!-- 下载合集 - 新增name="mixPath" -->
+      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载合集" name="downMix">
         <div style="display: flex; align-items: center;  gap: 12px;">
           <div class="form-item-div">
-            <a-switch v-model:checked="form.useCollectFolder" :checked-value="true" :un-checked-value="false" size="default" />
-            <span style="margin-left:10px;">{{ form.useCollectFolder ? '是' : '否' }}</span>
+            <a-switch v-model:checked="form.downMix" :checked-value="true" :un-checked-value="false" size="default" />
+            <span style="margin-left:10px;">{{ form.downMix ? '' : '' }}</span>
+            <!-- 给输入框对应的form-item添加name属性 -->
+            <a-form-item name="mixPath" noStyle>
+              <a-input v-model:value="form.mixPath" class="form-item-div-input" />
+            </a-form-item>
 
-            <a-button @click="openCollectFolderSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.useCollectFolder">
-              <setting-outlined />
+            <a-button @click="openMixDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downMix"> <tag-outlined />
             </a-button>
           </div>
 
-          <a-alert message="开启后按照设置的自定义收藏文件夹进行下载（需要开启收藏文件夹同步开关）" :type="form.useCollectFolder?'success':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert message="开启后会同步下载收藏的合集（需要开启合集同步开关，不设置路径默认存储到收藏，设置后记得docker里面加映射），" :type="form.downMix?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
+      <!-- 下载短剧 - 新增name="seriesPath" -->
+      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载短剧" name="downSeries">
+        <div style="display: flex; align-items: center;  gap: 12px;">
+          <div class="form-item-div">
+            <a-switch v-model:checked="form.downSeries" :checked-value="true" :un-checked-value="false" size="default" />
+            <span style="margin-left:10px;">{{ form.downSeries ? '' : '' }}</span>
+            <!-- 给输入框对应的form-item添加name属性 -->
+            <a-form-item name="seriesPath" noStyle>
+              <a-input v-model:value="form.seriesPath" class="form-item-div-input" />
+            </a-form-item>
+
+            <a-button @click="openSeriesDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downSeries"> <tag-outlined />
+            </a-button>
+          </div>
+
+          <a-alert message="开启后会同步下载收藏的短剧（需要开启短剧同步开关，不设置路径默认存储到收藏,设置后记得docker里面加映射）" :type="form.downSeries?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+        </div>
+      </a-form-item>
+      <!-- 
       <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载合集" name="downMix">
         <div style="display: flex; align-items: center;  gap: 12px;">
           <div class="form-item-div">
             <a-switch v-model:checked="form.downMix" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{ form.downMix ? '是' : '否' }}</span>
-            <!-- <a-input v-model:value="form.mixPath" class="form-item-div-input" /> -->
+            <a-input v-model:value="form.mixPath" class="form-item-div-input" />
 
-            <a-button @click="openMixDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downMix"> <setting-outlined />
+            <a-button @click="openMixDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downMix"> <tag-outlined />
             </a-button>
           </div>
 
-          <a-alert message="开启后会同步下载收藏的合集（需要开启合集同步开关）" :type="form.downMix?'success':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert message="开启后会同步下载收藏的合集（需要开启合集同步开关，不设置路径默认存储到收藏，设置后记得docker里面加映射），" :type="form.downMix?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -587,15 +624,15 @@ const saveDrawerData = () => {
           <div class="form-item-div">
             <a-switch v-model:checked="form.downSeries" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{ form.downSeries ? '是' : '否' }}</span>
-            <!-- <a-input v-model:value="form.seriesPath" class="form-item-div-input" /> -->
+            <a-input v-model:value="form.seriesPath" class="form-item-div-input" />
 
-            <a-button @click="openSeriesDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downSeries"> <setting-outlined />
+            <a-button @click="openSeriesDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downSeries"> <tag-outlined />
             </a-button>
           </div>
 
-          <a-alert message="开启后会同步下载收藏的短剧（需要开启短剧同步开关）" :type="form.downSeries?'success':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert message="开启后会同步下载收藏的短剧（需要开启短剧同步开关，不设置路径默认存储到收藏,设置后记得docker里面加映射）" :type="form.downSeries?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
-      </a-form-item>
+      </a-form-item> -->
 
       <!-- 图文的存储路径 -->
       <!-- <a-form-item label="图文的存储路径" name="imgSavePath">
@@ -609,7 +646,7 @@ const saveDrawerData = () => {
       <a-form-item label="同步状态" name="status">
         <div style="display: flex; align-items: center; gap: 8px;">
           <a-switch v-model:checked="form.status" :checked-value="1" :un-checked-value="0" size="default" />
-          <span>{{ form.status === 1 ? '开启' : '停止' }}</span>
+          <span>{{ form.status === 1 ? '' : '' }}</span>
         </div>
       </a-form-item>
     </a-form>
@@ -830,7 +867,6 @@ const saveDrawerData = () => {
   flex: 1;
   margin-bottom: 0 !important;
 }
-
 // ========== 精准匹配模板：a-card-grid 样式优化 ==========
 /* 父容器：解决卡片间隙，避免换行（不改动模板，仅样式控制） */
 .drawer-card-container.grid-container {
@@ -844,12 +880,29 @@ const saveDrawerData = () => {
   flex-wrap: wrap;
   gap: 20px; /* 卡片之间的横向/纵向间隙（可自定义，不会换行） */
   box-sizing: border-box;
+  /* 固定左对齐：单元素/多元素都保持从左往右排列 */
+  justify-content: flex-start;
+  /* 新增：兜底最小高度，避免空容器塌陷 */
+  min-height: 200px;
+  /* 新增：左内边距，让单元素和多元素视觉对齐一致 */
+  padding-left: 5px;
+}
+
+/* 新增：单元素样式修复 - 关键修复（仅防变形，不居中） */
+.drawer-card-container.grid-container:has(:only-child) :deep(.drawer-card-grid) {
+  /* 单元素时保持3列布局的宽度，不拉伸，防止变形 */
+  width: calc(33.333% - 10.333px) !important;
+  /* 可选：如果觉得单元素太窄，可取消下面注释，设置固定宽度 */
+  /* width: 300px !important; */
+  min-width: 200px; /* 强制最小宽度，防止压缩变形 */
 }
 
 /* a-card-grid 核心样式：圆角 + 固定宽度 + 内边距 */
 :deep(.drawer-card-grid) {
   // 精确宽度计算：3列均分，减去 gap 分摊值，避免换行
   width: calc(33.333% - 10.333px) !important; /* 20px gap 分摊到3列，每列减 ~13.333px */
+  /* 新增：最小宽度限制，防止变形（核心） */
+  min-width: 200px;
   margin: 5px !important; /* 清除组件自带 margin，避免间隙重复 */
   border-radius: 12px !important; /* 卡片圆角（可自定义大小） */
   padding: 16px !important; /* 卡片内部整体内边距 */
@@ -922,13 +975,30 @@ const saveDrawerData = () => {
 @media (max-width: 768px) {
   :deep(.drawer-card-grid) {
     width: calc(50% - 10px) !important; /* 2列均分，20px gap 每列减10px */
+    /* 新增：响应式最小宽度 */
+    min-width: 180px;
+  }
+
+  /* 响应式下单元素适配（保持左对齐） */
+  .drawer-card-container.grid-container:has(:only-child) :deep(.drawer-card-grid) {
+    width: calc(50% - 10px) !important;
+    min-width: 180px;
   }
 }
 @media (max-width: 480px) {
   :deep(.drawer-card-grid) {
     width: 100% !important; /* 1列铺满，无间距分摊 */
+    /* 新增：移动端最小宽度铺满 */
+    min-width: 100%;
+  }
+
+  /* 移动端单元素适配（1列铺满） */
+  .drawer-card-container.grid-container:has(:only-child) :deep(.drawer-card-grid) {
+    width: 100% !important;
+    min-width: 100%;
   }
 }
+
 // ========== 黑暗模式样式（html.dark-mode + 链式类名，光效增强 + hover 效果） ==========
 /* 卡片：深色背景 + 隐式边框 + 增强光效（默认状态） */
 html.dark-mode .drawer-card-container.grid-container .drawer-card-grid {
@@ -1022,6 +1092,16 @@ html.dark-mode .drawer-card-container.grid-container .drawer-card-grid .ant-inpu
 }
 .ant-alert-success .ant-alert-message {
   color: #228b22;
+}
+
+/* 还原 Alert 各类型的官方默认颜色 */
+/* 错误（error）类型 - 红色系 */
+.ant-alert-error {
+  background-color: #fff1f0; /* 错误类型背景色 */
+  border: 1px solid #ff4d4f; /* 错误类型边框色 */
+}
+.ant-alert-error .ant-alert-message {
+  color: #f5222d; /* 错误类型文字主色 */
 }
 
 .ant-alert-warning {
