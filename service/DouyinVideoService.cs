@@ -328,39 +328,39 @@ namespace dy.net.service
                     }
                 }
 
-                var CookieIds = reDownList.Select(x => x.CookieId).Distinct();
-                foreach (var ck in CookieIds)
-                {
-                    var cookie = douyinCookieRepository.GetById(ck);
-                    if (cookie == null)
-                        continue;
-                    var viedoTypes = videos.Where(x => x.CookieId == ck).Select(x => x.ViedoType).Distinct();
+                //var CookieIds = reDownList.Select(x => x.CookieId).Distinct();
+                //foreach (var ck in CookieIds)
+                //{
+                //    var cookie = douyinCookieRepository.GetById(ck);
+                //    if (cookie == null)
+                //        continue;
+                //    var viedoTypes = videos.Where(x => x.CookieId == ck).Select(x => x.ViedoType).Distinct();
 
-                    if (viedoTypes != null && viedoTypes.Any())
-                    {
-                        foreach (VideoTypeEnum item in viedoTypes)
-                        {
-                            switch (item)
-                            {
-                                case VideoTypeEnum.dy_favorite:
-                                    cookie.FavHasSyncd = 0;
-                                    break;
-                                case VideoTypeEnum.dy_collects:
-                                    cookie.CollHasSyncd = 0;
-                                    break;
-                                case VideoTypeEnum.dy_follows:
-                                    cookie.UperSyncd = 0;
-                                    break;
-                                case VideoTypeEnum.ImageVideo:
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                    }
-                    await douyinCookieRepository.UpdateAsync(cookie);
+                //    //if (viedoTypes != null && viedoTypes.Any())
+                //    //{
+                //    //    foreach (VideoTypeEnum item in viedoTypes)
+                //    //    {
+                //    //        switch (item)
+                //    //        {
+                //    //            case VideoTypeEnum.dy_favorite:
+                //    //                cookie.FavHasSyncd = 0;
+                //    //                break;
+                //    //            case VideoTypeEnum.dy_collects:
+                //    //                cookie.CollHasSyncd = 0;
+                //    //                break;
+                //    //            case VideoTypeEnum.dy_follows:
+                //    //                cookie.UperSyncd = 0;
+                //    //                break;
+                //    //            case VideoTypeEnum.ImageVideo:
+                //    //                break;
+                //    //            default:
+                //    //                break;
+                //    //        }
+                //    //    }
+                //    //}
+                //    await douyinCookieRepository.UpdateAsync(cookie);
 
-                }
+                //}
                 if (!forever)
                     Serilog.Log.Debug("重新下载视频流程执行完成：成功创建{0}条重新下载记录，删除{1}个文件,等待重新下载...", reDownList.Count, filePathsToDelete.Count);
                 return true;

@@ -217,10 +217,10 @@ namespace dy.net
                 // 更新视频类型--兼容老版本--不再需要
                 //commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
-                commonService.UpdateAllCookieSyncedToZero();
+                //commonService.UpdateAllCookieSyncedToZero();
                 // 初始化配置
                 var config = commonService.InitConfig();
-                //if (!isDevelopment)
+                if (!isDevelopment)
                 {
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();

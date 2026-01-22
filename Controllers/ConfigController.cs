@@ -293,19 +293,17 @@ namespace dy.net.Controllers
         [HttpPost("UpdateConfig")]
         public async Task<IActionResult> UpdateConfig(AppConfig config)
         {
-            var data = await commonService.UpdateConfig(config);
-            if (data)
+            var update = await commonService.UpdateConfig(config);
+            if (update)
             {
                 if (config.OnlySyncNew)
                 {
-                    var d = await douyinCookieService.SetOnlySyncNew();
-                    if (d)
-                        Serilog.Log.Debug("仅同步新视频配置已生效,后续所有类型的视频同步将只会读取最近一页约20条数据");
+                    Serilog.Log.Debug("仅同步新视频配置已生效,后续所有类型的视频同步将只会读取最近一页约20条数据");
                 }
 
                 ReStartJob();
             }
-            return ApiResult.Success(data);
+            return ApiResult.Success(update);
         }
 
         /// <summary>

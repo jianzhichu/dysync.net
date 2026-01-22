@@ -61,9 +61,9 @@ namespace dy.net.service
                 FavSavePath = "/app/favorite",
                 UpSavePath = "/app/uper",
                 //ImgSavePath="/app/images",
-                CollHasSyncd = 0,
-                FavHasSyncd = 0,
-                UperSyncd = 0,
+                //CollHasSyncd = 0,
+                //FavHasSyncd = 0,
+                //UperSyncd = 0,
                 MyUserId=""
             };
             return  _cookieRepository.Insert(cookie);
@@ -111,19 +111,19 @@ namespace dy.net.service
         /// 将所有同步类型的同步状态改为已同步，这样，之后就不会再扫描所有接口数据，只会读取最新一页的数据了
         /// </summary>
         /// <returns></returns>
-        public async Task<bool> SetOnlySyncNew()
-        {
-            var cks= await _cookieRepository.GetAllAsync();
+        //public async Task<bool> SetOnlySyncNew()
+        //{
+        //    var cks= await _cookieRepository.GetAllAsync();
 
-            foreach (var item in cks)
-            {
-                item.CollHasSyncd = 1;
-                item.FavHasSyncd = 1;
-                item.UperSyncd = 1;
-            }
-           var d= await _cookieRepository.UpdateRangeAsync(cks);
-            return d>0;
-        }
+        //    foreach (var item in cks)
+        //    {
+        //        item.CollHasSyncd = 1;
+        //        item.FavHasSyncd = 1;
+        //        item.UperSyncd = 1;
+        //    }
+        //   var d= await _cookieRepository.UpdateRangeAsync(cks);
+        //    return d>0;
+        //}
 
     }
 }

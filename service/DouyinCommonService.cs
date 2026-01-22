@@ -50,7 +50,7 @@ namespace dy.net.service
                     BatchCount = 18,
                     LogKeepDay = 7,
                     //UperSaveTogether = false,//博主视频：true-->每个视频单独一个文件夹 false-->所有视频放在同一个文件夹
-                    UperUseViedoTitle = false,//博主视频：true-->使用视频标题作为文件名 false-->使用视频id作为文件名
+                    //UperUseViedoTitle = false,//博主视频：true-->使用视频标题作为文件名 false-->使用视频id作为文件名
                     DownImageVideo = true,//默认下载图文视频
                     DownMp3 = false,
                     DownImage = false,
@@ -111,18 +111,18 @@ namespace dy.net.service
         /// 重置所有Cookie的同步状态为0
         /// </summary>
         /// <returns></returns>
-        public bool UpdateAllCookieSyncedToZero()
-        {
+        //public bool UpdateAllCookieSyncedToZero()
+        //{
 
-            var cookies = sqlSugarClient.Queryable<DouyinCookie>().ToList();
-            foreach (var cookie in cookies)
-            {
-                cookie.CollHasSyncd = 0;
-                cookie.FavHasSyncd = 0;
-                cookie.UperSyncd = 0;
-            }
-            return sqlSugarClient.Updateable(cookies).ExecuteCommand() > 0;
-        }
+        //    var cookies = sqlSugarClient.Queryable<DouyinCookie>().ToList();
+        //    foreach (var cookie in cookies)
+        //    {
+        //        cookie.CollHasSyncd = 0;
+        //        cookie.FavHasSyncd = 0;
+        //        cookie.UperSyncd = 0;
+        //    }
+        //    return sqlSugarClient.Updateable(cookies).ExecuteCommand() > 0;
+        //}
 
         /// <summary>
         /// 查询是否已删除

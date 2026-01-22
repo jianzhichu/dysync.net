@@ -29,7 +29,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 博主视频是否 直接用标题做文件名
         /// </summary>
-        public bool UperUseViedoTitle { get; set; }
+        //public bool UperUseViedoTitle { get; set; }
         /// <summary>
         /// 是否博主视频直接放一个根目录，不另外按名字建文件夹
         /// </summary>

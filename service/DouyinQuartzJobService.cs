@@ -99,8 +99,9 @@ namespace dy.net.service
         /// 启动所有抖音相关定时任务（所有任务独立执行）
         /// </summary>
         /// <param name="expression">Cron表达式或间隔分钟数（所有任务使用相同的执行频率）</param>
+        /// <param name="isRestart"></param>
         /// <returns>是否启动成功</returns>
-        public async Task<bool> InitOrReStartAllJobs(string expression)
+        public async Task<bool> InitOrReStartAllJobs(string expression,bool isRestart=false)
         {
             if (string.IsNullOrWhiteSpace(expression))
             {
@@ -116,13 +117,15 @@ namespace dy.net.service
                 await RemoveAllExistingJobs(scheduler);
 
                 // 遍历启动所有任务（独立执行，无顺序依赖）
-                var allJobKeys = JobConfigs.Keys.Where(k => k != "follow_user_once").ToList(); // 排除单次执行的任务
-                foreach (var jobKey in allJobKeys)
+                // 统一生成任务列表
+                var jobKeys = isRestart
+                    ? JobConfigs.Keys.Where(k => k != "follow_user_once").ToList()
+                    : JobConfigs.Keys.Where(k => k != "follow_user_once" && k != "follow_user").ToList();
+
+                // 执行任务启动逻辑
+                foreach (var jobKey in jobKeys)
                 {
-                    if (jobKey == "follow_user")
-                    {
-                        expression = "60";
-                    }
+                    if (jobKey == "follow_user") expression = "60";
                     var startSuccess = await StartJobAsync(jobKey, expression);
                     if (startSuccess)
                     {
@@ -133,8 +136,16 @@ namespace dy.net.service
                         Log.Error($"启动任务失败：{jobKey}");
                     }
                 }
+                // 补充日志和单次任务
+                if (isRestart)
+                {
+                    Log.Information($"共启动 {jobKeys.Count} 个定时任务");
+                }
+                else
+                {
+                    await StartOneTimeJobAsync("follow_user_once");
+                }
 
-                Log.Information($"共启动 {allJobKeys.Count} 个定时任务，执行频率：{expression}");
 
                 //await StartJobAsync(VideoTypeEnum.dy_custom_collect.GetDesc(), expression);
 

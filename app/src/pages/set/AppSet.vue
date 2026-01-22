@@ -34,21 +34,21 @@
       <div class="form-section">
         <h3 class="section-title">博主视频</h3>
 
-        <a-form-item has-feedback label="默认规则" name="UperUseViedoTitle" :wrapper-col="{ span: 20 }">
+        <!-- <a-form-item has-feedback label="默认规则" name="UperUseViedoTitle" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.UperUseViedoTitle" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>开启后，将使用原标题作为文件名，未开启且未设置标题规则模板，则默认用视频id命名</span>
           </div>
-        </a-form-item>
+        </a-form-item> -->
 
-        <a-form-item has-feedback label="统一存储" name="UperSaveTogether" :wrapper-col="{ span: 20 }">
+        <!-- <a-form-item has-feedback label="统一存储" name="UperSaveTogether" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.UperSaveTogether" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span>开启后，所有博主视频直接都存一个根目录；关闭后，按博主名称创建文件夹单独存储。</span>
           </div>
-        </a-form-item>
+        </a-form-item> -->
 
         <!-- 模板相关配置：只有关闭"标题当文件名"时才显示 -->
         <a-form-item has-feedback label="标题模板" name="FollowedTitleTemplate" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
@@ -57,7 +57,7 @@
             <p></p>
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
             <span style="color: red">
-              请选择文件名占位符和模板分隔符（文件名命名规则配置仅博主视频有效）
+              请选择文件名占位符和模板分隔符（文件名命名规则配置仅博主视频有效，不配置默认使用视频id作为文件名）
             </span>
           </div>
         </a-form-item>
@@ -299,7 +299,7 @@ interface FormState {
   Id: string;
   BatchCount: number;
   DownImageVideo: boolean;
-  UperSaveTogether: boolean;
+  //UperSaveTogether: boolean;
   UperUseViedoTitle: boolean;
   LogKeepDay: number;
   DownImage: boolean;
@@ -323,7 +323,7 @@ const formState: UnwrapRef<FormState> = reactive({
   BatchCount: 10,
   LogKeepDay: 10,
   UperUseViedoTitle: false,
-  UperSaveTogether: false,
+  // UperSaveTogether: false,
   DownImageVideo: false,
   DownMp3: false,
   DownImage: false,
@@ -396,7 +396,7 @@ const getConfig = () => {
           BatchCount: res.data.batchCount,
           DownImageVideo: res.data.downImageVideo,
           UperUseViedoTitle: res.data.uperUseViedoTitle,
-          UperSaveTogether: res.data.uperSaveTogether,
+          // UperSaveTogether: res.data.uperSaveTogether,
           LogKeepDay: res.data.logKeepDay,
           DownImage: res.data.downImage,
           DownMp3: res.data.downMp3,

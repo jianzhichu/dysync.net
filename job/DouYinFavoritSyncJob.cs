@@ -30,18 +30,18 @@ namespace dy.net.job
             return await douyinHttpClientService.SyncFavoriteVideos(count, cursor, cookie.SecUserId, cookie.Cookies);
         }
 
-        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed=null)
-        {
-            return data != null && data.HasMore == 1 && cookie.FavHasSyncd == 0;
-        }
+        //protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed, AppConfig config)
+        //{
+        //    return data != null && data.HasMore == 1;
+        //}
 
 
-        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed,DouyinCollectCate cate)
-        {
-            cookie.FavHasSyncd = 1;
-            await douyinCookieService.UpdateAsync(cookie);
-            await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
-        }
+        //protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed,DouyinCollectCate cate)
+        //{
+        //    cookie.FavHasSyncd = 1;
+        //    await douyinCookieService.UpdateAsync(cookie);
+        //    await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
+        //}
 
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed,DouyinCollectCate cate)
         {

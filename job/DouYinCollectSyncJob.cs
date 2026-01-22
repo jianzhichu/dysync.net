@@ -36,17 +36,17 @@ namespace dy.net.job
             return await douyinHttpClientService.SyncCollectVideos(cursor, count, cookie.Cookies);
         }
 
-        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed = null)
-        {
-            return data != null && data.HasMore == 1 && cookie.CollHasSyncd == 0;
-        }
+        //protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed , AppConfig config)
+        //{
+        //    return data != null && data.HasMore == 1 && cookie.CollHasSyncd == 0;
+        //}
 
-        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount,DouyinFollowed followed,DouyinCollectCate cate)
-        {
-            cookie.CollHasSyncd = 1;
-            await douyinCookieService.UpdateAsync(cookie);
-            Log.Debug($"[{VideoType}]-[{cookie.UserName}],本次成功同步{syncCount}条视频");
-        }
+        //protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount,DouyinFollowed followed,DouyinCollectCate cate)
+        //{
+        //    cookie.CollHasSyncd = 1;
+        //    await douyinCookieService.UpdateAsync(cookie);
+        //    Log.Debug($"[{VideoType}]-[{cookie.UserName}],本次成功同步{syncCount}条视频");
+        //}
 
 
 

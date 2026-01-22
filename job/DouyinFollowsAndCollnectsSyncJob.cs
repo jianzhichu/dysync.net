@@ -240,7 +240,7 @@ namespace dy.net.job
                     if (data.Followings?.Any() == true)
                     {
                         followList.AddRange(data.Followings);
-                        Log.Debug($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：获取{data.Followings.Count}条，累计{followList.Count}条");
+                        //Log.Debug($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：获取{data.Followings.Count}条，累计{followList.Count}条");
                     }
 
                     if (!config.IsFirstRunning) hasMore = false;

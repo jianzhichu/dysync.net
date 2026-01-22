@@ -21,10 +21,10 @@ namespace dy.net.job
             return await douyinHttpClientService.SyncMixViedosByMixId(cursor,count,cookie.Cookies,cate.XId);
         }
 
-        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed=null)
-        {
-            return data != null && data.HasMore == 1;
-        }
+        //protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed=null)
+        //{
+        //    return data != null && data.HasMore == 1;
+        //}
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
             if (cate != null)

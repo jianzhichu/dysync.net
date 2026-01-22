@@ -62,15 +62,15 @@ namespace dy.net.job
         #region 私有字段
 
         // 类级别静态字段：映射视频类型与同步完成状态判断逻辑（复用+易维护）
-        private static readonly Dictionary<VideoTypeEnum, Func<DouyinCookie, bool>> _syncStatusCheckMap = new()
-        {
-            [VideoTypeEnum.dy_favorite] = cookie => cookie.FavHasSyncd == 1,
-            [VideoTypeEnum.dy_collects] = cookie => cookie.CollHasSyncd == 1,
-            [VideoTypeEnum.dy_follows] = cookie => cookie.UperSyncd == 1,
-            [VideoTypeEnum.ImageVideo] = cookie => cookie.UperSyncd == 1
-                                                  && cookie.CollHasSyncd == 1
-                                                  && cookie.FavHasSyncd == 1
-        };
+        //private static readonly Dictionary<VideoTypeEnum, Func<DouyinCookie, bool>> _syncStatusCheckMap = new()
+        //{
+        //    [VideoTypeEnum.dy_favorite] = cookie => cookie.FavHasSyncd == 1,
+        //    [VideoTypeEnum.dy_collects] = cookie => cookie.CollHasSyncd == 1,
+        //    [VideoTypeEnum.dy_follows] = cookie => cookie.UperSyncd == 1,
+        //    [VideoTypeEnum.ImageVideo] = cookie => cookie.UperSyncd == 1
+        //                                          && cookie.CollHasSyncd == 1
+        //                                          && cookie.FavHasSyncd == 1
+        //};
 
         #endregion
 
@@ -180,14 +180,16 @@ namespace dy.net.job
         /// <returns>视频信息对象，包含视频列表和分页信息</returns>
         protected abstract Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate);
 
-        /// <summary>
-        /// 判断是否应该继续同步下一页数据
-        /// </summary>
-        /// <param name="cookie">用户Cookie</param>
-        /// <param name="data">当前获取到的视频数据</param>
-        /// <param name="followed">关注博主</param>
-        /// <returns>如果应该继续同步，则为true；否则为false</returns>
-        protected abstract bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed);
+        ///// <summary>
+        ///// 判断是否应该继续同步下一页数据
+        ///// </summary>
+        ///// <param name="cookie">用户Cookie</param>
+        ///// <param name="data">当前获取到的视频数据</param>
+        ///// <param name="followed">关注博主</param>
+        ///// <returns>如果应该继续同步，则为true；否则为false</returns>
+        //protected bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed, AppConfig config) { 
+        
+        //}
 
         /// <summary>
         /// 获取下一页数据的游标
@@ -258,7 +260,7 @@ namespace dy.net.job
         /// <param name="followed"></param>
         /// <param name="cate"></param>
         /// <returns>一个表示异步操作的任务</returns>
-        protected virtual async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed = null,DouyinCollectCate cate=null)
+        protected  async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed = null,DouyinCollectCate cate=null)
         {
             var tag = cate?.Name ?? followed?.UperName ?? string.Empty;
             tag = !string.IsNullOrWhiteSpace(tag) ? $"-[{tag}]" : tag;
@@ -392,10 +394,12 @@ namespace dy.net.job
                     break;
                 }
                 // 判断是否还有更多数据
-                hasMore = ShouldContinueSync(cookie, data, followed);
+                //hasMore = ShouldContinueSync(cookie, data, followed, config);
 
                 // 获取下一页游标
                 cursor = GetNextCursor(data);
+
+                hasMore = data.HasMore == 1;
 
                 // 处理视频列表
                 (List<DouyinVideo> videos,int syncCountx) = await ProcessVideoList(syncCount,cookie, data, config, followed, cate);
@@ -407,8 +411,7 @@ namespace dy.net.job
 
                 syncCount += syncCountx;
 
-                // 检查批次上限，若满足条件则终止循环（核心优化：抽离为方法）
-                if (IsSyncLimitReached(cookie, config, syncCount,cate))
+                if (IsSyncLimitReached(cookie, config, syncCount,cate,followed))
                 {
                     break;
                 }
@@ -426,8 +429,10 @@ namespace dy.net.job
         /// <param name="cookie">抖音Cookie</param>
         /// <param name="config">同步配置</param>
         /// <param name="syncCount">已同步数量</param>
+        /// <param name="cate"></param>
+        /// <param name="followed"></param>
         /// <returns>是否需要终止循环</returns>
-        private bool IsSyncLimitReached(DouyinCookie cookie, AppConfig config, int syncCount,DouyinCollectCate cate)
+        private bool IsSyncLimitReached(DouyinCookie cookie, AppConfig config, int syncCount,DouyinCollectCate cate,DouyinFollowed followed)
         {
             if(cate!=null && cate.CateType != VideoTypeEnum.dy_custom_collect)
             {
@@ -447,23 +452,25 @@ namespace dy.net.job
                 }
 
             }
+            if (VideoType == VideoTypeEnum.dy_collects || VideoType == VideoTypeEnum.dy_favorite)
+                return config.OnlySyncNew;
 
+            return VideoType == VideoTypeEnum.dy_follows && !followed.FullSync;
 
-            // 获取当前视频类型对应的状态判断逻辑
-            if (!_syncStatusCheckMap.TryGetValue(VideoType, out var isSyncCompleted))
-            {
-                //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]无匹配的同步状态判断规则，不终止循环");
-                return false;
-            }
+            //// 获取当前视频类型对应的状态判断逻辑
+            //if (!_syncStatusCheckMap.TryGetValue(VideoType, out var isSyncCompleted))
+            //{
+            //    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]无匹配的同步状态判断规则，不终止循环");
+            //    return false;
+            //}
 
-            // 状态满足则记录日志并返回「终止循环」
-            if (isSyncCompleted.Invoke(cookie))
-            {
-                Log.Debug($"[{VideoType.GetDesc()}][{cookie.UserName}]本次同步达到上限{config.BatchCount}，停止同步!!!");
-                return true;
-            }
+            //// 状态满足则记录日志并返回「终止循环」
+            //if (isSyncCompleted.Invoke(cookie))
+            //{
+            //    Log.Debug($"[{VideoType.GetDesc()}][{cookie.UserName}]本次同步达到上限{config.BatchCount}，停止同步!!!");
+            //    return true;
+            //}
 
-            return false;
         }
         /// <summary>
         /// 遍历视频列表，分别处理每个视频和图片集
@@ -1334,7 +1341,7 @@ namespace dy.net.job
                 AuthorAvatarUrl = item.Author.AvatarLarger?.UrlList?.FirstOrDefault() ?? item.Author.AvatarThumb?.UrlList?.FirstOrDefault(),
                 CreateTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
                 VideoTitle = string.IsNullOrWhiteSpace(item.Desc) ? $"{item.Author?.Nickname}-{item.CreateTime}" : item.Desc,
-                VideoTitleSimplify = VideoType == VideoTypeEnum.dy_follows? GetVideoSimplifyTitle(item):string.Empty,
+                //VideoTitleSimplify = VideoType == VideoTypeEnum.dy_follows? GetVideoSimplifyTitle(item):string.Empty,
                 Id = IdGener.GetLong().ToString(),
                 Resolution = $"{bitRate.PlayAddr.Width}×{bitRate.PlayAddr.Height}",
                 FileSize = bitRate.PlayAddr.DataSize,
@@ -1371,17 +1378,17 @@ namespace dy.net.job
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        private string GetVideoSimplifyTitle(Aweme item)
-        {
-            var config = douyinCommonService.GetConfig();
-            string simplifiedTitle = string.Empty;
+        //private string GetVideoSimplifyTitle(Aweme item)
+        //{
+        //    var config = douyinCommonService.GetConfig();
+        //    string simplifiedTitle = string.Empty;
 
-            if (config?.UperUseViedoTitle ?? false)
-            {
-                simplifiedTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
-            }
-            return simplifiedTitle;
-        }
+        //    if (config?.UperUseViedoTitle ?? false)
+        //    {
+        //        simplifiedTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
+        //    }
+        //    return simplifiedTitle;
+        //}
 
         #endregion
 

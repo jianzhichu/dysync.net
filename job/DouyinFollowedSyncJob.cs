@@ -29,10 +29,10 @@ namespace dy.net.job
             return await douyinHttpClientService.SyncUpderPostVideos(count, cursor, followed.SecUid, cookie.Cookies);
         }
 
-        protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed)
-        {
-            return data != null && data.HasMore == 1 && cookie.UperSyncd == 0 && followed.FullSync;
-        }
+        //protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed,AppConfig config)
+        //{
+        //    return data != null && data.HasMore == 1 && cookie.UperSyncd == 0 && followed.FullSync;
+        //}
         protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
         {
             return Path.Combine(cookie.UpSavePath, "author");
@@ -104,14 +104,14 @@ namespace dy.net.job
 
 
             string fileName;
-            if (config?.UperUseViedoTitle ?? false)//优先
-            {
-                var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
-                var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
-                fileName = string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{Format}" : $"{existingName}.{Format}";
-            }
-            else
-            {
+            //if (config?.UperUseViedoTitle ?? false)//优先
+            //{
+            //    var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
+            //    var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
+            //    fileName = string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{Format}" : $"{existingName}.{Format}";
+            //}
+            //else
+            //{
 
                 if (!string.IsNullOrWhiteSpace(config.FullFollowedTitleTemplate))
                 {
@@ -131,7 +131,7 @@ namespace dy.net.job
                 {
                     fileName = $"{item.AwemeId}.{Format}";
                 }
-            }
+            //}
             return fileName;
 
         }
@@ -151,12 +151,12 @@ namespace dy.net.job
             return base.GetNfoFileName(cookie, item, config, imageType, cate);
         }
 
-        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed, DouyinCollectCate cate)
-        {
-            cookie.UperSyncd = 1;
-            await douyinCookieService.UpdateAsync(cookie);
-            await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
-        }
+        //protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed, DouyinCollectCate cate)
+        //{
+        //    cookie.UperSyncd = 1;
+        //    await douyinCookieService.UpdateAsync(cookie);
+        //    await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
+        //}
 
       
     }
