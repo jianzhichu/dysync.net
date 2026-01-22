@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using dy.net.model.dto;
+using System.Collections.Generic;
 
 namespace dy.net.utils
 {
@@ -8,6 +9,46 @@ namespace dy.net.utils
     /// </summary>
     public static class DouyinRequestParamManager
     {
+
+
+        #region 基础参数（直接返回模板引用，存在交叉修改风险）
+        /// <summary>
+        /// 私有静态只读基础参数模板（仅创建1次）
+        /// </summary>
+        private static readonly Dictionary<string, string> _baseParamTemplate = new Dictionary<string, string>
+        {
+            {"device_platform", "webapp"},
+            {"aid", "6383"},
+            {"channel", "channel_pc_web"},
+            {"pc_client_type", "1"},
+            {"pc_libra_divert", "Windows"},
+            {"cookie_enabled", "true"},
+            {"browser_language", "zh-CN"},
+            {"browser_platform", "Win32"},
+            {"browser_name", "Chrome"},
+            {"browser_online", "true"},
+            {"engine_name", "Blink"},
+            {"os_name", "Windows"},
+            {"os_version", "10"},
+            {"device_memory", "8"},
+            {"platform", "PC"},
+            {"downlink", "10"},
+            {"effective_type", "4g"},
+            {"round_trip_time", "0"},
+            {"update_version_code", "170400"},
+            {"whale_cut_token", ""}
+        };
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private static Dictionary<string, string> InitBaseParams()
+        {
+            return new Dictionary<string, string>(_baseParamTemplate);
+        }
+        #endregion
+
         #region 全局常量（接口调用公共配置）
         /// <summary>
         /// 抖音全局域名
@@ -399,42 +440,24 @@ namespace dy.net.utils
         }
         #endregion
 
-        #region 基础参数（直接返回模板引用，存在交叉修改风险）
         /// <summary>
-        /// 私有静态只读基础参数模板（仅创建1次）
+        /// 获取视频类型名称
         /// </summary>
-        private static readonly Dictionary<string, string> _baseParamTemplate = new Dictionary<string, string>
-        {
-            {"device_platform", "webapp"},
-            {"aid", "6383"},
-            {"channel", "channel_pc_web"},
-            {"pc_client_type", "1"},
-            {"pc_libra_divert", "Windows"},
-            {"cookie_enabled", "true"},
-            {"browser_language", "zh-CN"},
-            {"browser_platform", "Win32"},
-            {"browser_name", "Chrome"},
-            {"browser_online", "true"},
-            {"engine_name", "Blink"},
-            {"os_name", "Windows"},
-            {"os_version", "10"},
-            {"device_memory", "8"},
-            {"platform", "PC"},
-            {"downlink", "10"},
-            {"effective_type", "4g"},
-            {"round_trip_time", "0"},
-            {"update_version_code", "170400"},
-            {"whale_cut_token", ""}
-        };
-
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <param name="videoType"></param>
         /// <returns></returns>
-        private static Dictionary<string, string> InitBaseParams()
+        public static string GetDesc(this VideoTypeEnum videoType)
         {
-            return new Dictionary<string, string>(_baseParamTemplate);
+            return videoType switch
+            {
+                VideoTypeEnum.dy_favorite => "喜欢",
+                VideoTypeEnum.dy_collects => "默认收藏夹",
+                VideoTypeEnum.dy_follows => "关注",
+                VideoTypeEnum.ImageVideo => "图文视频",
+                VideoTypeEnum.dy_custom_collect => "自定义收藏夹",
+                VideoTypeEnum.dy_mix => "合集",
+                VideoTypeEnum.dy_series => "短剧",
+                _ => string.Empty // 匹配所有未定义的枚举值，返回空字符串（替代原 default）
+            };
         }
-        #endregion
     }
 }

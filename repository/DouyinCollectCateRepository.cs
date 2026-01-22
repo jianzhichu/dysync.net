@@ -3,6 +3,7 @@ using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.utils;
 using SqlSugar;
+using System;
 using System.Linq.Expressions;
 
 namespace dy.net.repository
@@ -103,8 +104,11 @@ namespace dy.net.repository
                     // 用Dictionary查找，效率更高
                     if (dbCateDict.TryGetValue(cate.XId, out var existCate))
                     {
-                        // 对比字段是否有变化（根据实际业务字段调整）
-                        bool isChanged = !string.Equals(existCate.Name, cate.Name, StringComparison.Ordinal);
+                        // 对比字段是否有变化
+                        bool isChanged = !string.Equals(existCate.Name, cate.Name, StringComparison.Ordinal) ||
+                            !string.Equals(existCate.CoverUrl, cate.CoverUrl, StringComparison.Ordinal) ||
+                            !string.Equals(existCate.SaveFolder, cate.SaveFolder, StringComparison.Ordinal) ||
+                            existCate.Total != cate.Total;
 
                         if (isChanged)
                         {
@@ -131,7 +135,6 @@ namespace dy.net.repository
                     updateCount = await Db.Updateable(toUpdateCates)
                         .IgnoreColumns(x => new { x.Sync, x.CreateTime, x.CookieId })
                         .IgnoreNullColumns() // 忽略空值字段
-                        .Where(c => c.Id == c.Id) // 批量更新默认按主键匹配，此处显式指定（也可省略，SqlSugar自动识别主键）
                         .ExecuteCommandAsync();
                 }
 
@@ -154,12 +157,26 @@ namespace dy.net.repository
                 // 异常时回滚事务（补充：避免Db.Ado未初始化事务导致的空引用）
                 await Db.Ado?.RollbackTranAsync();
                 isSuccess = false;
-                Serilog.Log.Error($"同步收藏夹:类型-{cateType}异常，{ex.StackTrace}");
+                Serilog.Log.Error($"同步{cateType.GetDesc()}时发生异常，{ex.StackTrace}");
             }
 
             //Serilog.Log.Debug($"本次收藏夹{cateType}同步结果,新增:{addCount},更新:{updateCount},删除:{deleteCount}");
             // 8. 返回最终结果
             return (addCount, updateCount, deleteCount, isSuccess);
+        }
+
+        /// <summary>
+        /// 短剧、合集完结
+        /// </summary>
+        /// <param name="cate"></param>
+        /// <returns></returns>
+        public async Task<bool> UpdateCateEndStatus(DouyinCollectCate cate)
+        {
+            var videoCounts = await Db.Queryable<DouyinVideo>().Where(x => x.CateId == cate.Id && x.CateXId == cate.XId && x.ViedoType == cate.CateType).CountAsync();
+            cate.IsEnd = videoCounts == cate.Total;
+         
+            var update = await Db.Updateable(cate).UpdateColumns(x => new { x.IsEnd }).ExecuteCommandAsync();
+            return update > 0;
         }
     }
 }

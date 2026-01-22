@@ -3,6 +3,7 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
+using Serilog;
 using System;
 
 namespace dy.net.job
@@ -25,6 +26,11 @@ namespace dy.net.job
         }
 
 
+        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
+        {
+            return Path.Combine(cookie.SavePath, "author");
+        }
+
         protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
         {
             return await douyinHttpClientService.SyncCollectVideos(cursor, count, cookie.Cookies);
@@ -35,27 +41,27 @@ namespace dy.net.job
             return data != null && data.HasMore == 1 && cookie.CollHasSyncd == 0;
         }
 
-        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount,DouyinFollowed followed)
+        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount,DouyinFollowed followed,DouyinCollectCate cate)
         {
-            if (syncCount > 0)
-            {
-                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}],本次共同步成功{syncCount}条视频");
-                cookie.CollHasSyncd = 1;
-                await douyinCookieService.UpdateAsync(cookie);
-            }
-            else
-            {
-                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}],没有可以同步的新视频");
-            }
+            cookie.CollHasSyncd = 1;
+            await douyinCookieService.UpdateAsync(cookie);
+            Log.Debug($"[{VideoType}]-[{cookie.UserName}],本次成功同步{syncCount}条视频");
         }
 
 
 
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            var (tag1, _, _) = GetVideoTags(item);
-            var safeTag1 = string.IsNullOrWhiteSpace(tag1) ? "other" : DouyinFileNameHelper.SanitizeLinuxFileName(tag1, "", true);
-            var folder = Path.Combine(cookie.SavePath, safeTag1, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}");
+            string authorFolder;
+            if (string.IsNullOrWhiteSpace(item.Author?.Nickname) && string.IsNullOrWhiteSpace(item.Author?.Uid))
+            {
+                authorFolder = "未知博主";
+            }
+            else
+            {
+                authorFolder = $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Author?.Nickname, item.Author?.Uid, true)}";
+            }
+            var folder = Path.Combine(cookie.SavePath, authorFolder, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             return folder;
 

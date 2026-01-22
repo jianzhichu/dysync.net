@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace dy.net.job
 {
-    public class DouyinFollowedViedoSyncJob : DouyinBasicSyncJob
+    public class DouyinFollowedSyncJob : DouyinBasicSyncJob
     {
-        public DouyinFollowedViedoSyncJob(DouyinCookieService douyinCookieService, DouyinHttpClientService douyinHttpClientService, DouyinVideoService douyinVideoService, DouyinCommonService douyinCommonService, DouyinFollowService douyinFollowService, DouyinMergeVideoService douyinMergeVideoService, DouyinCollectCateService douyinCollectCateService) : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService, douyinFollowService, douyinMergeVideoService, douyinCollectCateService)
+        public DouyinFollowedSyncJob(DouyinCookieService douyinCookieService, DouyinHttpClientService douyinHttpClientService, DouyinVideoService douyinVideoService, DouyinCommonService douyinCommonService, DouyinFollowService douyinFollowService, DouyinMergeVideoService douyinMergeVideoService, DouyinCollectCateService douyinCollectCateService) : base(douyinCookieService, douyinHttpClientService, douyinVideoService, douyinCommonService, douyinFollowService, douyinMergeVideoService, douyinCollectCateService)
         {
         }
 
@@ -33,7 +33,10 @@ namespace dy.net.job
         {
             return data != null && data.HasMore == 1 && cookie.UperSyncd == 0 && followed.FullSync;
         }
-
+        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
+        {
+            return Path.Combine(cookie.UpSavePath, "author");
+        }
 
         /// <summary>
         /// 关注用户特殊处理文件夹存储路径，用户可自定义保存路径
@@ -41,6 +44,7 @@ namespace dy.net.job
         /// <param name="cookie"></param>
         /// <param name="item"></param>
         /// <param name="followed"></param>
+        /// <param name="cate"></param>
         /// <param name="config"></param>
         /// <returns></returns>
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed,DouyinCollectCate cate)
@@ -49,7 +53,7 @@ namespace dy.net.job
             // 1. 优先获取有效的作者名称（遵循原有优先级：followed.UperName > item.Author.Nickname > 默认值）
             var rawAuthorName = followed?.UperName ?? item?.Author?.Nickname;
             var authorName = string.IsNullOrWhiteSpace(rawAuthorName)
-                ? "UnknownAuthor"
+                ? "未知博主"
                 : DouyinFileNameHelper.SanitizeLinuxFileName(rawAuthorName, "", true);
             // 2. 确定最终文件夹路径（遵循原有优先级：followed.SavePath > authorName > 基础路径）
             var targetFolderName = !string.IsNullOrWhiteSpace(followed?.SavePath) ? followed.SavePath : authorName;
@@ -58,17 +62,10 @@ namespace dy.net.job
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             #endregion
 
-            if (config.UperSaveTogether)
-            {
-                return folder;
-            }
-            else
-            {
-                var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId,true);
-                var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName).Result;
-                var fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
-                return Path.Combine(folder, fileNameFolder);
-            }
+            var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
+            var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
+            var fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
+            return Path.Combine(folder, fileNameFolder);
         }
         /// <summary>
         /// 关注的视频，生成文件名称
@@ -76,8 +73,9 @@ namespace dy.net.job
         /// <param name="cookie"></param>
         /// <param name="item"></param>
         /// <param name="config"></param>
+        /// <param name="cate"></param>
         /// <returns></returns>
-        protected override string GetVideoFileName(DouyinCookie cookie, Aweme item,AppConfig config)
+        protected override string GetVideoFileName(DouyinCookie cookie, Aweme item,AppConfig config,DouyinCollectCate cate)
         {
             
             string Format = "mp4";
@@ -109,7 +107,7 @@ namespace dy.net.job
             if (config?.UperUseViedoTitle ?? false)//优先
             {
                 var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
-                var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName).Result;
+                var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
                 fileName = string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{Format}" : $"{existingName}.{Format}";
             }
             else
@@ -146,47 +144,20 @@ namespace dy.net.job
         /// <param name="item"></param>
         /// <param name="config"></param>
         /// <param name="imageType"></param>
+        /// <param name="cate"></param>
         /// <returns></returns>
-        protected override string GetNfoFileName(DouyinCookie cookie, Aweme item, AppConfig config, string imageType)
+        protected override string GetNfoFileName(DouyinCookie cookie, Aweme item, AppConfig config, string imageType,DouyinCollectCate cate)
         {
-            if (config.UperSaveTogether)
-            {
-                var videoFileName = GetVideoFileName(cookie, item,config);
-                return $"{Path.GetFileNameWithoutExtension(videoFileName)}{imageType}";
-            }
-            else
-            {
-                return base.GetNfoFileName(cookie, item, config, imageType);
-            }
+            return base.GetNfoFileName(cookie, item, config, imageType, cate);
         }
 
-        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed)
+        protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            if (syncCount > 0)
-            {
-                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}],本次共同步成功{syncCount}条视频");
-                cookie.UperSyncd = 1;
-                await douyinCookieService.UpdateAsync(cookie);
-            }
-            else
-            {
-                Serilog.Log.Debug($"{VideoType}-Cookie-[{cookie.UserName}]-{(followed == null ? "" : $"{followed.UperName}")},没有可以同步的新视频");
-            }
+            cookie.UperSyncd = 1;
+            await douyinCookieService.UpdateAsync(cookie);
+            await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
         }
 
-        protected override VideoEntityDifferences GetVideoEntityDifferences(DouyinCookie cookie, Aweme item)
-        {
-            var config = douyinCommonService.GetConfig();
-            string simplifiedTitle = string.Empty;
-
-            if (config?.UperUseViedoTitle ?? false)
-            {
-                simplifiedTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
-            }
-            return new VideoEntityDifferences
-            {
-                VideoTitleSimplify = simplifiedTitle
-            };
-        }
+      
     }
 }

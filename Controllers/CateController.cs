@@ -11,12 +11,12 @@ namespace dy.net.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class CollectController : ControllerBase
+    public class CateController : ControllerBase
     {
         private readonly DouyinCollectCateService _douyinCollectCateService;
         private readonly DouyinQuartzJobService _douyinQuartzJobService;
 
-        public CollectController(DouyinCollectCateService douyinCollectCateService, DouyinQuartzJobService douyinQuartzJobService)
+        public CateController(DouyinCollectCateService douyinCollectCateService, DouyinQuartzJobService douyinQuartzJobService)
         {
             this._douyinCollectCateService = douyinCollectCateService;
             _douyinQuartzJobService = douyinQuartzJobService;

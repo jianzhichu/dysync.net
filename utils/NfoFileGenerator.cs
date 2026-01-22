@@ -45,17 +45,17 @@ namespace dy.net.utils
                             }
                             var nfoActorFullPath = Path.Combine(actorsDir, $"{video.Author}{fileExt}");
 
-                            if (File.Exists(nfoActorFullPath))
+                            if (!File.Exists(nfoActorFullPath))
                             {
-                                File.Delete(nfoActorFullPath);
+                                File.Copy(video.AuthorAvatar, nfoActorFullPath, overwrite: true);
+                                //File.Delete(video.AuthorAvatar);
                             }
-                            // 执行复制（CopyTo支持覆盖，但先删除更可控）
-                            File.Copy(video.AuthorAvatar, nfoActorFullPath, overwrite: true);
                         }
                     }
                 }
 
-                GenerateNfoFile(new DouyinVideoNfo
+
+              var nfoInfo=  new DouyinVideoNfo
                 {
                     Actors = new List<Actor>
                     {
@@ -70,7 +70,19 @@ namespace dy.net.utils
                     Thumbnail = "poster.jpg",// 使用poster作为缩略图
                     ReleaseDate = video.CreateTime,
                     Genres = new List<string> { video.Tag1, video.Tag2, video.Tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
-                }, nfoFullPath);
+                };
+                if (video.ViedoType == VideoTypeEnum.dy_mix || video.ViedoType == VideoTypeEnum.dy_series)
+                {
+                    string directory = Path.GetDirectoryName(nfoFullPath);
+                    nfoFullPath = Path.Combine(directory, "tvshow.nfo");
+                    if (!File.Exists(nfoFullPath))
+                        GenerateNfoFile(nfoInfo, nfoFullPath, "tvshow");
+                }
+                else
+                {
+                    GenerateNfoFile(nfoInfo, nfoFullPath);
+                }
+               
             }
             catch (Exception ex)
             {
@@ -78,7 +90,7 @@ namespace dy.net.utils
             }
         }
 
-        private static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath)
+        private static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath,string xmlRoot= "movie")
         {
             try
             {
@@ -89,7 +101,7 @@ namespace dy.net.utils
                     throw new ArgumentException("文件路径不能为空", nameof(filePath));
 
                 // 创建根元素
-                XElement root = new XElement("movie");
+                XElement root = new XElement(xmlRoot);
                 //root.Add(new XElement("outline")); 
                 root.Add(new XElement("lockdata", true));
                 //root.Add(new XElement("director", videoInfo.Author));

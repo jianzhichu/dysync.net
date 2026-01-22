@@ -12,7 +12,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 用户抖音ID，对应我关注信息里面的myself_user_id
         /// </summary>
-        [SugarColumn(Length =500,IsNullable =true)]
+        [SugarColumn(Length = 500, IsNullable = true)]
         public string MyUserId { get; set; }
         /// <summary>
         /// 用户描述
@@ -21,42 +21,42 @@ namespace dy.net.model.entity
         /// <summary>
         /// 用户抖音Cookie
         /// </summary>
-        [SugarColumn(Length =-1,IsNullable =true)]
+        [SugarColumn(Length = -1, IsNullable = true)]
         public string Cookies { get; set; }
         /// <summary>
         /// 存储路径（收藏视频的存储路径）
         /// </summary>
-        [SugarColumn(Length =255,IsNullable =true)]
+        [SugarColumn(Length = 255, IsNullable = true)]
         public string SavePath { get; set; }
 
         /// <summary>
         /// 是否按收藏夹文件夹来存储视频
         /// </summary>
-        public bool UseCollectFolder { get; set; }
+        public bool UseCollectFolder { get; set; } 
 
         /// <summary>
         /// 是否下载合集
         /// </summary>
-        public bool DownMix { get; set; }
+        public bool DownMix { get; set; } 
         /// <summary>
         /// 是否下载短剧
         /// </summary>
-        public bool DownSeries { get; set; }
+        public bool DownSeries { get; set; } 
         /// <summary>
         /// 1 开启同步 0 关闭同步
         /// </summary>
-        public int  Status { get; set; }
+        public int Status { get; set; }
 
         /// <summary>
         /// 同步喜欢的视频需要sec_user_id
         /// </summary>
-        [SugarColumn(Length =500,IsNullable =true)]
+        [SugarColumn(Length = 500, IsNullable = true)]
         public string SecUserId { get; set; }
 
         /// <summary>
         /// 喜欢的视频存储路径
         /// </summary>
-        [SugarColumn(Length =500,IsNullable =true)]
+        [SugarColumn(Length = 500, IsNullable = true)]
         public string FavSavePath { get; set; }
 
         ///// <summary>
@@ -95,8 +95,8 @@ namespace dy.net.model.entity
         /// <summary>
         /// 图片视频存储路径
         /// </summary>
-        [SugarColumn(Length = 500, IsNullable = true)]
-        public string ImgSavePath { get; set; }
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string ImgSavePath { get; set; }
 
         /// <summary>
         /// 抖音返回的状态码，主要用于判断Cookie是否有效
@@ -109,11 +109,23 @@ namespace dy.net.model.entity
         /// </summary>
         [SugarColumn(Length = 100, IsNullable = true)]
         public string StatusMsg { get; set; }
+
         /// <summary>
         /// 是否统一一个路径(savepath)
         /// </summary>
-        public bool useSinglePath { get; set; }
+        [SugarColumn(Length = 100, IsNullable = true, ColumnName = "useSinglePath")]
+        public bool UseSinglePath { get; set; } = true;//默认true
 
+        ///// <summary>
+        ///// 合集存储路径
+        ///// </summary>
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string MixPath { get; set; }
 
+        ///// <summary>
+        ///// 短剧存储路径
+        ///// </summary>
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string SeriesPath { get; set; }
     }
 }

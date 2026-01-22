@@ -55,7 +55,14 @@ namespace dy.net.repository
 
 
             var totalCount = await where.CountAsync();
-            var list = await where.OrderByDescending(x => x.SyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
+            List<DouyinVideo> list = new List<DouyinVideo>();
+            if(string.IsNullOrWhiteSpace(dto.SortField))
+             list = await where.OrderByDescending(x => x.SyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
+            else
+            {
+
+                list = await where.OrderBy($"{dto.SortField} {dto.SortOrder}").Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
+            }
             if (list.Any())
             {
                 var users = await this.Db.Queryable<DouyinCookie>().ToListAsync();
@@ -93,12 +100,12 @@ namespace dy.net.repository
         /// <param name="AuthorId"></param>
         /// <param name="ViedoNameSimplify"></param>
         /// <returns></returns>
-        public async Task<(string, string)> GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
+        public  (string, string) GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
         {
 
-            var video = await this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == VideoTypeEnum.dy_follows)
+            var video =  this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == VideoTypeEnum.dy_follows)
                  .Where(x => x.VideoTitleSimplify == ViedoNameSimplify)
-                 .OrderByDescending(x => x.CreateTime).FirstAsync();
+                 .OrderByDescending(x => x.CreateTime).First();
 
             if (video != null)
             {

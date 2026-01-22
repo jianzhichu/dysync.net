@@ -169,11 +169,11 @@ namespace dy.net.model.response
         //[JsonProperty("share_info")]
         //public DouyinShareInfo ShareInfo { get; set; }
 
-        ///// <summary>
-        ///// 统计信息
-        ///// </summary>
-        //[JsonProperty("statis")]
-        //public DouyinMixStatis Statis { get; set; }
+        /// <summary>
+        /// 统计信息
+        /// </summary>
+        [JsonProperty("statis")]
+        public DouyinMixStatis Statis { get; set; }
 
         ///// <summary>
         ///// 状态信息

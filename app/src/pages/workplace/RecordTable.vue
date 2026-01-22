@@ -144,7 +144,7 @@
     </a-modal>
 
     <!-- 表格 - 增加复选框和操作列 -->
-    <a-table :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading" :row-selection="isBatchMode ? rowSelection : null" row-key="id">
+    <a-table :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading" :row-selection="isBatchMode ? rowSelection : null" row-key="id" :sorter="true">
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'videoTitle'">
           <a class="video-title-link" :title="record.videoTitle || '无标题'" @click="handleVideoClick(record)" @mouseenter="handleTitleMouseEnter" @mouseleave="handleTitleMouseLeave">
@@ -206,6 +206,11 @@ interface DataItem {
   isMergeVideo?: boolean;
 }
 
+// 📌 新增：排序参数类型定义
+interface SortParam {
+  field: string; // 排序字段
+  order: 'ascend' | 'descend' | ''; // 排序方向：升序/降序/无
+}
 interface QuaryParam {
   dates?: string[];
   dates2?: string[];
@@ -216,6 +221,8 @@ interface QuaryParam {
   viedoType: string;
   fileHash: string;
   authorId: string;
+  sortField?: string; // 📌 新增：排序字段
+  sortOrder?: string; // 📌 新增：排序方向（asc/desc）
 }
 
 // 引入dayjs中文包
@@ -226,6 +233,11 @@ dayjs.locale('zh-cn');
 // 批量操作相关状态
 const isBatchMode = ref(false); // 批量操作开关状态
 const selectedRowKeys = ref<string[]>([]); // 选中的行ID集合
+// 📌 新增：排序状态管理
+const sortParams = ref<SortParam>({
+  field: 'syncTime', // 默认排序字段（发布时间）
+  order: 'descend', // 默认降序（最新的在前）
+});
 
 // 表格行选择器类型定义（对齐 Ant Design Vue 3.x 规范）
 interface CustomTableRowSelection<T> {
@@ -255,7 +267,6 @@ const rowSelection = computed<CustomTableRowSelection<DataItem>>(() => ({
   }),
 }));
 
-// 表格列配置（优化：临时注释 fixed: right 避免渲染冲突）
 const columns = ref([
   {
     title: '同步时间',
@@ -268,6 +279,13 @@ const columns = ref([
     dataIndex: 'createTimeStr',
     align: 'center',
     width: 180,
+    sorter: true,
+    sortOrder: sortParams.value.field === 'createTime' ? sortParams.value.order : null,
+    onHeaderCell: () => ({
+      onClick: () => {
+        handleSortChange('createTime');
+      },
+    }),
   },
   {
     title: '同步类型',
@@ -280,6 +298,13 @@ const columns = ref([
     dataIndex: 'author',
     align: 'center',
     width: 150,
+    sorter: true,
+    sortOrder: sortParams.value.field === 'author' ? sortParams.value.order : null,
+    onHeaderCell: () => ({
+      onClick: () => {
+        handleSortChange('author');
+      },
+    }),
   },
   {
     title: '视频类型',
@@ -304,10 +329,32 @@ const columns = ref([
     key: 'operation',
     align: 'center',
     width: 180,
-    // fixed: 'right', // 注释：避免固定列导致的重绘卡顿，如需使用可后续调试
   },
 ]);
 
+// 📌 新增：排序切换方法
+const handleSortChange = (field: string) => {
+  // 如果点击的是当前排序字段，切换排序方向
+  if (sortParams.value.field === field) {
+    sortParams.value.order = sortParams.value.order === 'ascend' ? 'descend' : 'ascend';
+  } else {
+    // 如果是新的排序字段，默认降序
+    sortParams.value.field = field;
+    sortParams.value.order = 'descend';
+  }
+
+  // 更新表格列的排序状态（刷新排序图标）
+  columns.value.forEach((col) => {
+    if (col.dataIndex === 'createTimeStr') {
+      col.sortOrder = sortParams.value.order;
+    } else {
+      col.sortOrder = null;
+    }
+  });
+
+  // 重新查询数据（传递排序参数）
+  GetRecords();
+};
 // 监听批量操作开关状态变化，清空选中状态+强制表格重绘
 watch(isBatchMode, (isOpen) => {
   if (!isOpen) {
@@ -347,6 +394,8 @@ const quaryData: UnwrapRef<QuaryParam> = reactive({
   viedoType: '*',
   authorId: '',
   fileHash: '',
+  sortField: 'createTime', // 📌 默认排序字段
+  sortOrder: 'desc', // 📌 默认降序
 });
 
 // 分页配置
@@ -438,6 +487,10 @@ const GetRecords = () => {
   if (value2.value) {
     quaryData.dates2 = value2.value.map((date) => date.format('YYYY-MM-DD')); // 修复：之前误写为value1
   }
+  // 📌 关键：将前端排序状态转换为后端需要的参数
+  quaryData.sortField = sortParams.value.field;
+  // 转换排序方向（antd的ascend/descend 转 后端常用的asc/desc）
+  quaryData.sortOrder = sortParams.value.order === 'ascend' ? 'asc' : 'desc';
   useApiStore()
     .VideoPageList(quaryData)
     .then((res) => {
@@ -457,6 +510,45 @@ const GetRecords = () => {
       console.error('获取表格数据失败:', error);
       message.error('获取数据失败，请稍后重试');
     });
+};
+
+// 📌 修改表格变化处理：支持分页时保留排序状态
+const handleTableChange = (paginationObj: any, filters: any, sorter: any) => {
+  pagination.value.current = paginationObj.current;
+  pagination.value.defaultPageSize = paginationObj.pageSize;
+
+  // 如果是排序变化（用户点击表头排序）
+  if (sorter.field) {
+    // 📌 处理不同列的字段映射
+    if (sorter.field === 'createTimeStr') {
+      sortParams.value.field = 'createTime'; // 映射到后端的createTime字段
+    } else if (sorter.field === 'author') {
+      sortParams.value.field = 'author'; // 博主列直接使用author字段
+    } else {
+      sortParams.value.field = sorter.field;
+    }
+    sortParams.value.order = sorter.order;
+
+    // 更新所有列的排序状态
+    columns.value.forEach((col) => {
+      if (col.dataIndex === sorter.field) {
+        col.sortOrder = sorter.order;
+      } else if (col.dataIndex === 'createTimeStr' && sorter.field === 'createTime') {
+        col.sortOrder = sorter.order;
+      } else if (col.dataIndex === 'author' && sorter.field === 'author') {
+        col.sortOrder = sorter.order;
+      } else {
+        col.sortOrder = null;
+      }
+    });
+  }
+
+  // 分页变化时清空选中状态
+  if (isBatchMode.value) {
+    selectedRowKeys.value = [];
+  }
+
+  GetRecords();
 };
 
 /** 立即同步 */
@@ -496,15 +588,15 @@ const datePicked2 = (_, dateArry: RangeValue) => {
 };
 
 /** 表格分页/排序变化事件 */
-const handleTableChange = (paginationObj: any) => {
-  pagination.value.current = paginationObj.current;
-  pagination.value.defaultPageSize = paginationObj.pageSize;
-  // 分页变化时清空选中状态（跨页不保留）
-  if (isBatchMode.value) {
-    selectedRowKeys.value = [];
-  }
-  GetRecords();
-};
+// const handleTableChange = (paginationObj: any) => {
+//   pagination.value.current = paginationObj.current;
+//   pagination.value.defaultPageSize = paginationObj.pageSize;
+//   // 分页变化时清空选中状态（跨页不保留）
+//   if (isBatchMode.value) {
+//     selectedRowKeys.value = [];
+//   }
+//   GetRecords();
+// };
 
 /** 视频类型切换事件 */
 const onViedoTypeChanged = () => {
@@ -1451,5 +1543,14 @@ onMounted(() => {
     padding: 0 6px !important;
     height: 24px !important;
   }
+}
+
+/* 📌 新增：博主列排序图标样式优化（和发布时间列保持一致） */
+:deep(.ant-table-column-title[data-column-key='author']) {
+  cursor: pointer;
+}
+
+:deep(.ant-table-column-title[data-column-key='author']:hover) {
+  color: #1890ff !important;
 }
 </style>

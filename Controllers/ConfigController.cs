@@ -197,10 +197,10 @@ namespace dy.net.Controllers
                 return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.UpSavePath}添加读写权限");
             }
 
-            if (!string.IsNullOrWhiteSpace(dyUserCookies.ImgSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.ImgSavePath))
-            {
-                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.ImgSavePath}添加读写权限");
-            }
+            //if (!string.IsNullOrWhiteSpace(dyUserCookies.ImgSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.ImgSavePath))
+            //{
+            //    return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.ImgSavePath}添加读写权限");
+            //}
 
 
             var checkCk = await httpClientService.CheckCookie(dyUserCookies);

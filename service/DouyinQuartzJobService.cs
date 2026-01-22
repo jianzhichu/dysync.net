@@ -1,9 +1,11 @@
 ﻿using dy.net.job;
 using dy.net.model.dto;
+using dy.net.utils;
 using Quartz;
-using Quartz.Impl.Matchers;
 using Serilog;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace dy.net.service
@@ -19,19 +21,11 @@ namespace dy.net.service
         private const int DefaultCronStartDelaySeconds = 30;
         private const int DefaultSimpleStartDelaySeconds = 3;
 
-        // 任务顺序依赖配置（核心：定义执行顺序，供 Listener 使用）
-        public Dictionary<string, string> JobDependency { get; } = new()
-        {
-            {"collect", "favorite"},       // collect 执行完 → 触发 favorite
-            {"favorite", "followed"},          // favorite 执行完 → 触发 followed
-            {"followed", null},       // followed 执行完 → 一轮任务结束
-        };
-
-        // 任务配置信息（保持原有配置不变，改为 public 供 Listener 访问）
-        public Dictionary<string, JobConfig> JobConfigs { get; } = new()
+        // 任务配置信息（修复了series任务的Key重复问题，确保每个任务Key唯一）
+        public static Dictionary<string, JobConfig> JobConfigs { get; } = new()
         {
             {
-                "collect",
+                VideoTypeEnum.dy_collects.GetDesc(),
                 new JobConfig(
                     typeof(DouyinCollectSyncJob),
                     "dy.job.key.collect",
@@ -39,7 +33,7 @@ namespace dy.net.service
                     "抖音收藏同步任务")
             },
             {
-                "favorite",
+                VideoTypeEnum.dy_favorite.GetDesc(),
                 new JobConfig(
                     typeof(DouyinFavoritSyncJob),
                     "dy.job.key.favorite",
@@ -47,12 +41,12 @@ namespace dy.net.service
                     "抖音点赞同步任务")
             },
             {
-                "followed",
+                VideoTypeEnum.dy_follows.GetDesc(),
                 new JobConfig(
-                    typeof(DouyinFollowedViedoSyncJob),
+                    typeof(DouyinFollowedSyncJob),
                     "dy.job.key.followed",
                     "dy.trigger.key.followed",
-                    "抖音UP主作品同步任务")
+                    "抖音关注博主作品同步任务")
             },
             {
                 "follow_user",
@@ -60,7 +54,31 @@ namespace dy.net.service
                     typeof(DouyinFollowsAndCollnectsSyncJob),
                     "dy.job.key.follow_user",
                     "dy.trigger.key.follow_user",
-                    "抖音关注同步任务")
+                    "抖音关注列表同步任务")
+            },
+            {
+                VideoTypeEnum.dy_custom_collect.GetDesc(),
+                new JobConfig(
+                    typeof(DouyinCollectCustomSyncJob),
+                    "dy.job.key.custom_collect",
+                    "dy.trigger.key.custom_collect",
+                    "抖音自定义收藏夹列表同步任务")
+            },
+            {
+               VideoTypeEnum.dy_mix.GetDesc(),
+                new JobConfig(
+                    typeof(DouyinMixSyncJob),
+                    "dy.job.key.mix",
+                    "dy.trigger.key.mix",
+                    "抖音收藏夹合集同步任务")
+            },
+            {
+                VideoTypeEnum.dy_series.GetDesc(),
+                new JobConfig(
+                    typeof(DouyinSeriesSyncJob),
+                    "dy.job.key.series",  
+                    "dy.trigger.key.series", 
+                    "抖音收藏夹短剧同步任务")
             },
             {
                 "follow_user_once",
@@ -78,9 +96,9 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 启动所有抖音相关定时任务（顺序执行模式）
+        /// 启动所有抖音相关定时任务（所有任务独立执行）
         /// </summary>
-        /// <param name="expression">Cron表达式或间隔分钟数（控制整个链条的执行频率）</param>
+        /// <param name="expression">Cron表达式或间隔分钟数（所有任务使用相同的执行频率）</param>
         /// <returns>是否启动成功</returns>
         public async Task<bool> InitOrReStartAllJobs(string expression)
         {
@@ -94,31 +112,37 @@ namespace dy.net.service
             {
                 var scheduler = await _schedulerFactory.GetScheduler();
 
-                // 1. 注册独立的 JobListener（核心：注入配置和服务）
-                await RegisterJobListener(scheduler);
-
-                // 2. 移除所有已存在的任务（避免重复调度）
+                // 移除所有已存在的任务（避免重复调度）
                 await RemoveAllExistingJobs(scheduler);
 
-                // 3. 只启动第一个任务（collect），后续任务由 Listener 自动触发
-                var firstJobConfigKey = "collect";
-                var startSuccess =  await StartJobAsync(firstJobConfigKey, expression);
+                // 遍历启动所有任务（独立执行，无顺序依赖）
+                var allJobKeys = JobConfigs.Keys.Where(k => k != "follow_user_once").ToList(); // 排除单次执行的任务
+                foreach (var jobKey in allJobKeys)
+                {
+                    if (jobKey == "follow_user")
+                    {
+                        expression = "60";
+                    }
+                    var startSuccess = await StartJobAsync(jobKey, expression);
+                    if (startSuccess)
+                    {
+                        Log.Debug($"成功启动任务：{jobKey}，执行频率：{expression}");
+                    }
+                    else
+                    {
+                        Log.Error($"启动任务失败：{jobKey}");
+                    }
+                }
 
-                if (startSuccess)
-                {
-                    Log.Debug($"同步任务执行顺序：collect → favorite → followed-->默认每{expression}分钟执行一次...");
-                }
-                else
-                {
-                    Log.Error($"任务执行失败（任务 {firstJobConfigKey} 启动失败）");
-                }
-                //启动follow_user--这个与其他几个任务没有依赖关系，所以单独启动
-                await StartJobAsync("follow_user", expression);
-                return startSuccess;
+                Log.Information($"共启动 {allJobKeys.Count} 个定时任务，执行频率：{expression}");
+
+                //await StartJobAsync(VideoTypeEnum.dy_custom_collect.GetDesc(), expression);
+
+                return true;
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "【任务服务】初始化任务链条异常");
+                Log.Error(ex, "【任务服务】初始化所有定时任务异常");
                 return false;
             }
         }
@@ -129,27 +153,6 @@ namespace dy.net.service
         public async Task<bool> StartFollowJobOnceAsync()
         {
             return await StartOneTimeJobAsync("follow_user_once");
-        }
-
-        /// <summary>
-        /// 注册独立的 JobListener（核心步骤）
-        /// </summary>
-        private async Task RegisterJobListener(IScheduler scheduler)
-        {
-            // 创建独立的 Listener 实例，注入依赖（任务配置、依赖关系、当前服务）
-            var dependencyListener = new DouyinJobDependencyListener(
-                JobConfigs,  // 任务配置
-                JobDependency,  // 依赖顺序
-                this  // 任务服务（用于触发下一个任务）
-            );
-
-            // 注册 Listener：仅监听 DefaultJobGroup 分组的任务（精准匹配，避免影响其他任务）
-            scheduler.ListenerManager.AddJobListener(
-                dependencyListener,
-                GroupMatcher<JobKey>.GroupEquals(DefaultJobGroup)
-            );
-
-            Log.Information("【任务服务】JobListener 注册成功：{ListenerName}", dependencyListener.Name);
         }
 
         /// <summary>
@@ -169,13 +172,12 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 启动指定定时任务（public 修饰，供 Listener 调用）
+        /// 启动指定定时任务（独立执行，无依赖触发）
         /// </summary>
         /// <param name="configKey">任务配置Key（如：collect、favorite）</param>
-        /// <param name="expression">定时表达式（依赖触发时传空）</param>
-        /// <param name="isDependencyTrigger">是否为依赖触发（true=立即执行，false=定时执行）</param>
+        /// <param name="expression">定时表达式（Cron或间隔分钟数）</param>
         /// <returns>是否启动成功</returns>
-        public async Task<bool> StartJobAsync(string configKey, string expression, bool isDependencyTrigger = false)
+        public async Task<bool> StartJobAsync(string configKey, string expression)
         {
             if (!JobConfigs.TryGetValue(configKey, out var jobConfig))
             {
@@ -187,33 +189,26 @@ namespace dy.net.service
             {
                 var scheduler = await _schedulerFactory.GetScheduler();
                 var jobKey = new JobKey(jobConfig.JobKey, DefaultJobGroup);
-                // 触发器Key：区分「定时触发」和「依赖触发」，避免冲突
-                var triggerKey = new TriggerKey(
-                    $"{jobConfig.TriggerKey}_{(isDependencyTrigger ? "dependency" : "main")}",
-                    DefaultJobGroup
-                );
+                var triggerKey = new TriggerKey(jobConfig.TriggerKey, DefaultJobGroup);
 
                 // 移除已存在的任务（防止重复执行）
                 await RemoveExistingJobAsync(scheduler, jobKey);
 
-                // 创建任务详情（添加禁止并发执行特性，避免顺序混乱）
+                // 创建任务详情（保留禁止并发执行，避免同一任务重复运行）
                 var jobDetail = JobBuilder.Create(jobConfig.JobType)
                     .WithIdentity(jobKey)
                     .WithDescription(jobConfig.Description)
-                    .DisallowConcurrentExecution() // 关键：禁止同一任务并发执行
+                    .DisallowConcurrentExecution() // 禁止同一任务并发执行
                     .Build();
 
-                // 创建立触发器
-                ITrigger trigger = isDependencyTrigger
-                    ? CreateDependencyTrigger(triggerKey, jobConfig.Description) // 依赖触发：立即执行
-                    : CreateScheduledTrigger(triggerKey, expression, jobConfig.Description); // 定时触发：按表达式执行
+                // 创建定时触发器（仅使用定时触发，移除依赖触发逻辑）
+                ITrigger trigger = CreateScheduledTrigger(triggerKey, expression, jobConfig.Description);
 
                 // 调度任务
                 await scheduler.ScheduleJob(jobDetail, trigger);
-                Log.Information("【任务服务】启动任务成功 - 任务描述: {JobDescription}, 触发类型: {TriggerType}, 表达式: {Expression}",
+                Log.Information("【任务服务】启动任务成功 - 任务描述: {JobDescription}, 执行频率: {Expression}",
                     jobConfig.Description,
-                    isDependencyTrigger ? "依赖触发（立即执行）" : "定时触发",
-                    isDependencyTrigger ? "无" : expression);
+                    expression);
 
                 return true;
             }
@@ -225,7 +220,7 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 启动单次执行任务（保持原有逻辑不变）
+        /// 启动单次执行任务
         /// </summary>
         private async Task<bool> StartOneTimeJobAsync(string configKey)
         {
@@ -268,9 +263,9 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 创建「定时触发器」（按表达式执行，仅第一个任务使用）
+        /// 创建定时触发器（支持Cron表达式或分钟间隔）
         /// </summary>
-        private ITrigger CreateScheduledTrigger(TriggerKey triggerKey, string expression, string jobDescription)
+        private static ITrigger CreateScheduledTrigger(TriggerKey triggerKey, string expression, string jobDescription)
         {
             // Cron表达式格式
             if (CronExpression.IsValidExpression(expression))
@@ -312,21 +307,9 @@ namespace dy.net.service
         }
 
         /// <summary>
-        /// 创建「依赖触发器」（立即执行，仅执行一次）
+        /// 移除已存在的任务
         /// </summary>
-        private ITrigger CreateDependencyTrigger(TriggerKey triggerKey, string jobDescription)
-        {
-            return TriggerBuilder.Create()
-                .WithIdentity(triggerKey)
-                .WithDescription($"{jobDescription} - 依赖触发（立即执行）")
-                .StartNow() // 立即触发
-                .Build();
-        }
-
-        /// <summary>
-        /// 移除已存在的任务（保持原有逻辑不变）
-        /// </summary>
-        private async Task RemoveExistingJobAsync(IScheduler scheduler, JobKey jobKey)
+        private static async Task RemoveExistingJobAsync(IScheduler scheduler, JobKey jobKey)
         {
             if (await scheduler.CheckExists(jobKey))
             {
@@ -334,6 +317,5 @@ namespace dy.net.service
                 await scheduler.DeleteJob(jobKey);
             }
         }
-
-}
+    }
 }

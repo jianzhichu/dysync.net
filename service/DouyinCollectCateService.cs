@@ -11,18 +11,18 @@ namespace dy.net.service
     public class DouyinCollectCateService
     {
 
-        private readonly DouyinCollectCateRepository douyinCollectCateRepository;
+        private readonly DouyinCollectCateRepository _douyinCollectCateRepository;
 
         public DouyinCollectCateService(DouyinCollectCateRepository douyinCollectCateRepository)
         {
-            douyinCollectCateRepository = douyinCollectCateRepository;
+            _douyinCollectCateRepository = douyinCollectCateRepository;
         }
 
 
 
         public async Task<bool> AddAsync(DouyinCollectCate cate)
         {
-            return await douyinCollectCateRepository.InsertAsync(cate);
+            return await _douyinCollectCateRepository.InsertAsync(cate);
         }
 
 
@@ -35,7 +35,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<(List<DouyinCollectCate> list, int totalCount)> GetPagedAsync(DouyinCollectCateRequestDto dto)
         {
-            return await douyinCollectCateRepository.GetPagedAsync(dto);
+            return await _douyinCollectCateRepository.GetPagedAsync(dto);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<(int add, int update,int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId,VideoTypeEnum cateType)
         {
-            return await douyinCollectCateRepository.Sync(cates, ckId, cateType);
+            return await _douyinCollectCateRepository.Sync(cates, ckId, cateType);
         }
 
 
@@ -58,7 +58,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> BatchSwitchSync(List<DouyinCollectCateSwitchDto> dto)
         {
-            return await douyinCollectCateRepository.SwitchBatchAsync(dto);
+            return await _douyinCollectCateRepository.SwitchBatchAsync(dto);
         }
 
 
@@ -70,7 +70,17 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<List<DouyinCollectCate>> GetSyncCates(string cookieId, VideoTypeEnum cateType)
         {
-            return await douyinCollectCateRepository.GetListAsync(x => x.CookieId == cookieId && x.CateType == cateType);
+            return await _douyinCollectCateRepository.GetListAsync(x => x.CookieId == cookieId && x.CateType == cateType && x.Sync && x.Total > 0);
+        }
+        /// <summary>
+        /// 完结
+        /// </summary>
+        /// <param name="cate"></param>
+        /// <returns></returns>
+
+        public async Task<bool> UpdateCate2EndStatus(DouyinCollectCate cate)
+        {
+            return await _douyinCollectCateRepository.UpdateCateEndStatus(cate);
         }
 
     }

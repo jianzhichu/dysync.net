@@ -19,6 +19,10 @@ namespace dy.net.model.dto
 
         public string? Tag { get; set; }
 
+        public string? SortField { get; set; }
+
+        public string? SortOrder { get; set; }
+
     }
 
 

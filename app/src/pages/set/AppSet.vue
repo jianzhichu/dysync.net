@@ -88,7 +88,7 @@
             <span>开启后，将图片文件和音频文件合成为视频文件</span>
           </div>
         </a-form-item>
-        <a-form-item v-if="formState.DownImageVideo" has-feedback label="单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
+        <!-- <a-form-item v-if="formState.DownImageVideo" has-feedback label="单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.ImageViedoSaveAlone" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -96,7 +96,7 @@
               开启后，图文视频统一存入抖音授权 Cookie 配置的目录，且需提前配置该存储路径。关闭后，则按类型分别存入对应文件夹（如收藏视频存入收藏视频目录）
             </span>
           </div>
-        </a-form-item>
+        </a-form-item> -->
         <a-form-item v-if="formState.DownImageVideo" has-feedback label="保留音频" name="DownMp3" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownMp3" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
@@ -304,7 +304,7 @@ interface FormState {
   LogKeepDay: number;
   DownImage: boolean;
   DownMp3: boolean;
-  ImageViedoSaveAlone: boolean;
+  //ImageViedoSaveAlone: boolean;
   FollowedTitleTemplate: string[];
   FollowedTitleSeparator: string;
   FullFollowedTitleTemplate: string;
@@ -327,7 +327,7 @@ const formState: UnwrapRef<FormState> = reactive({
   DownImageVideo: false,
   DownMp3: false,
   DownImage: false,
-  ImageViedoSaveAlone: true,
+  // ImageViedoSaveAlone: true,
   FollowedTitleTemplate: [],
   FollowedTitleSeparator: '',
   FullFollowedTitleTemplate: '',
@@ -403,7 +403,7 @@ const getConfig = () => {
           FollowedTitleTemplate: parsedTemplateArr,
           FollowedTitleSeparator: res.data.followedTitleSeparator || '',
           FullFollowedTitleTemplate: fullTemplate,
-          ImageViedoSaveAlone: res.data.imageViedoSaveAlone,
+          // ImageViedoSaveAlone: res.data.imageViedoSaveAlone,
           AutoDistinct: res.data.autoDistinct,
           PriorityLevel: res.data.priorityLevel,
           DownDynamicVideo: res.data.downDynamicVideo,

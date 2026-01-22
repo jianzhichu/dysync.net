@@ -158,7 +158,7 @@ namespace dy.net.service
                     requestParameters["cursor"] = cursor; //页码
                 }
 
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
@@ -220,12 +220,13 @@ namespace dy.net.service
 
                 var requestParameters = DouyinRequestParamManager.DouyinFolderCollectParams;
                 {
+                    count = "15";
                     requestParameters["cursor"] = cursor;
                     requestParameters["count"] = count;
                     requestParameters["collects_id"] = collectsId;
                 }
 
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
 
                 if (respose.IsSuccessStatusCode)
                 {
@@ -278,7 +279,7 @@ namespace dy.net.service
                     requestParameters["cursor"] = cursor; //页码
                 }
 
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
@@ -342,11 +343,11 @@ namespace dy.net.service
                 var requestParameters = DouyinRequestParamManager.DouyinMixVideoParams;
                 {
                     requestParameters["cursor"] = cursor;
-                    requestParameters["count"] = count;
+                    requestParameters["count"] = "15";
                     requestParameters["mix_id"] = mixId;
                 }
 
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
 
                 if (respose.IsSuccessStatusCode)
                 {
@@ -394,11 +395,11 @@ namespace dy.net.service
                 var requestParameters = DouyinRequestParamManager.DouyinSeriesListParams;
                 {
                     // 添加动态参数
-                    requestParameters["count"] = "100";
+                    requestParameters["count"] = "15";//固定15，多了直接返回参数不合法
                     requestParameters["cursor"] = cursor; //页码
                 }
 
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
@@ -466,7 +467,7 @@ namespace dy.net.service
                     requestParameters["series_id"] = seriesId;
                 }
 
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
 
                 if (respose.IsSuccessStatusCode)
                 {
@@ -538,7 +539,7 @@ namespace dy.net.service
                     requestParameters["sec_user_id"] = secUserId;
                     requestParameters["count"] = count;
                 }
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
 
                 if (respose.IsSuccessStatusCode)
                 {
@@ -610,7 +611,7 @@ namespace dy.net.service
                     requestParameters["sec_user_id"] = secUserId;
                     requestParameters["count"] = count;
                 }
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
 
                 if (respose.IsSuccessStatusCode)
                 {
@@ -683,7 +684,7 @@ namespace dy.net.service
                     requestParameters["offset"] = offset;
                 }
 
-                var respose = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
+                var respose = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();

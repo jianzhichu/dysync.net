@@ -49,12 +49,11 @@ namespace dy.net.service
                     Cron = 30,
                     BatchCount = 18,
                     LogKeepDay = 7,
-                    UperSaveTogether = false,//博主视频：true-->每个视频单独一个文件夹 false-->所有视频放在同一个文件夹
+                    //UperSaveTogether = false,//博主视频：true-->每个视频单独一个文件夹 false-->所有视频放在同一个文件夹
                     UperUseViedoTitle = false,//博主视频：true-->使用视频标题作为文件名 false-->使用视频id作为文件名
                     DownImageVideo = true,//默认下载图文视频
                     DownMp3 = false,
                     DownImage = false,
-                    ImageViedoSaveAlone = true,
                     FollowedTitleTemplate = "",
                     FullFollowedTitleTemplate = "",
                     FollowedTitleSeparator = "",

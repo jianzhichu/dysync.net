@@ -22,7 +22,7 @@ type ConfigItem = {
   secUserId: string;
   status: number;
   upSavePath: string;
-  imgSavePath: string;
+  // imgSavePath: string;
   useSinglePath: boolean; // 非可选
 };
 
@@ -37,7 +37,7 @@ const newConfig = (config?: ConfigItem): ConfigItem => {
     secUserId: '',
     status: 0,
     upSavePath: '',
-    imgSavePath: '',
+    // imgSavePath: '',
     useSinglePath: false,
   };
 };
@@ -61,7 +61,7 @@ watch(
     if (useSinglePath && newSavePath) {
       form.value.favSavePath = newSavePath;
       form.value.upSavePath = newSavePath;
-      form.value.imgSavePath = newSavePath;
+      // form.value.imgSavePath = newSavePath;
     }
   },
   { immediate: true }
@@ -216,9 +216,9 @@ const manualCheckForm = (): { pass: boolean; msg: string } => {
           <a-input v-model:value="form.upSavePath" placeholder="关注视频存储路径，不想同步就空着，后续可以在“抖音授权”修改" @input="() => {}" />
         </a-form-item>
 
-        <a-form-item v-if="!form.useSinglePath" label="图文存储路径" name="imgSavePath">
+        <!-- <a-form-item v-if="!form.useSinglePath" label="图文存储路径" name="imgSavePath">
           <a-input v-model:value="form.imgSavePath" placeholder="图文视频存储路径，不想同步就空着，后续可以在“抖音授权”修改" @input="() => {}" />
-        </a-form-item>
+        </a-form-item> -->
 
         <!-- 同步状态开关 -->
         <a-form-item label="同步状态" name="status">

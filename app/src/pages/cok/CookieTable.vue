@@ -29,7 +29,7 @@ columns.value = [
   { title: '收藏路径', dataIndex: 'savePath' },
   { title: '喜欢路径', dataIndex: 'favSavePath' },
   { title: '博主路径', dataIndex: 'upSavePath' },
-  { title: '图文视频', dataIndex: 'imgSavePath' },
+  // { title: '图文视频', dataIndex: 'imgSavePath' },
   // { title: 'Cookie', dataIndex: 'cookies' },
   { title: '状态', dataIndex: 'status', width: 180 },
   { title: '操作', dataIndex: 'edit', width: 200 }, // 加宽操作列宽度
@@ -54,11 +54,13 @@ type DataItem = {
   upSecUserIdsJson?: UpSecUserIdItem[];
   upSecUserIds?: string;
   upSavePath?: string;
-  imgSavePath?: string;
+  // imgSavePath?: string;
   useSinglePath?: boolean; // 新增：是否全部用一个地址
   useCollectFolder?: boolean;
   downMix?: boolean;
   downSeries?: boolean;
+  // mixPath?: string;
+  // seriesPath?: string;
 };
 
 const loading = ref(false);
@@ -117,11 +119,13 @@ const newCookie = (cookie?: DataItem) => {
   cookie.id = '0';
   cookie.upSecUserIdsJson = undefined;
   cookie.upSavePath = undefined;
-  cookie.imgSavePath = undefined;
+  // cookie.imgSavePath = undefined;
   cookie.useSinglePath = false; // 新增：默认不使用单一路径
   cookie.useCollectFolder = false; //是否按收藏夹来下载。
   cookie.downMix = false; //是否下载收藏夹的合集
   cookie.downSeries = false; //是否下载短剧
+  // cookie.mixPath = undefined; //合集存储路径
+  // cookie.seriesPath = undefined; //短剧存储路径
   return cookie;
 };
 
@@ -141,7 +145,7 @@ watch(
     if (useSinglePath && newSavePath) {
       form.favSavePath = newSavePath;
       form.upSavePath = newSavePath;
-      form.imgSavePath = newSavePath;
+      // form.imgSavePath = newSavePath;
     }
   },
   { immediate: true }
@@ -220,6 +224,7 @@ const deleted = (id: string) => {
 };
 
 function edit(record: DataItem) {
+  cookieId.value = record.id;
   editRecord.value = record;
   console.log(record);
   copyObject(form, record);
@@ -316,6 +321,10 @@ onMounted(() => {
 const showDrawer = ref(false);
 // 抽屉类型（区分收藏夹/合集/短剧）
 type DrawerType = 'collect' | 'mix' | 'series';
+
+const cookieId = ref('');
+const cateType = ref(5);
+
 const drawerType = ref<DrawerType>('collect');
 // 抽屉滚动容器引用（用于监听触底分页）
 const drawerScrollRef = ref<HTMLDivElement | null>(null);
@@ -332,28 +341,32 @@ const drawerPagination = reactive({
 
 // ========== 定义抽屉数据项接口 ==========
 interface DrawerItem {
-  Id: string; // 不显示
-  Name: string; // 名称
-  SaveFolder: string; // 保存文件夹
-  Sync: boolean; // 是否同步
-  CoverUrl: string; // 封面
-  CookieId: string; // 不显示
-  XId: string; // 不显示
+  id: string; // 不显示
+  name: string; // 名称
+  saveFolder: string; // 保存文件夹
+  sync: boolean; // 是否同步
+  coverUrl: string; // 封面
+  cookieId: string; // 不显示
+  xId: string; // 不显示
+  total: number;
 }
 
 // ========== 3个打开抽屉的方法 ==========
 const openCollectFolderSetModal = () => {
   drawerType.value = 'collect';
+  cateType.value = 5;
   openCommonDrawer();
 };
 
 const openMixDownSetModal = () => {
   drawerType.value = 'mix';
+  cateType.value = 6;
   openCommonDrawer();
 };
 
 const openSeriesDownSetModal = () => {
   drawerType.value = 'series';
+  cateType.value = 7;
   openCommonDrawer();
 };
 
@@ -401,36 +414,32 @@ const handleDrawerScroll = () => {
   }
 };
 
-// ========== 加载抽屉数据（模拟接口请求，可替换为真实接口） ==========
+// ========== 加载抽屉数据（
 const loadDrawerData = () => {
   if (drawerPagination.loading || !drawerPagination.hasMore) return;
 
   drawerPagination.loading = true;
-
-  // 模拟接口请求（实际项目中替换为真实API调用）
-  setTimeout(() => {
-    // 模拟数据（可根据drawerType返回不同类型数据）
-    const mockData: DrawerItem[] = Array.from({ length: drawerPagination.pageSize }, (_, index) => ({
-      Id: `${drawerPagination.current}-${index}`,
-      Name: `${getDrawerTypeName()} ${(drawerPagination.current - 1) * drawerPagination.pageSize + index + 1}`,
-      SaveFolder: `./${drawerType.value}/${(drawerPagination.current - 1) * drawerPagination.pageSize + index + 1}`,
-      Sync: Math.random() > 0.5,
-      CoverUrl: `https://picsum.photos/120/180?random=${
-        // 改为竖向图片尺寸 120x180
-        (drawerPagination.current - 1) * drawerPagination.pageSize + index + 1
-      }`,
-      CookieId: form.id || '0',
-      XId: `X-${drawerPagination.current}-${index}`,
-    }));
-
-    // 拼接数据列表
-    drawerDataList.value = [...drawerDataList.value, ...mockData];
-    // 更新分页状态
-    drawerPagination.total = 100; // 模拟总条数
-    drawerPagination.loading = false;
-    // 判断是否还有更多数据
-    drawerPagination.hasMore = drawerDataList.value.length < drawerPagination.total;
-  }, 800);
+  useApiStore()
+    .CatePageList({
+      cookieId: cookieId.value,
+      cateType: cateType.value,
+    })
+    .then((res) => {
+      if (res.code === 0) {
+        drawerDataList.value = [...drawerDataList.value, ...res.data.data];
+        drawerPagination.loading = false;
+        // 更新分页状态
+        drawerPagination.total = res.data.total;
+        drawerPagination.loading = false;
+        // 判断是否还有更多数据
+        drawerPagination.hasMore = drawerDataList.value.length < drawerPagination.total;
+      } else {
+        message.error(res.message);
+      }
+    })
+    .finally(() => {
+      drawerPagination.loading = false;
+    });
 };
 
 // ========== 获取抽屉类型名称（用于页面展示） ==========
@@ -443,15 +452,15 @@ const getDrawerTypeName = () => {
     case 'series':
       return '短剧';
     default:
-      return '数据';
+      return '';
   }
 };
 
 // ========== 切换同步状态（可根据需求对接真实接口） ==========
 const toggleDrawerItemSync = (item: DrawerItem, index: number) => {
   if (drawerDataList.value[index]) {
-    drawerDataList.value[index].Sync = !item.Sync;
-    console.log(`切换${getDrawerTypeName()}【${item.Name}】的同步状态为：${!item.Sync}`);
+    drawerDataList.value[index].sync = !item.sync;
+    console.log(`切换${getDrawerTypeName()}【${item.name}】的同步状态为：${!item.sync}`);
   }
 };
 // ========== 关闭抽屉清理资源 ==========
@@ -470,12 +479,20 @@ const saveDrawerData = () => {
     message.info('暂无需要保存的配置数据');
     return;
   }
-  // 模拟保存逻辑（实际项目中可替换为真实接口，提交 drawerDataList.value 数据）
   drawerPagination.loading = true;
-  setTimeout(() => {
-    drawerPagination.loading = false;
-    message.success(`${getDrawerTypeName()}配置保存成功`);
-  }, 800);
+  useApiStore()
+    .BatchSaveCate(drawerDataList.value)
+    .then((res) => {
+      if (res.code === 0) {
+        showDrawer.value = false;
+        message.success('保存成功');
+      } else {
+        message.error(res.message);
+      }
+    })
+    .finally(() => {
+      drawerPagination.loading = false;
+    });
 };
 </script>
 
@@ -504,14 +521,14 @@ const saveDrawerData = () => {
       <!-- 收藏的存储路径 -->
       <a-form-item label="收藏的存储路径" name="savePath">
         <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-          <a-input v-model:value="form.savePath" style="width: 200px;" />
+          <a-input v-model:value="form.savePath" class="form-item-div" />
           <a-alert message="不想同步收藏的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
       <!-- 新增：是否全部用一个地址开关 -->
       <a-form-item v-if="form.savePath&&form.savePath.length>0" label="是否统一存储路径" name="useSinglePath">
         <div style="display: flex; align-items: center;  gap: 12px;">
-          <div style="width: 200px;">
+          <div class="form-item-div">
             <a-switch v-model:checked="form.useSinglePath" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{form.useSinglePath ?'是':'否'}}</span>
           </div>
@@ -519,11 +536,28 @@ const saveDrawerData = () => {
           <a-alert message="开启后，所有视频都存储在收藏视频存储的路径，如果是容器部署：docker-compose配置，此时只需要映射一个路径'  " :type="form.useSinglePath?'success':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
+
+      <!-- 喜欢的存储路径 -->
+      <a-form-item label="喜欢的存储路径" name="favSavePath">
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          <a-input v-model:value="form.favSavePath" :disabled="form.useSinglePath" placeholder="" class="form-item-div" />
+          <a-alert message="不想同步喜欢的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
+        </div>
+      </a-form-item>
+
+      <!-- 关注的存储路径 -->
+      <a-form-item label="关注的存储路径" name="upSavePath">
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          <a-input v-model:value="form.upSavePath" :disabled="form.useSinglePath" placeholder="" class="form-item-div" />
+          <a-alert message="不想同步关注列表博主的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
+        </div>
+      </a-form-item>
       <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载收藏夹" name="useCollectFolder">
         <div style="display: flex; align-items: center;  gap: 12px;">
-          <div style="width: 200px;">
+          <div class="form-item-div">
             <a-switch v-model:checked="form.useCollectFolder" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{ form.useCollectFolder ? '是' : '否' }}</span>
+
             <a-button @click="openCollectFolderSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.useCollectFolder">
               <setting-outlined />
             </a-button>
@@ -535,9 +569,11 @@ const saveDrawerData = () => {
 
       <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载合集" name="downMix">
         <div style="display: flex; align-items: center;  gap: 12px;">
-          <div style="width: 200px;">
+          <div class="form-item-div">
             <a-switch v-model:checked="form.downMix" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{ form.downMix ? '是' : '否' }}</span>
+            <!-- <a-input v-model:value="form.mixPath" class="form-item-div-input" /> -->
+
             <a-button @click="openMixDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downMix"> <setting-outlined />
             </a-button>
           </div>
@@ -548,9 +584,11 @@ const saveDrawerData = () => {
 
       <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载短剧" name="downSeries">
         <div style="display: flex; align-items: center;  gap: 12px;">
-          <div style="width: 200px;">
+          <div class="form-item-div">
             <a-switch v-model:checked="form.downSeries" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{ form.downSeries ? '是' : '否' }}</span>
+            <!-- <a-input v-model:value="form.seriesPath" class="form-item-div-input" /> -->
+
             <a-button @click="openSeriesDownSetModal" shape="circle" type="dashed" style="margin-left:10px;" v-if="form.downSeries"> <setting-outlined />
             </a-button>
           </div>
@@ -559,29 +597,13 @@ const saveDrawerData = () => {
         </div>
       </a-form-item>
 
-      <!-- 喜欢的存储路径 -->
-      <a-form-item label="喜欢的存储路径" name="favSavePath">
-        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-          <a-input v-model:value="form.favSavePath" :disabled="form.useSinglePath" placeholder="" style="width: 200px;" />
-          <a-alert message="不想同步喜欢的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
-        </div>
-      </a-form-item>
-
-      <!-- 关注的存储路径 -->
-      <a-form-item label="关注的存储路径" name="upSavePath">
-        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-          <a-input v-model:value="form.upSavePath" :disabled="form.useSinglePath" placeholder="" style="width: 200px;" />
-          <a-alert message="不想同步关注列表博主的视频就空着" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
-        </div>
-      </a-form-item>
-
       <!-- 图文的存储路径 -->
-      <a-form-item label="图文的存储路径" name="imgSavePath">
+      <!-- <a-form-item label="图文的存储路径" name="imgSavePath">
         <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
           <a-input v-model:value="form.imgSavePath" :disabled="form.useSinglePath" style="width: 200px;" />
           <a-alert message="如果系统配置页面开启了同步图文视频，且开启了单独存储，则必填！！！" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
-      </a-form-item>
+      </a-form-item> -->
 
       <!-- 同步状态开关 -->
       <a-form-item label="同步状态" name="status">
@@ -614,35 +636,39 @@ const saveDrawerData = () => {
 
       <!-- 卡片网格展示 - 优化布局（横向一行展示名称、保存路径） -->
       <a-card v-else :bordered="false" class="drawer-card-container grid-container">
-        <a-card-grid v-for="(item, index) in drawerDataList" :key="item.Id" class="drawer-card-grid">
+        <a-card-grid v-for="(item, index) in drawerDataList" :key="item.id" class="drawer-card-grid">
           <!-- 竖向封面（移除预览功能，仅保留基础展示） -->
           <div class="grid-cover vertical-cover" v-if="drawerType!='collect'">
-            <a-image :preview="false" :src="item.CoverUrl" fallback="https://placeholder.picsum.photos/120/180" fit="cover" />
+            <a-image :preview="false" :src="item.coverUrl" fit="cover" />
           </div>
 
           <!-- 名称：横向一行展示（标签 + 内容 在同一行） -->
           <div class="grid-item horizontal-item name">
             <label class="drawer-label">名称：</label>
-            <span>{{ item.Name || '未命名' }}</span>
+            <span>{{ item.name || '未命名' }}</span>
           </div>
 
           <!-- 保存文件夹：横向一行展示（标签 + 输入框 在同一行） -->
           <div class="grid-item horizontal-item save-folder">
-            <label class="drawer-label">保存路径：</label>
-            <a-input v-model:value="item.SaveFolder" size="small" placeholder="请输入保存路径" class="save-path-input" />
+            <label class="drawer-label">保存：</label>
+            <a-input v-model:value="item.saveFolder" size="small" placeholder="默认用名称作文件夹" class="save-path-input" />
+          </div>
+          <div class="grid-item horizontal-item name">
+            <label class="drawer-label">集数：</label>
+            <span>{{ item.total || '0' }}</span>
           </div>
 
           <!-- 同步开关（保持原有逻辑，横向对齐） -->
           <div class="grid-item horizontal-item sync-switch">
-            <label class="drawer-label">是否同步：</label>
-            <a-switch :checked="item.Sync" @change="() => toggleDrawerItemSync(item, index)" size="small" />
+            <label class="drawer-label">同步：</label>
+            <a-switch :checked="item.sync" @change="() => toggleDrawerItemSync(item, index)" size="small" />
           </div>
         </a-card-grid>
       </a-card>
 
       <!-- 无更多数据提示 -->
       <div v-if="!drawerPagination.hasMore && drawerDataList.length > 0" class="no-more-data">
-        已加载全部{{ getDrawerTypeName() }}数据
+        <!-- 已加载全部{{ getDrawerTypeName() }}数据 -->
       </div>
 
       <!-- 加载下一页中 -->
@@ -755,6 +781,13 @@ const saveDrawerData = () => {
 }
 .cookie-content::-webkit-scrollbar-corner {
   background: transparent;
+}
+.form-item-div {
+  width: 300px;
+}
+.form-item-div-input {
+  width: 150px;
+  margin-left: 10px;
 }
 /* Firefox 透明滚动条适配 */
 .cookie-content {

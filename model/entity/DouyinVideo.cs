@@ -165,5 +165,11 @@ namespace dy.net.model.entity
         /// </summary>
         [SugarColumn(Length =200,IsNullable =true)]
         public string CateId { get; set; }
+
+        /// <summary>
+        ///  自定义收藏夹、合集、短剧 绑定的XId
+        /// </summary>
+        [SugarColumn(Length = 200, IsNullable = true)]
+        public string CateXId { get; set; }
     }
 }

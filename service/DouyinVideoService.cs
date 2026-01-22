@@ -4,9 +4,11 @@ using dy.net.model.entity;
 using dy.net.repository;
 using dy.net.utils;
 using Newtonsoft.Json;
+using Serilog;
 using SqlSugar;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace dy.net.service
@@ -81,6 +83,7 @@ namespace dy.net.service
                        {
                            existingVideo.VideoSavePath = updateData.VideoSavePath;
                            existingVideo.VideoCoverSavePath = updateData.VideoCoverSavePath;
+                           existingVideo.ViedoType = updateData.ViedoType;
                        }
                    }
                    // 批量更新数据库
@@ -94,6 +97,10 @@ namespace dy.net.service
             return transaction;
         }
 
+        public async Task<bool> UpdateOne(DouyinVideo video)
+        {
+            return await _dyCollectVideoRepository.UpdateAsync(video);
+        }
 
         public async Task<VideoStaticsDto> GetStatics()
         {
@@ -110,14 +117,17 @@ namespace dy.net.service
                 VideoCount = list.Count,
                 Categories = Categories,
                 FavoriteCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_favorite),
-                CollectCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_collects),
+                CollectCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_collects || x.ViedoType == VideoTypeEnum.dy_custom_collect),
                 FollowCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_follows),
                 GraphicVideoCount = list.Count(x => x.IsMergeVideo == 1),
-
+                MixCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_mix),
+                SeriesCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_series),
                 VideoSizeTotal = DouyinFileUtils.ConvertBytesToGb(list.Sum(x => x.FileSize)),
                 VideoFavoriteSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_favorite).Sum(x => x.FileSize)),
-                VideoCollectSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_collects).Sum(x => x.FileSize)),
+                VideoCollectSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_collects || x.ViedoType == VideoTypeEnum.dy_custom_collect).Sum(x => x.FileSize)),
                 VideoFollowSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_follows).Sum(x => x.FileSize)),
+                VideoMixSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_mix).Sum(x => x.FileSize)),
+                VideoSeriesSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_series).Sum(x => x.FileSize)),
                 GraphicVideoSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.IsMergeVideo == 1).Sum(x => x.FileSize)),
 
                 //TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
@@ -128,6 +138,28 @@ namespace dy.net.service
                 {
                     data.GraphicVideoSize = "<0.01";//避免显示0.00误导用户
                 }
+            }
+            if (data.VideoFavoriteSize == "0.00")
+            {
+                data.VideoFavoriteSize = "<0.01";//避免显示0.00误导用户
+            }
+
+            if (data.VideoCollectSize == "0.00")
+            {
+                data.VideoCollectSize = "<0.01";//避免显示0.00误导用户
+            }
+            if (data.VideoFollowSize == "0.00")
+            {
+                data.VideoFollowSize = "<0.01";//避免显示0.00误导用户
+            }
+            if (data.VideoMixSize == "0.00")
+            {
+                data.VideoMixSize = "<0.01";//避免显示0.00误导用户
+            }
+
+            if (data.VideoSeriesSize == "0.00")
+            {
+                data.VideoSeriesSize = "<0.01";//避免显示0.00误导用户
             }
             data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto
             {
@@ -170,10 +202,10 @@ namespace dy.net.service
         /// <param name="AuthorId"></param>
         /// <param name="ViedoNameSimplify"></param>
         /// <returns></returns>
-        public async Task<(string, string)> GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
+        public (string, string) GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
         {
 
-            return await _dyCollectVideoRepository.GetUperLastViedoFileName(AuthorId, ViedoNameSimplify);
+            return _dyCollectVideoRepository.GetUperLastViedoFileName(AuthorId, ViedoNameSimplify);
         }
 
         /// <summary>
@@ -346,7 +378,27 @@ namespace dy.net.service
         {
             return await _dyCollectVideoRepository.GetTopsOrderBySyncTime(top);
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<VideoChartItemDto>> GetChartData()
+        {
+            var list = await _dyCollectVideoRepository.GetListAsync(x => x.SyncTime > DateTime.Now.AddDays(-7));
 
+            var resultData = list.GroupBy(x => x.SyncTime.ToString("yyyyMMdd")).Select(g => new VideoChartItemDto
+            {
+                Date = g.Key,
+                Collect = g.Count(x => x.ViedoType == VideoTypeEnum.dy_collects || x.ViedoType == VideoTypeEnum.dy_custom_collect),
+                Favorite = g.Count(x => x.ViedoType == VideoTypeEnum.dy_favorite),
+                Follow = g.Count(x => x.ViedoType != VideoTypeEnum.dy_follows),
+                Graphic = g.Count(x => string.IsNullOrEmpty(x.FileHash)),
+                Mix = g.Count(x => x.ViedoType != VideoTypeEnum.dy_mix),
+                Series = g.Count(x => x.ViedoType != VideoTypeEnum.dy_series),
+            })
+              .ToList();
+            return resultData;
+        }
 
         /// <summary>
         /// 删除无效记录（记录存在，用户手动把目录下的视频删了的情况，视频记录依然存在）
@@ -454,6 +506,149 @@ namespace dy.net.service
                 return false;
             }
 
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> HandOldFolderVideos()
+        {
+            // 1. 查询目标数据
+            var list = await _dyCollectVideoRepository.GetListAsync(x=>x.ViedoType == VideoTypeEnum.dy_favorite || x.ViedoType == VideoTypeEnum.dy_collects );
+            // 缓存已处理的「Tag1+下一级文件夹」组合（避免重复移动）
+            var processedFolderPairs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in list)
+            {
+                // 跳过空值（Tag1/Author为空）
+                if (string.IsNullOrEmpty(item.Tag1) || string.IsNullOrEmpty(item.Author))
+                {
+                    Log.Debug($"跳过：Tag1/Author为空，ItemId={item.Id}");
+                    continue;
+                }
+
+                try
+                {
+                    // 2. 标准化路径 + 拆分路径层级（核心：精准定位Tag1和其下一级文件夹）
+                    string oldVideoPath = item.VideoSavePath;
+                    // 统一分隔符为/，方便拆分层级
+                    string standardPath = oldVideoPath.Replace('\\', '/').Trim('/');
+                    string[] pathSegments = standardPath.Split('/'); // 拆分结果：["app","collect","校园教育","期末复习xxx","文件.mp4"]
+
+                    // 2.1 找到Tag1在路径中的索引（比如"校园教育"的索引是2）
+                    int tag1Index = Array.IndexOf(pathSegments, item.Tag1);
+                    if (tag1Index == -1 || tag1Index + 1 >= pathSegments.Length - 1)
+                    {
+                        Log.Debug($"跳过：无Tag1下一级文件夹，Path={oldVideoPath}，Tag1={item.Tag1}");
+                        continue;
+                    }
+
+                    // 2.2 解析核心路径（关键！）
+                    string tag1FolderRelative = string.Join("/", pathSegments.Take(tag1Index + 1)); // Tag1根目录（相对）：app/collect/校园教育
+                                                                                                    // Tag1根目录完整路径（如 D:/app/collect/校园教育 或 /app/collect/校园教育）
+                    string tag1RootFolderFull = Path.GetFullPath(
+                        Path.Combine(Path.GetPathRoot(oldVideoPath) ?? "",
+                        tag1FolderRelative.Replace('/', Path.DirectorySeparatorChar))
+                    );
+                    string tag1NextLevelFolderName = pathSegments[tag1Index + 1]; // Tag1下一级文件夹名：期末复习xxx
+                                                                                  // Tag1下一级文件夹完整路径：app/collect/校园教育/期末复习xxx
+                    string tag1NextLevelFolderFull = Path.GetFullPath(
+                        Path.Combine(tag1RootFolderFull, tag1NextLevelFolderName)
+                    );
+
+                    // 2.3 拼接新路径（替换Tag1为Author，保留下一级文件夹名）
+                    // 新Author根目录完整路径：app/collect/张三
+                    string authorRootFolderFull = tag1RootFolderFull.Replace(item.Tag1, item.Author);
+                    // 新的下一级文件夹完整路径：app/collect/张三/期末复习xxx
+                    string authorNextLevelFolderFull = Path.GetFullPath(
+                        Path.Combine(authorRootFolderFull, tag1NextLevelFolderName)
+                    );
+
+                    // 2.4 防重复处理（Tag1下一级文件夹已处理则跳过）
+                    string folderPairKey = $"{tag1NextLevelFolderFull}|{authorNextLevelFolderFull}";
+                    if (processedFolderPairs.Contains(folderPairKey))
+                    {
+                        Log.Debug($"跳过：下一级文件夹已处理，Key={folderPairKey}");
+                        continue;
+                    }
+
+                    // 3. 核心判断：检查Tag1的下一级文件夹是否有文件（而非Tag1根目录）
+                    if (!Directory.Exists(tag1NextLevelFolderFull))
+                    {
+                        Log.Warning($"跳过：Tag1下一级文件夹不存在，Path={tag1NextLevelFolderFull}");
+                        continue;
+                    }
+                    string[] nextLevelFiles = Directory.GetFiles(tag1NextLevelFolderFull); // 非递归，只查该文件夹下的文件
+                    if (nextLevelFiles.Length == 0)
+                    {
+                        Log.Debug($"跳过：Tag1下一级文件夹无文件，Path={tag1NextLevelFolderFull}");
+                        processedFolderPairs.Add(folderPairKey);
+                        continue;
+                    }
+
+                    // 4. 移动Tag1的下一级文件夹（保留文件夹名，整体移动到Author目录下）
+                    // 4.1 确保新Author目录存在
+                    Directory.CreateDirectory(authorRootFolderFull);
+
+                    // 4.2 目标文件夹已存在则跳过（如需覆盖，可删除此行+添加Directory.Delete(authorNextLevelFolderFull, true)）
+                    if (Directory.Exists(authorNextLevelFolderFull))
+                    {
+                        Log.Debug($"跳过：目标下一级文件夹已存在，Path={authorNextLevelFolderFull}");
+                        processedFolderPairs.Add(folderPairKey);
+                        continue;
+                    }
+
+                    // 4.3 移动整个下一级文件夹（保留名称和内部所有文件）
+                    Directory.Move(tag1NextLevelFolderFull, authorNextLevelFolderFull);
+                    Log.Debug($"移动Tag1下一级文件夹成功：{tag1NextLevelFolderFull} → {authorNextLevelFolderFull}");
+
+                    // 5. 关键新增：检查Tag1根目录是否为空，为空则删除
+                    if (Directory.Exists(tag1RootFolderFull))
+                    {
+                        // 检查Tag1根目录下是否还有任何文件/文件夹
+                        bool isTag1RootEmpty = !Directory.EnumerateFileSystemEntries(tag1RootFolderFull).Any();
+                        if (isTag1RootEmpty)
+                        {
+                            Directory.Delete(tag1RootFolderFull, false); // false=仅删除空目录，避免误删
+                            Log.Debug($"删除空Tag1根目录：{tag1RootFolderFull}");
+                        }
+                        else
+                        {
+                            Log.Debug($"Tag1根目录非空，不删除：{tag1RootFolderFull}");
+                        }
+                    }
+
+                    // 标记已处理
+                    processedFolderPairs.Add(folderPairKey);
+
+                    // 6. 更新当前Item的视频路径（替换Tag1为Author，保留后续层级）
+                    string newVideoPath = oldVideoPath.Replace(item.Tag1, item.Author);
+                    item.VideoSavePath = newVideoPath;
+                    Log.Debug($"更新Item路径：{oldVideoPath} → {newVideoPath}");
+                }
+                catch (IOException ex)
+                {
+                    Log.Error(ex, $"移动失败（IO异常），ItemId={item.Id}，Path={item.VideoSavePath}");
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    Log.Error(ex, $"删除/移动失败（权限不足），ItemId={item.Id}，Path={item.VideoSavePath}");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, $"处理失败（未知错误），ItemId={item.Id}，Path={item.VideoSavePath}");
+                }
+            }
+
+            // 批量更新数据库
+            if (list.Any())
+            {
+                await BatchInsertOrUpdate(list);
+                Log.Debug($"批量更新数据库完成，共处理{list.Count}条数据");
+            }
+
+            return true;
         }
 
     }

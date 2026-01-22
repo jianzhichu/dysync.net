@@ -220,6 +220,7 @@ namespace dy.net.extension
             services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT, client =>
             {
                 client.DefaultRequestHeaders.Add("User-Agent", DouyinRequestParamManager.DY_USER_AGENT);
+                client.BaseAddress = new Uri("https://www.douyin.com");
             }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
 
             // 抖音下载客户端（单独配置，保持原有特性）

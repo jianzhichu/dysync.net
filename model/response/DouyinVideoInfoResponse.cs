@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 namespace dy.net.model.response
 {
-   
 
     /// <summary>
     /// 视频列表
@@ -245,8 +244,8 @@ namespace dy.net.model.response
         //[JsonProperty("media_type")]
         //public int MediaType { get; set; }
 
-        //[JsonProperty("mix_info")]
-        //public MixInfo MixInfo { get; set; }
+        [JsonProperty("mix_info")]
+        public MixInfo MixInfo { get; set; }
 
         [JsonProperty("music")]
         public Music Music { get; set; }
@@ -619,59 +618,59 @@ namespace dy.net.model.response
     //    public int Type { get; set; }
     //}
 
-    //public class MixInfo
-    //{
-    //    [JsonProperty("cover_url")]
-    //    public ImageInfo CoverUrl { get; set; }
+    public class MixInfo
+    {
+        [JsonProperty("cover_url")]
+        public ImageInfo CoverUrl { get; set; }
 
-    //    [JsonProperty("create_time")]
-    //    public long CreateTime { get; set; }
+        //[JsonProperty("create_time")]
+        //public long CreateTime { get; set; }
 
-    //    [JsonProperty("desc")]
-    //    public string Desc { get; set; }
+        //[JsonProperty("desc")]
+        //public string Desc { get; set; }
 
-    //    [JsonProperty("enable_ad")]
-    //    public int EnableAd { get; set; }
+        //[JsonProperty("enable_ad")]
+        //public int EnableAd { get; set; }
 
-    //    [JsonProperty("extra")]
-    //    public string Extra { get; set; }
+        //[JsonProperty("extra")]
+        //public string Extra { get; set; }
 
-    //    [JsonProperty("ids")]
-    //    public object Ids { get; set; }
+        //[JsonProperty("ids")]
+        //public object Ids { get; set; }
 
-    //    [JsonProperty("is_iaa")]
-    //    public int IsIaa { get; set; }
+        //[JsonProperty("is_iaa")]
+        //public int IsIaa { get; set; }
 
-    //    [JsonProperty("is_serial_mix")]
-    //    public int IsSerialMix { get; set; }
+        //[JsonProperty("is_serial_mix")]
+        //public int IsSerialMix { get; set; }
 
-    //    [JsonProperty("mix_id")]
-    //    public string MixId { get; set; }
+        //[JsonProperty("mix_id")]
+        //public string MixId { get; set; }
 
-    //    [JsonProperty("mix_name")]
-    //    public string MixName { get; set; }
+        //[JsonProperty("mix_name")]
+        //public string MixName { get; set; }
 
-    //    [JsonProperty("mix_pic_type")]
-    //    public int MixPicType { get; set; }
+        //[JsonProperty("mix_pic_type")]
+        //public int MixPicType { get; set; }
 
-    //    [JsonProperty("mix_type")]
-    //    public int MixType { get; set; }
+        //[JsonProperty("mix_type")]
+        //public int MixType { get; set; }
 
-    //    [JsonProperty("share_info")]
-    //    public MixShareInfo ShareInfo { get; set; }
+        //[JsonProperty("share_info")]
+        //public MixShareInfo ShareInfo { get; set; }
 
-    //    [JsonProperty("statis")]
-    //    public MixStatis Statis { get; set; }
+        [JsonProperty("statis")]
+        public MixStatis Statis { get; set; }
 
-    //    [JsonProperty("status")]
-    //    public MixStatus Status { get; set; }
+        //[JsonProperty("status")]
+        //public MixStatus Status { get; set; }
 
-    //    [JsonProperty("update_time")]
-    //    public long UpdateTime { get; set; }
+        //[JsonProperty("update_time")]
+        //public long UpdateTime { get; set; }
 
-    //    [JsonProperty("watched_item")]
-    //    public string WatchedItem { get; set; }
-    //}
+        //[JsonProperty("watched_item")]
+        //public string WatchedItem { get; set; }
+    }
 
     //public class MixShareInfo
     //{
@@ -697,20 +696,20 @@ namespace dy.net.model.response
     //    public string ShareWeiboDesc { get; set; }
     //}
 
-    //public class MixStatis
-    //{
-    //    [JsonProperty("collect_vv")]
-    //    public int CollectVv { get; set; }
+    public class MixStatis
+    {
+        [JsonProperty("collect_vv")]
+        public int CollectVv { get; set; }
 
-    //    [JsonProperty("current_episode")]
-    //    public int CurrentEpisode { get; set; }
+        [JsonProperty("current_episode")]
+        public int CurrentEpisode { get; set; }
 
-    //    [JsonProperty("play_vv")]
-    //    public int PlayVv { get; set; }
+        [JsonProperty("play_vv")]
+        public int PlayVv { get; set; }
 
-    //    [JsonProperty("updated_to_episode")]
-    //    public int UpdatedToEpisode { get; set; }
-    //}
+        [JsonProperty("updated_to_episode")]
+        public int UpdatedToEpisode { get; set; }
+    }
 
     //public class MixStatus
     //{
@@ -765,8 +764,8 @@ namespace dy.net.model.response
         //[JsonProperty("collect_stat")]
         //public int CollectStat { get; set; }
 
-        //[JsonProperty("cover_hd")]
-        //public ImageInfo CoverHd { get; set; }
+        [JsonProperty("cover_hd")]
+        public ImageInfo CoverHd { get; set; }
 
         //[JsonProperty("cover_large")]
         //public ImageInfo CoverLarge { get; set; }
@@ -1283,6 +1282,7 @@ namespace dy.net.model.response
         [JsonProperty("width")]
         public int Width { get; set; }
     }
+
 
 
 }

@@ -33,7 +33,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 是否博主视频直接放一个根目录，不另外按名字建文件夹
         /// </summary>
-        public bool UperSaveTogether { get; set; }
+        //public bool UperSaveTogether { get; set; }
         /// <summary>
         /// 是否下载图片视频
         /// </summary>
@@ -68,7 +68,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 图文视频是否单独存放，否的话则按原类型存储位置存放，比如收藏夹、喜欢等
         /// </summary>
-        public bool ImageViedoSaveAlone { get; set; }
+        //public bool ImageViedoSaveAlone { get; set; }
 
      
 

@@ -15,14 +15,32 @@ namespace dy.net.job
 
         protected override VideoTypeEnum VideoType => VideoTypeEnum.dy_custom_collect;
 
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
+        {
+            if (cate != null)
+            {
+                var folder = Path.Combine(cookie.SavePath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, "", true), DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true));
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                return folder;
+            }
+            else
+            {
+               return base.CreateSaveFolder(cookie, item, config,followed,cate);
+            }
+        }
+        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
+        {
+            return Path.Combine(cookie.SavePath, "author");
+        }
+
         protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            return await douyinHttpClientService.SyncCollectVideos(cursor, count, cookie.Cookies);
+            return await douyinHttpClientService.SyncCollectVideosByCollectId(cursor,count,cookie.Cookies,cate.XId);
         }
 
         protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed = null)
         {
-            return data != null && data.HasMore == 1 && cookie.CollHasSyncd == 0;
+            return data != null && data.HasMore == 1;
         }
 
     }

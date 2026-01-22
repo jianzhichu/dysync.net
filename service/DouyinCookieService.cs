@@ -53,14 +53,14 @@ namespace dy.net.service
             var cookie = new DouyinCookie
             {
                 UserName = "douyin2026", 
-                Cookies = "-",
-                SecUserId = "-",
+                Cookies = "",
+                SecUserId = "",
                 Id = IdGener.GetLong().ToString(),
                 Status = 0,
                 SavePath = "/app/collect",
                 FavSavePath = "/app/favorite",
                 UpSavePath = "/app/uper",
-                ImgSavePath="/app/images",
+                //ImgSavePath="/app/images",
                 CollHasSyncd = 0,
                 FavHasSyncd = 0,
                 UperSyncd = 0,

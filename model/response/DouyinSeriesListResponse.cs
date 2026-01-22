@@ -167,8 +167,8 @@ namespace dy.net.model.response
         //[JsonProperty("share_info")]
         //public DouyinDramaShareInfo ShareInfo { get; set; }
 
-        //[JsonProperty("stats")]
-        //public DouyinDramaStats Stats { get; set; }
+        [JsonProperty("stats")]
+        public DouyinDramaStats Stats { get; set; }
 
         //[JsonProperty("status")]
         //public DouyinDramaStatus DramaStatus { get; set; }
@@ -1087,26 +1087,26 @@ namespace dy.net.model.response
     /// <summary>
     /// 抖音短剧统计信息
     /// </summary>
-    //public class DouyinDramaStats
-    //{
-    //    [JsonProperty("collect_vv")]
-    //    public int CollectViewCount { get; set; }
+    public class DouyinDramaStats
+    {
+        [JsonProperty("collect_vv")]
+        public int CollectViewCount { get; set; }
 
-    //    [JsonProperty("current_episode")]
-    //    public int CurrentEpisode { get; set; }
+        [JsonProperty("current_episode")]
+        public int CurrentEpisode { get; set; }
 
-    //    [JsonProperty("last_added_item_time")]
-    //    public long LastEpisodeAddTimestamp { get; set; }
+        [JsonProperty("last_added_item_time")]
+        public long LastEpisodeAddTimestamp { get; set; }
 
-    //    [JsonProperty("play_vv")]
-    //    public long TotalPlayViewCount { get; set; }
+        [JsonProperty("play_vv")]
+        public long TotalPlayViewCount { get; set; }
 
-    //    [JsonProperty("total_episode")]
-    //    public int TotalEpisodeCount { get; set; }
+        [JsonProperty("total_episode")]
+        public int TotalEpisodeCount { get; set; }
 
-    //    [JsonProperty("updated_to_episode")]
-    //    public int LatestEpisodeCount { get; set; }
-    //}
+        [JsonProperty("updated_to_episode")]
+        public int LatestEpisodeCount { get; set; }
+    }
 
     /// <summary>
     /// 抖音短剧状态信息

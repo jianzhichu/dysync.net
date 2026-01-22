@@ -31,11 +31,16 @@
         public string VideoFollowSize { get; set; }
         public string VideoFavoriteSize { get; set; }
 
+        public string VideoMixSize { get; set; }
+        public string VideoSeriesSize { get; set; }
+
         public long CollectCount { get; set; }
         public long FavoriteCount { get; set; }
 
         public long FollowCount { get; set; }
+        public long MixCount { get; set; }
 
+        public long SeriesCount { get; set; }
 
         public long GraphicVideoCount { get; set; }
         public string GraphicVideoSize { get; set; }

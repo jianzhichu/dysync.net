@@ -35,10 +35,12 @@ namespace dy.net.model.entity
         /// <summary>
         /// 封面
         /// </summary>
+        [SugarColumn(Length =500,IsNullable =true)]
         public string CoverUrl { get; set; }
         /// <summary>
         /// 保存文件夹
         /// </summary>
+        [SugarColumn(Length =500,IsNullable =true)]
         public string SaveFolder { get; set; }
         /// <summary>
         /// 是否开启同步
@@ -52,10 +54,16 @@ namespace dy.net.model.entity
 
         public DateTime CreateTime  { get; set; }
 
-        public DateTime UpdateTime { get; set; }
+        [SugarColumn(IsNullable =true)]
+        public DateTime? UpdateTime { get; set; }
         /// <summary>
         /// 是否已完结
         /// </summary>
         public bool IsEnd { get; set; }
+
+        /// <summary>
+        /// 总集数
+        /// </summary>
+        public int Total { get; set; }
     }
 }

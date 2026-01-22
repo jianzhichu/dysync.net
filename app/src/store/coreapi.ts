@@ -95,8 +95,17 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  //视频统计
   async function VideoStatics() {
     return http.request<any, Response<any>>('/api/video/statics', 'get').then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+  //视频曲线
+  async function VideoChart() {
+    return http.request<any, Response<any>>('/api/video/chart', 'get').then(r => {
       return r;
     }).finally(() => {
 
@@ -337,6 +346,22 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
 
+  //合集、自定义收藏夹、短剧列表
+  async function CatePageList(param: object) {
+    return http.request<any, Response<any>>('/api/cate/paged', 'post_json', param).then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
+  //批量修改 合集、自定义收藏夹、短剧
+  async function BatchSaveCate(param: object) {
+    return http.request<any, Response<any>>('/api/cate/BatchSave', 'post_json', param).then(r => {
+      return r;
+    }).finally(() => {
+
+    });
+  }
 
   // // 音频文件上传接口
   // async function apiUploadAudio(formData: FormData, options?: { onUploadProgress?: (progressEvent: ProgressEvent) => void }) {
@@ -362,6 +387,9 @@ export const useApiStore = defineStore('coreapi', () => {
   // }
 
   return {
+    VideoChart,
+    BatchSaveCate,
+    CatePageList,
     getVer,
     mp3List,
     BathRealDelete,
