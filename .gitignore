@@ -6,3 +6,4 @@ upload
 data1
 /db/*.sqlite
 /appsettings.json
+/Properties/PublishProfiles/fn.pubxml.user
