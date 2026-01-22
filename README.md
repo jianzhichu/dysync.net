@@ -53,8 +53,8 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 ### 1.2 提取 博主的`sec_user_id`以及博主的uid
 - **对于想下载博主视频，但是又不想关注博主，需要用到**
-- 1.进入博主主页，按`F12` 点击`Network` 或`网络` 筛选器里面填`/web/aweme/post` 然后切到`预览`或`preview` 展开 json数据结果 找到`aweme_list` 然后随便点开其中一个子项 即可找到`author_user_id` 这便是博主的uid 。后续在关注列表中，需要手动添加非关注博主同步视频时将会要用到。
- ![获取Cookie步骤](docs/getuperuid.png)
+- 1.进入博主主页，按`F12` 点击`Network` 或`网络` 筛选器里面填`/web/aweme/post` 然后切到`预览`或`preview` 展开 json数据结果 找到`aweme_list` 然后随便点开其中一个子项 即可找到`aweme_list[0].author.sec_uid` 这便是博主的uid 。后续在关注列表中，需要手动添加非关注博主同步视频时将会要用到。
+ ![获取Cookie步骤](docs/finduser_id.png)
 ---
 
 ## 2. 路径映射规则（核心！错配会导致无法访问/数据丢失）
