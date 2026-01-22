@@ -499,12 +499,12 @@ namespace dy.net.Controllers
         /// 获取7天视频同步趋势数据（曲线图）
         /// </summary>
         /// <returns>7天图表数据列表</returns>
-        [HttpGet("chart")]
-        public async  Task<IActionResult> Chart()
+        [HttpGet("chart/{day}")]
+        public async  Task<IActionResult> Chart([FromRoute]int day=7)
         {
             try
             {
-                var chartData = await douyinVideoService.GetChartData();
+                var chartData = await douyinVideoService.GetChartData(day);
                 return ApiResult.Success(chartData);
             }
             catch (Exception ex)

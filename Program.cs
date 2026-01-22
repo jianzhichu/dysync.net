@@ -220,7 +220,7 @@ namespace dy.net
                 //commonService.UpdateAllCookieSyncedToZero();
                 // 初始化配置
                 var config = commonService.InitConfig();
-                //if (!isDevelopment)
+                if (!isDevelopment)
                 {
                     // 启动定时任务
                     var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();

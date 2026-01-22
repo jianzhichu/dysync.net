@@ -567,7 +567,7 @@ const saveDrawerData = () => {
       </a-form-item>
 
       <!-- 下载合集 - 新增name="mixPath" -->
-      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载合集" name="downMix">
+      <a-form-item label="下载合集" name="downMix">
         <div style="display: flex; align-items: center;  gap: 12px;">
           <div class="form-item-div">
             <a-switch v-model:checked="form.downMix" :checked-value="true" :un-checked-value="false" size="default" />
@@ -586,7 +586,7 @@ const saveDrawerData = () => {
       </a-form-item>
 
       <!-- 下载短剧 - 新增name="seriesPath" -->
-      <a-form-item v-if="form.savePath&&form.savePath.length>0" label="下载短剧" name="downSeries">
+      <a-form-item label="下载短剧" name="downSeries">
         <div style="display: flex; align-items: center;  gap: 12px;">
           <div class="form-item-div">
             <a-switch v-model:checked="form.downSeries" :checked-value="true" :un-checked-value="false" size="default" />

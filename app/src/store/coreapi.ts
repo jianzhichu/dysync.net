@@ -104,8 +104,8 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
   //视频曲线
-  async function VideoChart() {
-    return http.request<any, Response<any>>('/api/video/chart', 'get').then(r => {
+  async function VideoChart(day: number) {
+    return http.request<any, Response<any>>(`/api/video/chart/${day}`, 'get').then(r => {
       return r;
     }).finally(() => {
 

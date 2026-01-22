@@ -382,9 +382,11 @@ namespace dy.net.service
         /// 
         /// </summary>
         /// <returns></returns>
-        public async Task<List<VideoChartItemDto>> GetChartData()
+        public async Task<List<VideoChartItemDto>> GetChartData(int day=7)
         {
-            var list = await _dyCollectVideoRepository.GetListAsync(x => x.SyncTime > DateTime.Now.AddDays(-7));
+
+            var date = DateTime.Now.AddDays(-day);
+            var list = await _dyCollectVideoRepository.GetListAsync(x => x.SyncTime > date);
 
             var resultData = list.GroupBy(x => x.SyncTime.ToString("yyyyMMdd")).Select(g => new VideoChartItemDto
             {

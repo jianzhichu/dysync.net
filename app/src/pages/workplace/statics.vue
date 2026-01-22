@@ -96,9 +96,11 @@
           </div>
         </div>
 
-        <!-- 右侧：7天同步数量 普通折线堆叠图（60%） -->
         <div class="chart-card secondary-card main-card stats-right">
           <div class="chart-container" ref="chartRef"></div>
+          <a-button type="text" shape="circle" class="fullscreen-btn" @click="openFullChart">
+            <fullscreen-outlined />
+          </a-button>
         </div>
       </section>
 
@@ -160,6 +162,12 @@
       </section>
     </div>
 
+    <!-- 新增：全屏图表模态窗口 -->
+    <a-modal v-model:visible="showFullChartModal" title="近30天同步曲线图" width="80%" destroyOnClose @resize="handleFullChartResize" @cancel="destroyFullChart">
+      <!-- 新增内联样式，强制设置宽高 -->
+      <div class="full-chart-container" ref="fullChartRef" style="width: 100%; height: 400px; min-height: 400px; background: #fff;"></div>
+    </a-modal>
+
     <svg style="display: none;">
       <symbol id="cup" viewBox="0 0 12 12">
         <path d="M18 4h2v16h-2zM4 4h14v2H4zM4 8h10v2H4zM4 12h10v2H4zM4 16h6v2H4zM4 20h6v2H4z" />
@@ -169,10 +177,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useApiStore } from '@/store';
 import { message, Modal } from 'ant-design-vue';
 import * as echarts from 'echarts';
+import { FullscreenOutlined } from '@ant-design/icons-vue'; // 确保导入图标
 
 // 类型接口不变
 interface Author {
@@ -226,6 +235,12 @@ const tabCount = ref<number>(0);
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
 const syncData = ref<SyncDataItem[]>([]);
+const syncFullData = ref<SyncDataItem[]>([]);
+
+// 新增：全屏图表相关变量
+const showFullChartModal = ref<boolean>(false); // 控制模态窗口显示
+const fullChartRef = ref<HTMLDivElement | null>(null); // 全屏图表容器
+let fullChartInstance: echarts.ECharts | null = null; // 全屏图表实例
 
 defineOptions({
   name: 'StatsDashboard',
@@ -240,28 +255,13 @@ const generateRandomColor = () => {
   return `#${randomHex()}${randomHex()}${randomHex()}`;
 };
 
-// 核心修改1：生成近7天的日期（替换原5天）
-const getRecent7Days = () => {
-  const days: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    // 6→0 共7天
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    days.push(`${month}-${day}`);
-  }
-  return days;
-};
-
 //获取chart数据
 const generateSyncData = () => {
   useApiStore()
-    .VideoChart()
+    .VideoChart(7)
     .then((res) => {
       if (res.code === 0) {
         syncData.value = res.data;
-        console.log(syncData.value);
         initChart();
       }
     })
@@ -270,32 +270,37 @@ const generateSyncData = () => {
     });
 };
 
-// 核心修改3：初始化ECharts - 普通折线堆叠图
-const initChart = () => {
-  if (!chartRef.value) return;
-  if (chartInstance) chartInstance.dispose();
+//获取chart数据
+const getFullSyncData = () => {
+  useApiStore()
+    .VideoChart(30)
+    .then((res) => {
+      if (res.code === 0) {
+        syncFullData.value = res.data;
+        initFullChart();
+      }
+    })
+    .catch((r) => {
+      console.log(r);
+    });
+};
 
-  chartInstance = echarts.init(chartRef.value);
+// 原有方法：初始化普通图表（提取公共配置，方便复用）
+const getChartOption = (data: SyncDataItem[]): echarts.EChartsOption => {
   const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272'];
-  const data = syncData.value;
-  console.log(data);
   const dateList = data.map((item) => item.date);
-  console.log(dateList);
-  const option: echarts.EChartsOption = {
+
+  return {
     backgroundColor: 'transparent',
     tooltip: {
-      trigger: 'axis', // 保留：显示当前日期所有系列数据
-      zlevel: 100, // ECharts 内部层级
-      // 关键配置：让 tooltip 脱离框架容器
-      // renderMode: 'dom', // 强制用 DOM 渲染 tooltip（而非 Canvas）
-      appendToBody: true, // 将 tooltip DOM 直接挂载到 <body> 下
-      confine: false, // 关闭容器限制
+      trigger: 'axis',
+      zlevel: 100,
+      appendToBody: true,
+      confine: false,
       axisPointer: { type: 'cross' },
-      // 可选：自定义样式，确保清晰
       backgroundColor: 'rgba(0,0,0,0.6)',
       textStyle: { fontSize: 12, color: '#fff' },
       padding: [8, 12],
-      // 可选：给 tooltip 加自定义类名，方便单独控制样式
       className: 'custom-chart-tooltip',
     },
     legend: {
@@ -322,7 +327,7 @@ const initChart = () => {
         },
         axisLabel: {
           color: document.documentElement.classList.contains('dark-mode') ? '#b0b0c3' : '#666',
-          fontSize: 11, // 7天日期挤，微调字号
+          fontSize: 11,
         },
       },
     ],
@@ -354,8 +359,8 @@ const initChart = () => {
         symbolSize: 4,
         emphasis: {
           focus: 'series',
-          symbolSize: 6, // hover时数据点放大
-        } as any, // 增加类型断言解决报错
+          symbolSize: 6,
+        } as any,
         data: data.map((item) => item.favorite),
       },
       {
@@ -420,8 +425,17 @@ const initChart = () => {
       },
     ],
   };
+};
 
+// 原有方法：初始化普通图表
+const initChart = () => {
+  if (!chartRef.value) return;
+  if (chartInstance) chartInstance.dispose();
+
+  chartInstance = echarts.init(chartRef.value);
+  const option = getChartOption(syncData.value);
   chartInstance.setOption(option);
+
   const resizeHandler = () => chartInstance?.resize();
   window.addEventListener('resize', resizeHandler);
   onUnmounted(() => {
@@ -430,12 +444,100 @@ const initChart = () => {
     chartInstance = null;
   });
 };
+// 新增：打开全屏图表窗口
+const openFullChart = () => {
+  showFullChartModal.value = true;
+};
+// 新增：初始化全屏图表
+// 重写 initFullChart 函数（增加更多日志和容错）
+const initFullChart = async () => {
+  console.log('进入initFullChart函数');
+  await nextTick(); // 等待模态窗口DOM渲染完成
+
+  // 增加日志排查
+  console.log('fullChartRef是否存在：', !!fullChartRef.value);
+  console.log('syncData是否有数据：', syncData.value.length);
+
+  if (!fullChartRef.value) {
+    console.error('全屏图表容器不存在');
+    return;
+  }
+
+  if (syncData.value.length === 0) {
+    console.error('同步数据为空');
+    return;
+  }
+
+  console.log('开始初始化全屏图表');
+  // 销毁已有实例
+  if (fullChartInstance) {
+    fullChartInstance.dispose();
+    fullChartInstance = null;
+  }
+
+  try {
+    // 初始化全屏图表
+    fullChartInstance = echarts.init(fullChartRef.value);
+    const option = getChartOption(syncData.value);
+    // 调整全屏图表的网格和字号，优化显示效果
+    option.grid = {
+      left: '4%',
+      right: '4%',
+      bottom: '5%',
+      top: '8%',
+      containLabel: true,
+    };
+    if (option.xAxis && Array.isArray(option.xAxis) && option.xAxis[0]) {
+      option.xAxis[0].axisLabel = {
+        ...option.xAxis[0].axisLabel,
+        fontSize: 12,
+      };
+    }
+    if (option.yAxis && Array.isArray(option.yAxis) && option.yAxis[0]) {
+      option.yAxis[0].axisLabel = {
+        ...option.yAxis[0].axisLabel,
+        fontSize: 12,
+      };
+    }
+
+    fullChartInstance.setOption(option);
+    fullChartInstance.resize(); // 强制调整大小
+    console.log('全屏图表初始化成功');
+  } catch (error) {
+    console.error('全屏图表初始化失败：', error);
+  }
+};
+
+// 新增：处理全屏图表窗口大小变化
+const handleFullChartResize = () => {
+  fullChartInstance?.resize();
+};
+
+// 新增：销毁全屏图表实例
+const destroyFullChart = () => {
+  fullChartInstance?.dispose();
+  fullChartInstance = null;
+};
 
 // 监听暗黑模式切换
+// watch(
+//   () => document.documentElement.classList.contains('dark-mode'),
+//   () => initChart(),
+//   { immediate: true }
+// );
+
+// 在脚本中添加（放在onMounted之前）
 watch(
-  () => document.documentElement.classList.contains('dark-mode'),
-  () => initChart(),
-  { immediate: true }
+  () => showFullChartModal.value,
+  async (isOpen) => {
+    if (isOpen) {
+      console.log('弹窗已打开，准备初始化全屏图表');
+      getFullSyncData();
+    } else {
+      destroyFullChart(); // 弹窗关闭时销毁图表
+    }
+  },
+  { immediate: false }
 );
 
 // 加载数据 - 调用7天方法
@@ -444,6 +546,10 @@ onMounted(() => {
   loadDashboardData();
 });
 
+// 新增：窗口关闭时销毁全屏图表
+onUnmounted(() => {
+  destroyFullChart();
+});
 const changeTab = (e: string) => {
   currentTab.value = e;
   tabCount.value = e === 'author' ? totalAuthors.value : categoryTotal.value;
@@ -529,11 +635,13 @@ const handleDeleteItem = (item: Author) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative; /* 新增：为全屏按钮提供定位容器 */
 }
 .chart-container {
   flex: 1;
   width: 100%;
   min-height: 220px;
+  padding-right: 40px; /* 新增：给右侧留出按钮空间，避免覆盖 */
 }
 .stat-header {
   display: flex;
@@ -541,12 +649,6 @@ const handleDeleteItem = (item: Author) => {
   align-items: center;
   margin-bottom: 8px;
   width: 100%;
-}
-.total-videos-item,
-.total-space-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 .stat-subitems {
   display: grid;
@@ -964,5 +1066,42 @@ html.dark-mode .category-stats {
 }
 html.dark-mode .author-progress {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* 新增：全屏按钮样式 */
+.fullscreen-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 10; /* 确保在图表上方显示 */
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.fullscreen-btn:hover {
+  background-color: #f5f5f5;
+  color: #2196f3;
+  border-color: #2196f3;
+}
+
+/* 暗黑模式下的全屏按钮样式 */
+html.dark-mode .fullscreen-btn {
+  background-color: rgba(40, 40, 65, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #b0b0c3;
+}
+
+html.dark-mode .fullscreen-btn:hover {
+  background-color: rgba(60, 60, 85, 0.8);
+  color: #42a5f5;
+  border-color: #42a5f5;
 }
 </style>
