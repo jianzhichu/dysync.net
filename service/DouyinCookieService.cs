@@ -2,9 +2,7 @@
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.repository;
-using SqlSugar;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 
 namespace dy.net.service
 {
@@ -33,7 +31,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> IsInit()
         {
-          return await  _cookieRepository.ExistsAsync(x => !string.IsNullOrEmpty(x.Id));
+            return await _cookieRepository.ExistsAsync(x => !string.IsNullOrEmpty(x.Id));
         }
         public async Task<bool> Add(DouyinCookie dyUserCookies)
         {
@@ -52,7 +50,7 @@ namespace dy.net.service
             }
             var cookie = new DouyinCookie
             {
-                UserName = "douyin2026", 
+                UserName = "douyin2026",
                 Cookies = "",
                 SecUserId = "",
                 Id = IdGener.GetLong().ToString(),
@@ -64,11 +62,11 @@ namespace dy.net.service
                 //CollHasSyncd = 0,
                 //FavHasSyncd = 0,
                 //UperSyncd = 0,
-                MyUserId=""
+                MyUserId = ""
             };
-            return  _cookieRepository.Insert(cookie);
+            return _cookieRepository.Insert(cookie);
         }
-      
+
         // 查询单个
         public async Task<DouyinCookie> GetByIdAsync(string id)
         {

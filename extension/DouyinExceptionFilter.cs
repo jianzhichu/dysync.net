@@ -1,7 +1,6 @@
 ﻿using dy.net.model.dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.Net;
 
 namespace dy.net.extension
 {

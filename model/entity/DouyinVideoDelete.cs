@@ -16,12 +16,12 @@ namespace dy.net.model.entity
         /// <summary>
         /// 原视频Id
         /// </summary>
-        [SugarColumn(IsNullable =true,Length =50)]
+        [SugarColumn(IsNullable = true, Length = 50)]
         public string ViedoId { get; set; }
 
         public DateTime DeleteTime { get; set; }
 
-        [SugarColumn(IsNullable =true,Length =1000)]
+        [SugarColumn(IsNullable = true, Length = 1000)]
         public string VideoTitle { get; set; }
         [SugarColumn(IsNullable = true, Length = 1000)]
         public string VideoSavePath { get; set; }

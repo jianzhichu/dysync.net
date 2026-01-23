@@ -220,7 +220,7 @@ namespace dy.net.model.response
         //[JsonProperty("avatar_larger")]
         //public DouyinImageResource AvatarLarger { get; set; }
 
-     
+
 
         //[JsonProperty("avatar_schema_list")]
         //public object AvatarSchemaList { get; set; } // 原始值为null，兼容扩展
@@ -521,7 +521,7 @@ namespace dy.net.model.response
 
         //[JsonProperty("new_story_cover")]
         //public object NewStoryCover { get; set; } // 原始值为null，兼容扩展
-     
+
         //[JsonProperty("not_seen_item_id_list")]
         //public object UnseenItemIds { get; set; } // 原始值为null，兼容扩展
 

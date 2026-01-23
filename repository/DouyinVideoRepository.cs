@@ -1,9 +1,7 @@
 ﻿using dy.net.extension;
 using dy.net.model.dto;
 using dy.net.model.entity;
-using Quartz.Util;
 using SqlSugar;
-using System.Linq;
 
 namespace dy.net.repository
 {
@@ -15,11 +13,11 @@ namespace dy.net.repository
         }
 
 
-        
+
 
         public async Task<List<DouyinVideoTopDto>> GetTopsOrderBySyncTime(int top)
         {
-            return await Db.Queryable<DouyinVideo>().Select(x=>new DouyinVideoTopDto {Id=x.Id, Title=x.VideoTitle,Time=x.SyncTime.ToString("yyyy-MM-dd HH:mm:ss")}).Take(top).OrderByDescending(x=>x.Time).ToListAsync();
+            return await Db.Queryable<DouyinVideo>().Select(x => new DouyinVideoTopDto { Id = x.Id, Title = x.VideoTitle, Time = x.SyncTime.ToString("yyyy-MM-dd HH:mm:ss") }).Take(top).OrderByDescending(x => x.Time).ToListAsync();
         }
         /// <summary>
         /// 
@@ -36,16 +34,16 @@ namespace dy.net.repository
 
 
             VideoTypeEnum? enumviedoType = null;
-            if (!string.IsNullOrEmpty(dto.ViedoType) && dto.ViedoType != "*" && dto.ViedoType != "4") 
+            if (!string.IsNullOrEmpty(dto.ViedoType) && dto.ViedoType != "*" && dto.ViedoType != "4")
             {
                 enumviedoType = dto.ViedoType.ToVideoTypeEnum();
             }
-          
+
             var where = this.Db.Queryable<DouyinVideo>()
                 //.WhereIF(!string.IsNullOrWhiteSpace(title), x => x.VideoTitle.Contains(title))
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.Title), x => x.VideoTitle.Contains(dto.Title))
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.Author), x => x.Author.Contains(dto.Author))
-                .WhereIF(!string.IsNullOrWhiteSpace(dto.Tag), x => x.Tag1==dto.Tag)
+                .WhereIF(!string.IsNullOrWhiteSpace(dto.Tag), x => x.Tag1 == dto.Tag)
                 .WhereIF(start.HasValue, x => x.SyncTime >= start.Value)
                 .WhereIF(end.HasValue, x => x.SyncTime <= end.Value)
                 .WhereIF(start2.HasValue, x => x.CreateTime >= start2.Value)
@@ -56,8 +54,8 @@ namespace dy.net.repository
 
             var totalCount = await where.CountAsync();
             List<DouyinVideo> list = new List<DouyinVideo>();
-            if(string.IsNullOrWhiteSpace(dto.SortField))
-             list = await where.OrderByDescending(x => x.SyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
+            if (string.IsNullOrWhiteSpace(dto.SortField))
+                list = await where.OrderByDescending(x => x.SyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
             else
             {
 
@@ -100,10 +98,10 @@ namespace dy.net.repository
         /// <param name="AuthorId"></param>
         /// <param name="ViedoNameSimplify"></param>
         /// <returns></returns>
-        public  (string, string) GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
+        public (string, string) GetUperLastViedoFileName(string AuthorId, string ViedoNameSimplify)
         {
 
-            var video =  this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == VideoTypeEnum.dy_follows)
+            var video = this.Db.Queryable<DouyinVideo>().Where(x => x.AuthorId == AuthorId && x.ViedoType == VideoTypeEnum.dy_follows)
                  .Where(x => x.VideoTitleSimplify == ViedoNameSimplify)
                  .OrderByDescending(x => x.CreateTime).First();
 
@@ -157,7 +155,7 @@ namespace dy.net.repository
         {
             if (downs != null)
             {
-                return  Db.Insertable(downs).ExecuteCommand() > 0;
+                return Db.Insertable(downs).ExecuteCommand() > 0;
 
             }
             else

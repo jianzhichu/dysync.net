@@ -1,6 +1,4 @@
-﻿using ClockSnowFlake;
-using System.IO;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 
 namespace dy.net.utils
@@ -22,7 +20,7 @@ namespace dy.net.utils
             string result = string.Empty;
             // 1. 空值处理：直接返回默认名
             if (string.IsNullOrWhiteSpace(originalName))
-                result= defaultName.Replace(" ","");
+                result = defaultName.Replace(" ", "");
             else
             {
                 // 2. 过滤 Linux 非法字符：
@@ -44,7 +42,7 @@ namespace dy.net.utils
                 // 3. 计算 UTF-8 字节数，若未超 255 字节，直接返回
                 byte[] utf8Bytes = Encoding.UTF8.GetBytes(sanitizedName);
                 if (utf8Bytes.Length <= 100)
-                    result= sanitizedName.Replace(" ", "");
+                    result = sanitizedName.Replace(" ", "");
                 else
                 {
                     // 4. 超过 255 字节，截取前 255 字节（避免破坏 UTF-8 字符）
@@ -55,14 +53,14 @@ namespace dy.net.utils
                     string truncatedName = Encoding.UTF8.GetString(truncatedBytes).TrimEnd('\0').Replace(" ", ""); // 移除可能的空字符
 
                     // 6. 极端情况：截取后为空（如全是非法字符替换后无有效内容），返回默认名
-                    result= string.IsNullOrWhiteSpace(truncatedName) ? defaultName : truncatedName;
+                    result = string.IsNullOrWhiteSpace(truncatedName) ? defaultName : truncatedName;
                 }
                 if (isfolder)
                 {
                     result = KeepChineseLettersAndNumbers(result);
                 }
             }
-                return result;
+            return result;
         }
 
 

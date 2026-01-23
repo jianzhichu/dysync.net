@@ -52,7 +52,7 @@ namespace dy.net.extension
 
         public static VideoTypeEnum? ToVideoTypeEnum(this string value)
         {
-            if(int.TryParse(value, out int intValue))
+            if (int.TryParse(value, out int intValue))
             {
                 return ToVideoTypeEnum(intValue);
             }

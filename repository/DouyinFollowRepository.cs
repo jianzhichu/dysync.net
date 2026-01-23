@@ -1,5 +1,4 @@
 ﻿using ClockSnowFlake;
-using dy.net.extension;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.model.response;
@@ -84,7 +83,7 @@ namespace dy.net.repository
         public async Task<List<DouyinFollowed>> GetSyncFollows(string userId)
         {
             return await this.Db.Queryable<DouyinFollowed>()
-                .Where(x => x.OpenSync == true).Where(x => x.mySelfId == userId).Where(x=>!string.IsNullOrWhiteSpace(x.SecUid))
+                .Where(x => x.OpenSync == true).Where(x => x.mySelfId == userId).Where(x => !string.IsNullOrWhiteSpace(x.SecUid))
                 .ToListAsync();
         }
 

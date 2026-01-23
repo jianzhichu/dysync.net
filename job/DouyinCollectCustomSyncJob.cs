@@ -3,7 +3,6 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
-using System;
 
 namespace dy.net.job
 {
@@ -25,7 +24,7 @@ namespace dy.net.job
             }
             else
             {
-               return base.CreateSaveFolder(cookie, item, config,followed,cate);
+                return base.CreateSaveFolder(cookie, item, config, followed, cate);
             }
         }
         protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
@@ -35,7 +34,7 @@ namespace dy.net.job
 
         protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            return await douyinHttpClientService.SyncCollectVideosByCollectId(cursor,count,cookie.Cookies,cate.XId);
+            return await douyinHttpClientService.SyncCollectVideosByCollectId(cursor, count, cookie.Cookies, cate.XId);
         }
 
         //protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed = null)

@@ -22,10 +22,10 @@ namespace dy.net.job
 
         protected override async Task<List<DouyinCookie>> GetSyncCookies()
         {
-            return await douyinCookieService.GetOpendCookiesAsync(x=> !string.IsNullOrWhiteSpace(x.FavSavePath)&&!string.IsNullOrWhiteSpace(x.SecUserId));
+            return await douyinCookieService.GetOpendCookiesAsync(x => !string.IsNullOrWhiteSpace(x.FavSavePath) && !string.IsNullOrWhiteSpace(x.SecUserId));
         }
 
-        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor,DouyinFollowed followed, DouyinCollectCate cate)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
         {
             return await douyinHttpClientService.SyncFavoriteVideos(count, cursor, cookie.SecUserId, cookie.Cookies);
         }
@@ -43,7 +43,7 @@ namespace dy.net.job
         //    await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
         //}
 
-        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed,DouyinCollectCate cate)
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
             string authorFolder;
             if (string.IsNullOrWhiteSpace(item.Author?.Nickname) && string.IsNullOrWhiteSpace(item.Author?.Uid))

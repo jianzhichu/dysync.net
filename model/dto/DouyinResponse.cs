@@ -80,7 +80,7 @@ namespace dy.net.model.dto
         /// <param name="t"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static IActionResult SuccOrFail<T>(int code,T t,string message = "")
+        public static IActionResult SuccOrFail<T>(int code, T t, string message = "")
         {
             if (code == ResponseCode.Success)
             {
@@ -130,7 +130,7 @@ namespace dy.net.model.dto
         /// <param name="message">错误消息</param>
         /// <param name="data">附加数据</param>
         /// <returns>IActionResult</returns>
-        public static IActionResult Fail<T>(string message="请求失败", int businessCode = ResponseCode.ServerError,  T data = default)
+        public static IActionResult Fail<T>(string message = "请求失败", int businessCode = ResponseCode.ServerError, T data = default)
         {
             var response = new DouyinApiResponse<T>
             {
@@ -158,7 +158,7 @@ namespace dy.net.model.dto
         /// </summary>
         /// <param name="message">错误消息</param>
         /// <returns>IActionResult</returns>
-        public static IActionResult Fail(string message="请求失败")
+        public static IActionResult Fail(string message = "请求失败")
         {
             return Fail<object>(message, ResponseCode.ServerError);
         }

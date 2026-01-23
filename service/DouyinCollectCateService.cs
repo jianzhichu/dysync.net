@@ -1,10 +1,6 @@
-﻿using ClockSnowFlake;
-using dy.net.model.dto;
+﻿using dy.net.model.dto;
 using dy.net.model.entity;
-using dy.net.model.response;
 using dy.net.repository;
-using SqlSugar;
-using System.Linq.Expressions;
 
 namespace dy.net.service
 {
@@ -26,7 +22,7 @@ namespace dy.net.service
         }
 
 
-       
+
 
         /// <summary>
         /// 
@@ -45,7 +41,7 @@ namespace dy.net.service
         /// <param name="ckId"></param>
         /// <param name="cateType"></param>
         /// <returns></returns>
-        public async Task<(int add, int update,int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId,VideoTypeEnum cateType)
+        public async Task<(int add, int update, int delete, bool succ)> Sync(List<DouyinCollectCate> cates, string ckId, VideoTypeEnum cateType)
         {
             return await _douyinCollectCateRepository.Sync(cates, ckId, cateType);
         }

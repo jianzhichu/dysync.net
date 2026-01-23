@@ -3,7 +3,6 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
-using System.Net;
 
 namespace dy.net.job
 {
@@ -16,9 +15,9 @@ namespace dy.net.job
 
         protected override VideoTypeEnum VideoType => VideoTypeEnum.dy_series;
 
-        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor,DouyinFollowed followed, DouyinCollectCate cate)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            return await douyinHttpClientService.SyncSeriesViedosByMSeriesId(cursor, count, cookie.Cookies,cate.XId);
+            return await douyinHttpClientService.SyncSeriesViedosByMSeriesId(cursor, count, cookie.Cookies, cate.XId);
         }
 
         //protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed=null)

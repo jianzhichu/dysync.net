@@ -3,8 +3,6 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
-using Serilog;
-using System;
 
 namespace dy.net.job
 {
@@ -21,7 +19,7 @@ namespace dy.net.job
             if (now.Hour == 1 && now.Minute < 30)
             {
                 LogFileCleaner.CleanOldLogFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"), 1);
-                await Task.Delay(200); 
+                await Task.Delay(200);
             }
         }
 

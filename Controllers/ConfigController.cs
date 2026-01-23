@@ -6,14 +6,8 @@ using dy.net.service;
 using dy.net.utils;
 using dy.sync.lib;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using Quartz.Util;
-using System.Text;
-using System.Text.Json;
-using System.Xml.Linq;
-using static Dm.net.buffer.ByteArrayBuffer;
 
 namespace dy.net.Controllers
 {
@@ -64,49 +58,52 @@ namespace dy.net.Controllers
         }
 
 
-        /// <summary>
-        /// 导入配置
-        /// </summary>
-        /// <param name="dto"></param>
-        /// <returns></returns>
         [HttpPost("importConf")]
         public async Task<IActionResult> ImportConf(AppConfigImportDto dto)
         {
             if (dto == null)
                 return ApiResult.Fail("json数据为空");
 
-            var follows = dto.follows;
-            if (follows != null && follows.Count > 0)
-            {
-                var add = await douyinFollowService.AddHandFollows(follows);
-                if (add)
-                    Serilog.Log.Debug("关注列表导入成功");
-            }
-
-            var conf = dto.conf;
-            if (conf != null)
-            {
-                if (conf.BatchCount > 30)
-                {
-                    Serilog.Log.Debug("$对不起，为了项目能长久稳定运行，还是最大不要超过30吧。。。");
-                    conf.BatchCount = 30;
-                }
-                var update = await commonService.UpdateConfig(conf);
-                if (update)
-                    Serilog.Log.Debug("系统配置导入成功");
-            }
-            var cookies = dto.cookies;
-
-            if (cookies != null && cookies.Count > 0)
-            {
-                var importCookies = await douyinCookieService.ImportCookies(cookies);
-                if (importCookies)
-                {
-                    Serilog.Log.Debug("抖音Cookie配置导入成功");
-                }
-            }
+            await HandleFollowsImport(dto.follows);
+            await HandleConfigImport(dto.conf);
+            await HandleCookiesImport(dto.cookies);
 
             return ApiResult.Success();
+        }
+
+        private async Task HandleFollowsImport(List<DouyinFollowed> follows)
+        {
+            if (follows?.Count > 0)
+            {
+                var added = await douyinFollowService.AddHandFollows(follows);
+                if (added)
+                    Serilog.Log.Debug("关注列表导入成功");
+            }
+        }
+
+        private async Task HandleConfigImport(AppConfig conf)
+        {
+            if (conf == null) return;
+
+            if (conf.BatchCount > 30)
+            {
+                Serilog.Log.Debug("对不起，为了项目能长久稳定运行，还是最大不要超过30吧。。。");
+                conf.BatchCount = 30;
+            }
+
+            var updated = await commonService.UpdateConfig(conf);
+            if (updated)
+                Serilog.Log.Debug("系统配置导入成功");
+        }
+
+        private async Task HandleCookiesImport(List<DouyinCookie> cookies)
+        {
+            if (cookies?.Count > 0)
+            {
+                var imported = await douyinCookieService.ImportCookies(cookies);
+                if (imported)
+                    Serilog.Log.Debug("抖音Cookie配置导入成功");
+            }
         }
         /// <summary>
         /// 分页查询
@@ -181,45 +178,51 @@ namespace dy.net.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> DeskInitAsync([FromBody] DouyinCookie dyUserCookies)
         {
+            // 1. 基础赋值
             dyUserCookies.Id = IdGener.GetLong().ToString();
 
-            if (string.IsNullOrWhiteSpace(dyUserCookies.SavePath))
-            {
-                return ApiResult.Fail("收藏存储路径不能为空");
-            }
-            if (!DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.SavePath))
-            {
-                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.SavePath}添加读写权限");
-            }
+            // 2. 路径权限校验
+            var pathValidationResult = ValidatePaths(dyUserCookies);
+            if (!pathValidationResult.Success)
+                return ApiResult.Fail(pathValidationResult.Message);
 
-            if (!string.IsNullOrWhiteSpace(dyUserCookies.FavSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.FavSavePath))
-            {
-                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.FavSavePath}添加读写权限");
-            }
-
-            if (!string.IsNullOrWhiteSpace(dyUserCookies.UpSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.UpSavePath))
-            {
-                return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.UpSavePath}添加读写权限");
-            }
-
-            //if (!string.IsNullOrWhiteSpace(dyUserCookies.ImgSavePath) && !DouyinFileUtils.HasDirectoryReadWritePermission(dyUserCookies.ImgSavePath))
-            //{
-            //    return ApiResult.Fail($"请在飞牛应用设置里面将{dyUserCookies.ImgSavePath}添加读写权限");
-            //}
-
-
-            var checkCk = await httpClientService.CheckCookie(dyUserCookies);
-            if (!checkCk)
-            {
+            // 3. Cookie 有效性校验
+            var cookieValid = await httpClientService.CheckCookie(dyUserCookies);
+            if (!cookieValid)
                 return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
+
+            // 4. 保存到数据库
+            var saved = await dyCookieService.Add(dyUserCookies);
+            return saved ? ApiResult.Success() : ApiResult.Fail("添加失败");
+        }
+
+        private (bool Success, string Message) ValidatePaths(DouyinCookie cookie)
+        {
+            var pathsToCheck = new Dictionary<string, string>
+    {
+        { "收藏存储路径", cookie.SavePath },
+        { "喜欢视频存储路径", cookie.FavSavePath },
+        { "上传视频存储路径", cookie.UpSavePath },
+        // { "图片存储路径", cookie.ImgSavePath } // 可随时启用
+    };
+
+            foreach (var (label, path) in pathsToCheck)
+            {
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    if (!DouyinFileUtils.HasDirectoryReadWritePermission(path))
+                    {
+                        return (false, $"请在飞牛应用设置里面将 {path} 添加读写权限（{label}）");
+                    }
+                }
             }
 
-            var result = await dyCookieService.Add(dyUserCookies);
-            if (result)
+            if (string.IsNullOrWhiteSpace(cookie.SavePath))
             {
-                return ApiResult.Success();
+                return (false, "收藏存储路径不能为空");
             }
-            return ApiResult.Fail("添加失败");
+
+            return (true, string.Empty);
         }
 
 
@@ -414,7 +417,7 @@ namespace dy.net.Controllers
                      Path.GetFileNameWithoutExtension(filePath) != "silent_10")
                  .ToList();
 
-                var fileNames = customMusics.Select(f => new {filename= Path.GetFileName(f) }).Where(x=>x.filename!= "silent_10.mp3").ToList();
+                var fileNames = customMusics.Select(f => new { filename = Path.GetFileName(f) }).Where(x => x.filename != "silent_10.mp3").ToList();
                 return ApiResult.Success(fileNames);
             }
             else

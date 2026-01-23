@@ -3,7 +3,6 @@ using dy.net.model.entity;
 using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dy.net.Controllers
@@ -62,7 +61,7 @@ namespace dy.net.Controllers
         public async Task<IActionResult> AddFollow(DouyinFollowed followed)
         {
             var res = await _douyinFollowService.AddAsync(followed);
-            return ApiResult.SuccOrFail(res,"", res ? "" : "添加失败,或者已存在相同secuid和uid");
+            return ApiResult.SuccOrFail(res, "", res ? "" : "添加失败,或者已存在相同secuid和uid");
         }
 
         /// <summary>
@@ -89,7 +88,7 @@ namespace dy.net.Controllers
                     }
                 }
             }
-            var result=  await _douyinFollowService.OpenOrCloseSync(dto);
+            var result = await _douyinFollowService.OpenOrCloseSync(dto);
             return ApiResult.SuccOrFail(result, result);
         }
 
@@ -108,7 +107,7 @@ namespace dy.net.Controllers
         [HttpPost("delete")]
         public async Task<IActionResult> DeleteFollow(FollowUpdateDto dto)
         {
-            var result= await _douyinFollowService.DeleteFollow(dto);
+            var result = await _douyinFollowService.DeleteFollow(dto);
             return ApiResult.SuccOrFail(result, result);
         }
     }

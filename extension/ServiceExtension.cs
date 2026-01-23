@@ -1,10 +1,6 @@
-﻿using dy.net.job;
-using dy.net.service;
+﻿using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 //using Microsoft.OpenApi.Models;
@@ -19,7 +15,6 @@ using SqlSugar;
 //using Swashbuckle.AspNetCore.SwaggerGen;
 //using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IO.Compression;
-using System.Net.Http;
 using System.Net.Security;
 using System.Reflection;
 using System.Text;
@@ -62,12 +57,12 @@ namespace dy.net.extension
         //    return connectionString;
         //}
 
-        private static string CreateSqliteDBConn(string dbPath="")
+        private static string CreateSqliteDBConn(string dbPath = "")
         {
-            string fileFloder= Path.Combine(Environment.CurrentDirectory, "db"); 
+            string fileFloder = Path.Combine(Environment.CurrentDirectory, "db");
             if (!string.IsNullOrEmpty(dbPath))
-            { 
-                fileFloder= Path.Combine(dbPath, "db");
+            {
+                fileFloder = Path.Combine(dbPath, "db");
                 FnDataFolder = Path.Combine(dbPath, "mp3");
                 if ((!Directory.Exists(FnDataFolder)))
                 {
@@ -78,8 +73,8 @@ namespace dy.net.extension
             {
                 if (Appsettings.Get("deploy") == "fn")
                 {
-                   Log.Error($"fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
-                     throw new Exception("fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
+                    Log.Error($"fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
+                    throw new Exception("fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
                 }
             }
 
@@ -136,14 +131,14 @@ namespace dy.net.extension
             });
         }
 
-        public static void AddSqlsugar(this IServiceCollection services,string dbpath)
+        public static void AddSqlsugar(this IServiceCollection services, string dbpath)
         {
             //DbType dbtype = GetDBType(configuration);
             services.AddScoped<ISqlSugarClient>(db =>
             {
                 var sqlSugar = new SqlSugarClient(new ConnectionConfig
                 {
-                    ConnectionString = CreateSqliteDBConn( dbpath),
+                    ConnectionString = CreateSqliteDBConn(dbpath),
                     InitKeyType = InitKeyType.Attribute,
                     DbType = DbType.Sqlite,
                     IsAutoCloseConnection = true // close connection after each operation (recommended)

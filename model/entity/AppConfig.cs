@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using SqlSugar;
-using System.Text.RegularExpressions;
+﻿using SqlSugar;
 
 namespace dy.net.model.entity
 {
@@ -15,10 +13,10 @@ namespace dy.net.model.entity
         /// <summary>
         /// 
         /// </summary>
-        [SugarColumn(IsPrimaryKey = true,Length =100)]
+        [SugarColumn(IsPrimaryKey = true, Length = 100)]
         public string Id { get; set; }
 
-        [SugarColumn(Length =200,IsNullable =true)]
+        [SugarColumn(Length = 200, IsNullable = true)]
         public int Cron { get; set; }
 
         /// <summary>
@@ -70,7 +68,7 @@ namespace dy.net.model.entity
         /// </summary>
         //public bool ImageViedoSaveAlone { get; set; }
 
-     
+
 
         /// <summary>
         /// 自动去重-逻辑是遇到相同ID的视频直接跳过

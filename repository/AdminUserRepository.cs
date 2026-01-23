@@ -38,8 +38,8 @@ namespace dy.net.repository
                         var newpassword = loginUser.Password.Md5();
                         user.Password = newpassword;
                         user.UserName = loginUser.UserName;
-                        var res = await this.UpdateAsync(user); 
-                        return (res?0:-1,res  ?"更新成功" : "更新失败");
+                        var res = await this.UpdateAsync(user);
+                        return (res ? 0 : -1, res ? "更新成功" : "更新失败");
                     }
                 }
                 else
@@ -50,11 +50,11 @@ namespace dy.net.repository
         }
 
 
-        public async Task<AdminUserInfo> GetUser(string userName=null)
+        public async Task<AdminUserInfo> GetUser(string userName = null)
         {
             if (string.IsNullOrWhiteSpace(userName))
             {
-                return await this.GetFirstAsync(x=>!string.IsNullOrWhiteSpace(x.Id));
+                return await this.GetFirstAsync(x => !string.IsNullOrWhiteSpace(x.Id));
             }
             else
             {
@@ -80,7 +80,7 @@ namespace dy.net.repository
             {
                 user.Avatar = avatar;
                 var update = await UpdateAsync(user);
-                return update ;
+                return update;
             }
         }
 
@@ -89,10 +89,10 @@ namespace dy.net.repository
         /// </summary>
         /// <param name="userInfo"></param>
         /// <returns></returns>
-        public  (int code, string erro) InitUser(AdminUserInfo userInfo)
+        public (int code, string erro) InitUser(AdminUserInfo userInfo)
         {
-            var isInit =  this.GetFirst(x=>!string.IsNullOrWhiteSpace(x.Id));
-            if (isInit!=null)
+            var isInit = this.GetFirst(x => !string.IsNullOrWhiteSpace(x.Id));
+            if (isInit != null)
             {
                 return (-1, "系统用户已存在");
             }
@@ -102,8 +102,8 @@ namespace dy.net.repository
                 userInfo.CreateTime = DateTime.Now;
                 userInfo.Password = Md5Util.Md5(userInfo.Password);
 
-                var res =  this.Insert(userInfo);
-                return (res  ? 0 : -1, res ? "初始用户成功" : "初始化用户失败");
+                var res = this.Insert(userInfo);
+                return (res ? 0 : -1, res ? "初始用户成功" : "初始化用户失败");
             }
         }
     }

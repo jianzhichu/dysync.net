@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace dy.net.model.dto
+﻿namespace dy.net.model.dto
 {
     public class DouyinUpSecUserIdDto
     {

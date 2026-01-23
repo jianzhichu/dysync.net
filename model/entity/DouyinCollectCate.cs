@@ -15,7 +15,7 @@ namespace dy.net.model.entity
         /// </summary>
         [SugarColumn(IsPrimaryKey = true)]
         public string Id { get; set; }
-     
+
         /// <summary>
         /// 关联cookieId
         /// </summary>
@@ -29,18 +29,18 @@ namespace dy.net.model.entity
         /// <summary>
         /// 收藏夹Id、合集Id、短剧Id
         /// </summary>
-        [SugarColumn(Length =60,IsNullable =false)]
+        [SugarColumn(Length = 60, IsNullable = false)]
         public string XId { get; set; }
 
         /// <summary>
         /// 封面
         /// </summary>
-        [SugarColumn(Length =500,IsNullable =true)]
+        [SugarColumn(Length = 500, IsNullable = true)]
         public string CoverUrl { get; set; }
         /// <summary>
         /// 保存文件夹
         /// </summary>
-        [SugarColumn(Length =500,IsNullable =true)]
+        [SugarColumn(Length = 500, IsNullable = true)]
         public string SaveFolder { get; set; }
         /// <summary>
         /// 是否开启同步
@@ -52,9 +52,9 @@ namespace dy.net.model.entity
         /// </summary>
         public VideoTypeEnum CateType { get; set; }
 
-        public DateTime CreateTime  { get; set; }
+        public DateTime CreateTime { get; set; }
 
-        [SugarColumn(IsNullable =true)]
+        [SugarColumn(IsNullable = true)]
         public DateTime? UpdateTime { get; set; }
         /// <summary>
         /// 是否已完结

@@ -20,7 +20,7 @@ namespace dy.net.service
             return await _userRepository.UpdatePwd(loginUser);
         }
 
-        public async Task<AdminUserInfo> GetUser(string userName=null)
+        public async Task<AdminUserInfo> GetUser(string userName = null)
         {
             return await _userRepository.GetUser(userName);
         }
@@ -30,7 +30,7 @@ namespace dy.net.service
             return await _userRepository.UpdateAvatar(avatar);
         }
 
-        public (int code, string erro) InitUser(string UserName,string Password)
+        public (int code, string erro) InitUser(string UserName, string Password)
         {
             AdminUserInfo userInfo = new AdminUserInfo
             {
@@ -38,7 +38,7 @@ namespace dy.net.service
                 Password = Password,
                 CreateTime = DateTime.Now
             };
-            return  _userRepository.InitUser(userInfo);
+            return _userRepository.InitUser(userInfo);
         }
     }
 }

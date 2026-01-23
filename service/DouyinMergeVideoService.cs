@@ -1,9 +1,7 @@
-﻿using ClockSnowFlake;
-using dy.net.extension;
+﻿using dy.net.extension;
 using dy.net.model.dto;
 using dy.net.utils;
 using Serilog;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 
 namespace dy.net.service
@@ -37,7 +35,7 @@ namespace dy.net.service
         /// <param name="savePath"></param>
         /// <param name="ck"></param>
         /// <returns></returns>
-        public async Task<(string mp4Path,string mp3Path)> MergeMultipleVideosAsync(
+        public async Task<(string mp4Path, string mp3Path)> MergeMultipleVideosAsync(
           List<DouyinDynamicVideoDto> videoFilePaths,
            string audioPath,
            string savePath,
@@ -51,11 +49,11 @@ namespace dy.net.service
                 if (SuccessPaths != null && SuccessPaths.Length > 0)
                 {
                     mergMusicPath = SuccessPaths[0];
-                    mp3Path= SuccessPaths[0];
+                    mp3Path = SuccessPaths[0];
                 }
             }
             var ffmpeg = new FFmpegHelper();
-            var mp4Path= await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mergMusicPath, savePath);
+            var mp4Path = await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mergMusicPath, savePath);
             return (mp4Path, mp3Path);
         }
 
@@ -78,7 +76,7 @@ namespace dy.net.service
                   Path.GetFileNameWithoutExtension(filePath) != "silent_10")
               .ToList();
 
-            if (customMusics != null && customMusics.Any()) 
+            if (customMusics != null && customMusics.Any())
             {
                 if (customMusics.Count() == 1)
                     return customMusics.FirstOrDefault();
@@ -136,12 +134,12 @@ namespace dy.net.service
                 // 保存下载的图片（如果需要）
                 if (downImage)
                 {
-                    await SaveDownloadedFilesAsync(rawImages, fileNamefolder, "jpg",Path.GetFileNameWithoutExtension(outputVideoPath));
+                    await SaveDownloadedFilesAsync(rawImages, fileNamefolder, "jpg", Path.GetFileNameWithoutExtension(outputVideoPath));
                 }
 
                 // 2. 下载音频
                 string[] rawAudios = Array.Empty<string>();
-                if (mergeImg2Viedo && request.AudioUrls != null && request.AudioUrls.Count > 0) 
+                if (mergeImg2Viedo && request.AudioUrls != null && request.AudioUrls.Count > 0)
                 {
                     var (audios, audioError) = await DownloadMediaAsync(
                         request.AudioUrls, Path.Combine(tempDir, "raw-audios"), "audio_", "mp3", cookie);
@@ -154,7 +152,7 @@ namespace dy.net.service
                     // 保存下载的音频（如果需要）
                     if (downMp3)
                     {
-                        var ext= Path.GetExtension(rawAudios[0]);
+                        var ext = Path.GetExtension(rawAudios[0]);
                         await SaveDownloadedFilesAsync(rawAudios, fileNamefolder, ext, Path.GetFileNameWithoutExtension(outputVideoPath));
                     }
                 }
@@ -162,7 +160,7 @@ namespace dy.net.service
                 // 不合成视频，直接返回成功
                 if (!mergeImg2Viedo)
                 {
-                    Log.Debug($"根据系统配置设置不下载图文视频-[{outputVideoPath}],{(downImage?"下载图片":"不下载图片")},{(downMp3?"下载音频":"不下载音频")}");
+                    Log.Debug($"根据系统配置设置不下载图文视频-[{outputVideoPath}],{(downImage ? "下载图片" : "不下载图片")},{(downMp3 ? "下载音频" : "不下载音频")}");
                     return true;
                 }
 
@@ -237,7 +235,7 @@ namespace dy.net.service
         /// <summary>
         /// 保存下载的文件（图片/音频）到目标目录
         /// </summary>
-        private static async Task SaveDownloadedFilesAsync(string[] sourcePaths, string targetFolder,  string defaultExt,string videoFileName)
+        private static async Task SaveDownloadedFilesAsync(string[] sourcePaths, string targetFolder, string defaultExt, string videoFileName)
         {
             if (sourcePaths == null || sourcePaths.Length == 0) return;
             Directory.CreateDirectory(targetFolder); // 确保目标目录存在
@@ -329,7 +327,7 @@ namespace dy.net.service
 
         /// <summary>通用媒体下载方法</summary>
         private async Task<(string[] SuccessPaths, string ErrorMsg)> DownloadMediaAsync(
-            List<string> urls, string saveDir, string prefix, string ext,string cookie)
+            List<string> urls, string saveDir, string prefix, string ext, string cookie)
         {
             var successPaths = new List<string>();
             for (var i = 0; i < urls.Count; i++)
@@ -341,8 +339,8 @@ namespace dy.net.service
 
                 try
                 {
-                   var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(url, savePath, cookie);
-                    if(Success)
+                    var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(url, savePath, cookie);
+                    if (Success)
                     {
                         successPaths.Add(ActualSavePath);
                     }
@@ -350,7 +348,7 @@ namespace dy.net.service
                     {
                         Serilog.Log.Error($"下载失败：{url} → {savePath}");
                     }
-                   //Console.WriteLine($"下载成功：{url} → {savePath}");
+                    //Console.WriteLine($"下载成功：{url} → {savePath}");
                 }
                 catch (Exception ex)
                 {

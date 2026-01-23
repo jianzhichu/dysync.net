@@ -1,13 +1,13 @@
 ﻿using ClockSnowFlake;
+using dy.net.model.dto;
+using dy.net.service;
+using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using dy.net.service;
-using dy.net.utils;
-using dy.net.model.dto;
 
 namespace dy.net.Controllers
 {
@@ -50,7 +50,7 @@ namespace dy.net.Controllers
             return ApiResult.Success(new { user?.Avatar, user?.Id, user?.UserName });
         }
 
-        
+
 
 
         /// <summary>

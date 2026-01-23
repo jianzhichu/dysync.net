@@ -4,10 +4,6 @@ using dy.net.model.response;
 using dy.net.service;
 using Quartz;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace dy.net.job
 {

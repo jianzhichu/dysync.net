@@ -3,13 +3,8 @@ using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.repository;
 using dy.net.utils;
-using Newtonsoft.Json;
 using Serilog;
 using SqlSugar;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace dy.net.service
 {
@@ -382,7 +377,7 @@ namespace dy.net.service
         /// 
         /// </summary>
         /// <returns></returns>
-        public async Task<List<VideoChartItemDto>> GetChartData(int day=7)
+        public async Task<List<VideoChartItemDto>> GetChartData(int day = 7)
         {
 
             var date = DateTime.Now.AddDays(-day);
@@ -517,7 +512,7 @@ namespace dy.net.service
         public async Task<bool> HandOldFolderVideos()
         {
             // 1. 查询目标数据
-            var list = await _dyCollectVideoRepository.GetListAsync(x=>x.ViedoType == VideoTypeEnum.dy_favorite || x.ViedoType == VideoTypeEnum.dy_collects );
+            var list = await _dyCollectVideoRepository.GetListAsync(x => x.ViedoType == VideoTypeEnum.dy_favorite || x.ViedoType == VideoTypeEnum.dy_collects);
             // 缓存已处理的「Tag1+下一级文件夹」组合（避免重复移动）
             var processedFolderPairs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

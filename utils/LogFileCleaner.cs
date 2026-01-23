@@ -7,7 +7,7 @@
         /// </summary>
         /// <param name="logDirectory">日志文件所在目录</param>
         /// <param name="n">清除N天之前的日志文件</param>
-        public static void CleanOldLogFiles(string logDirectory,int n)
+        public static void CleanOldLogFiles(string logDirectory, int n)
         {
             // 计算n天前的时间点
             DateTime threeDaysAgo = DateTime.Now.AddDays(-n);

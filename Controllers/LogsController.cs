@@ -1,9 +1,6 @@
 ﻿using dy.net.model.dto;
 using dy.net.service;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
 
 namespace dy.net.Controllers
 {
@@ -14,14 +11,14 @@ namespace dy.net.Controllers
         private readonly IWebHostEnvironment webHostEnvironment;
         private readonly LogInfoService logInfoService;
 
-        public LogsController(IWebHostEnvironment webHostEnvironment,LogInfoService logInfoService)
+        public LogsController(IWebHostEnvironment webHostEnvironment, LogInfoService logInfoService)
         {
             this.webHostEnvironment = webHostEnvironment;
             this.logInfoService = logInfoService;
         }
 
         [HttpGet("/api/logs/GetLog/{type}/{date}")]
-        public async Task<IActionResult> GetLog([FromRoute]string type, [FromRoute] string date)
+        public async Task<IActionResult> GetLog([FromRoute] string type, [FromRoute] string date)
         {
             var filePath = Path.Combine(webHostEnvironment.IsDevelopment() ? Directory.GetCurrentDirectory() : AppDomain.CurrentDomain.BaseDirectory, "logs", $"log-{type}-{date}.txt");
             if (!System.IO.File.Exists(filePath))

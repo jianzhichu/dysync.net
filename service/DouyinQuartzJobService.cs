@@ -3,10 +3,6 @@ using dy.net.model.dto;
 using dy.net.utils;
 using Quartz;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace dy.net.service
 {
@@ -76,8 +72,8 @@ namespace dy.net.service
                 VideoTypeEnum.dy_series.GetDesc(),
                 new JobConfig(
                     typeof(DouyinSeriesSyncJob),
-                    "dy.job.key.series",  
-                    "dy.trigger.key.series", 
+                    "dy.job.key.series",
+                    "dy.trigger.key.series",
                     "抖音收藏夹短剧同步任务")
             },
             {
@@ -99,7 +95,6 @@ namespace dy.net.service
         /// 启动所有抖音相关定时任务（所有任务独立执行）
         /// </summary>
         /// <param name="expression">Cron表达式或间隔分钟数（所有任务使用相同的执行频率）</param>
-        /// <param name="isRestart"></param>
         /// <returns>是否启动成功</returns>
         public async Task<bool> InitOrReStartAllJobs(string expression)
         {
@@ -120,6 +115,8 @@ namespace dy.net.service
                 // 执行任务启动逻辑
                 foreach (var jobKey in JobConfigs.Keys)
                 {
+                    if (jobKey == "follow_user_once")
+                        continue;
                     if (jobKey == "follow_user") expression = "60";
                     var startSuccess = await StartJobAsync(jobKey, expression);
                     if (startSuccess)
@@ -131,7 +128,7 @@ namespace dy.net.service
                         Log.Error($"启动任务失败：{jobKey}");
                     }
                 }
-                Log.Information($"共启动 {JobConfigs.Count} 个定时任务");
+                Log.Information($"共启动 {JobConfigs.Count - 1} 个定时任务");
 
 
                 //await StartJobAsync(VideoTypeEnum.dy_custom_collect.GetDesc(), expression);

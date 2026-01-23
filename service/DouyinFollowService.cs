@@ -4,7 +4,6 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.repository;
 using SqlSugar;
-using System.Linq.Expressions;
 
 namespace dy.net.service
 {
@@ -32,8 +31,8 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> AddAsync(DouyinFollowed followed)
         {
-          var foll= await _followRepository.GetFirstAsync(x=>x.SecUid==followed.SecUid && x.mySelfId== followed.mySelfId);
-            if(foll!=null)
+            var foll = await _followRepository.GetFirstAsync(x => x.SecUid == followed.SecUid && x.mySelfId == followed.mySelfId);
+            if (foll != null)
             {
                 return false;
             }
@@ -59,7 +58,7 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<List<DouyinFollowed>> GetHandFollows()
         {
-            return await _followRepository.GetListAsync(x=>x.IsNoFollowed);
+            return await _followRepository.GetListAsync(x => x.IsNoFollowed);
         }
         /// <summary>
         /// 导入非关注
@@ -114,8 +113,8 @@ namespace dy.net.service
             return await _followRepository.Sync(followInfos, ck);
         }
 
-        public async Task<DouyinFollowed> GetByUperId(string uperId,string myUid)
-        { 
+        public async Task<DouyinFollowed> GetByUperId(string uperId, string myUid)
+        {
             return await _followRepository.GetBySecUId(uperId, myUid);
         }
 
@@ -143,7 +142,7 @@ namespace dy.net.service
         {
             return await _followRepository.DeleteByIdAsync(dto.Id);
         }
-       
+
 
         /// <summary>
         /// 打开或关闭同步

@@ -1,7 +1,6 @@
 ﻿using dy.net.extension;
 using dy.net.service;
 using dy.net.utils;
-using dy.sync.lib;
 using Serilog;
 using System.Reflection;
 using System.Text;
@@ -38,7 +37,7 @@ namespace dy.net
             // 初始化应用服务
             InitApplicationServices(app, isDevelopment);
             Console.WriteLine();
-         
+
             app.Run();
         }
 
@@ -117,13 +116,13 @@ namespace dy.net
         /// <summary>
         /// 配置依赖注入服务
         /// </summary>
-        private static void ConfigureServices(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment,string dbPath)
+        private static void ConfigureServices(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment, string dbPath)
         {
 
             //打印logo
             //PrintApp();
 
-            services.AddSingleton(new Appsettings (config));
+            services.AddSingleton(new Appsettings(config));
             // 雪花ID生成器
             services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 100));
 
@@ -144,7 +143,7 @@ namespace dy.net
                     .AddServicesFromNamespace("dy.net.service");
 
             services.AddScoped<FFmpegHelper>();
-        
+
             // SPA静态文件支持
             services.AddSpaStaticFiles(options => options.RootPath = SpaRootPath);
 
@@ -161,7 +160,7 @@ namespace dy.net
             services.ConfigureJwtAuthentication();
         }
 
-      
+
 
         /// <summary>
         /// 配置中间件
@@ -202,7 +201,7 @@ namespace dy.net
         /// <summary>
         /// 初始化应用服务数据
         /// </summary>
-        private static void InitApplicationServices(WebApplication app,bool isDevelopment)
+        private static void InitApplicationServices(WebApplication app, bool isDevelopment)
         {
             using var scope = app.Services.CreateScope();
             var services = scope.ServiceProvider;
@@ -211,9 +210,9 @@ namespace dy.net
             {
                 // 初始化用户
                 var userService = services.GetRequiredService<AdminUserService>();
-                userService.InitUser("douyin","douyin2026");
+                userService.InitUser("douyin", "douyin2026");
                 var commonService = services.GetRequiredService<DouyinCommonService>();
-                
+
                 // 更新视频类型--兼容老版本--不再需要
                 //commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
@@ -227,7 +226,7 @@ namespace dy.net
                     quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
                 }
                 // 初始化Cookie
-                var deploy= Appsettings.Get("deploy");
+                var deploy = Appsettings.Get("deploy");
                 if (deploy != null && deploy == "docker")//docker环境直接初始化一个默认的配置
                 {
                     var cookieService = services.GetRequiredService<DouyinCookieService>();
@@ -238,70 +237,6 @@ namespace dy.net
             {
                 Serilog.Log.Error(ex, "Failed to initialize services on startup");
             }
-        }
-
-     
-        private static void PrintApp()
-        {
-            Console.ForegroundColor = ConsoleColor.DarkCyan;
-
-            // 步骤1：定义原始ASCII艺术字行（无缩进）
-            List<string> originalArtLines = new List<string>
-        {
-            "     __                                    __ ",
-            " ___/ /_ __  ___ __ _____  ____  ___  ___ / /_",
-            "/ _  / // / (_-</ // / _ \\__/ / _ \\/ -_) __/",
-            "\\_,_/\\_, (_)___/\\_, /_//_/\\__(_)_//_/\\__/\\__/ ",
-            "    /___/      /___/                          "
-        };
-
-            // 步骤2：设置缩进字符数（可自由修改：4、8、10 等）
-            int indentCount = 4;
-            string indent = new string(' ', indentCount); // 生成对应数量的空格
-
-            // 步骤3：给每行添加缩进
-            List<string> indentedArtLines = new List<string>();
-            foreach (var line in originalArtLines)
-            {
-                indentedArtLines.Add(indent + line); // 每行开头拼接缩进空格
-            }
-
-            // 步骤4：找到缩进后最长行的长度（避免越界）
-            int maxLength = 0;
-            foreach (var line in indentedArtLines)
-            {
-                if (line.Length > maxLength) maxLength = line.Length;
-            }
-
-            // 步骤5：按列推进打印（从左到右，包含缩进）
-            for (int col = 0; col < maxLength; col++)
-            {
-                Console.SetCursorPosition(0, 0); // 重置光标到第一行开头
-
-                for (int row = 0; row < indentedArtLines.Count; row++)
-                {
-                    // 定位到「当前列、当前行」（已包含缩进偏移）
-                    Console.SetCursorPosition(col, row);
-
-                    // 打印字符（无字符则补空格）
-                    if (col < indentedArtLines[row].Length)
-                    {
-                        Console.Write(indentedArtLines[row][col]);
-                    }
-                    else
-                    {
-                        Console.Write(' ');
-                    }
-                }
-
-                Thread.Sleep(20); // 列推进速度（可调整：10=快，50=慢）
-            }
-
-            // 打印完成后，光标移到艺术字下方
-            Console.SetCursorPosition(0, indentedArtLines.Count);
-            Console.WriteLine();
-            Console.ResetColor();
-
         }
 
     }

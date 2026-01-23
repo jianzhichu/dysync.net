@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace dy.net.model.dto
+﻿namespace dy.net.model.dto
 {
     public class DouyinVideoPageRequestDto : PageRequestDto
     {
@@ -35,7 +33,7 @@ namespace dy.net.model.dto
     }
 
 
-    public class FollowRequestDto: PageRequestDto
+    public class FollowRequestDto : PageRequestDto
     {
         public string FollowUserName { get; set; }
 

@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-namespace dy.net.model.dto
+﻿namespace dy.net.model.dto
 {
     public enum VideoTypeEnum
     {

@@ -1,9 +1,7 @@
 ﻿using dy.net.model.dto;
-using dy.net.model.entity;
 using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dy.net.Controllers
@@ -56,12 +54,12 @@ namespace dy.net.Controllers
         public async Task<IActionResult> BatchSave(List<DouyinCollectCateSwitchDto> dto)
         {
 
-            if(dto.Any(x=> !DouyinFileNameHelper.IsValidWithoutSpecialChars(x.SaveFolder)))
+            if (dto.Any(x => !DouyinFileNameHelper.IsValidWithoutSpecialChars(x.SaveFolder)))
             {
                 return ApiResult.Fail("有部分文件名不符合要求，请检查");
             }
 
-            var result=  await _douyinCollectCateService.BatchSwitchSync(dto);
+            var result = await _douyinCollectCateService.BatchSwitchSync(dto);
             return ApiResult.SuccOrFail(result, result);
         }
 

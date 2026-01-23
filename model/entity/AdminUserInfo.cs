@@ -1,11 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace dy.net.model.entity
+﻿namespace dy.net.model.entity
 {
     [SqlSugar.SugarTable(TableName = "login_user_info")]
     public class AdminUserInfo
     {
-        public string UserName { get; set;}
+        public string UserName { get; set; }
         public string Password { get; set; }
 
         [SqlSugar.SugarColumn(IsPrimaryKey = true)]
@@ -23,7 +21,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 原密码，不存在数据库
         /// </summary>
-        [SqlSugar.SugarColumn(IsIgnore =true)]
+        [SqlSugar.SugarColumn(IsIgnore = true)]
         public string? OldPwd { get; set; }
 
         /// <summary>

@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace dy.net.model.dto
+﻿namespace dy.net.model.dto
 {
     public class MediaMergeRequest
     {

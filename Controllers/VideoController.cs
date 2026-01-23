@@ -4,8 +4,6 @@ using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Security.Cryptography;
 
 namespace dy.net.Controllers
 {
@@ -500,7 +498,7 @@ namespace dy.net.Controllers
         /// </summary>
         /// <returns>7天图表数据列表</returns>
         [HttpGet("chart/{day}")]
-        public async  Task<IActionResult> Chart([FromRoute]int day=7)
+        public async Task<IActionResult> Chart([FromRoute] int day = 7)
         {
             try
             {
@@ -514,7 +512,7 @@ namespace dy.net.Controllers
         }
 
         [HttpGet("/Move")]
-        public async Task <IActionResult> Move()
+        public async Task<IActionResult> Move()
         {
             await douyinVideoService.HandOldFolderVideos();
 

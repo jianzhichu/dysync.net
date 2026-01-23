@@ -55,7 +55,7 @@ namespace dy.net.utils
                 return placeholderMap.TryGetValue(placeholderKey, out var value) ? value : match.Value;
             });
 
-            var fullName= finalTitle.Replace("--","-");
+            var fullName = finalTitle.Replace("--", "-");
 
             if (fullName.Length > 60)
             {

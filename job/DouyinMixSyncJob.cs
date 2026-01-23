@@ -16,9 +16,9 @@ namespace dy.net.job
         protected override VideoTypeEnum VideoType => VideoTypeEnum.dy_mix;
 
 
-        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor,DouyinFollowed followed,DouyinCollectCate cate)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            return await douyinHttpClientService.SyncMixViedosByMixId(cursor,count,cookie.Cookies,cate.XId);
+            return await douyinHttpClientService.SyncMixViedosByMixId(cursor, count, cookie.Cookies, cate.XId);
         }
 
         //protected override bool ShouldContinueSync(DouyinCookie cookie, DouyinVideoInfoResponse data, DouyinFollowed followed=null)
@@ -29,7 +29,7 @@ namespace dy.net.job
         {
             if (cate != null)
             {
-                if(string.IsNullOrWhiteSpace(cookie.MixPath))
+                if (string.IsNullOrWhiteSpace(cookie.MixPath))
                 {
                     var folder = Path.Combine(cookie.SavePath, VideoType.GetDesc(), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);

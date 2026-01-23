@@ -1,13 +1,10 @@
-﻿using Dm;
-using dy.net.model.dto;
+﻿using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.utils;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
-using System.Net.Http;
-using System.Web;
 
 namespace dy.net.service
 {
@@ -15,7 +12,7 @@ namespace dy.net.service
     {
 
 
-        readonly IHttpClientFactory _clientFactory;
+        private readonly IHttpClientFactory _clientFactory;
         public DouyinHttpClientService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
@@ -110,7 +107,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
                         Serilog.Log.Error($"SyncCollectVideos fail: {data}");
                     return model;
@@ -169,7 +166,7 @@ namespace dy.net.service
                 }
                 else
                 {
-                 Serilog.Log.Error("SyncCollectFolderList ,{StatusCode}", respose.StatusCode);
+                    Serilog.Log.Error("SyncCollectFolderList ,{StatusCode}", respose.StatusCode);
                     return null;
                 }
             }
@@ -231,7 +228,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
                         Serilog.Log.Error($"SyncCollectVideosByCollectId fail: {data}");
                     return model;
@@ -293,7 +290,7 @@ namespace dy.net.service
                     Serilog.Log.Error($"SyncMixList : {respose.StatusCode}");
                     return null;
                 }
-             
+
             }
             catch (Exception ex)
             {
@@ -352,7 +349,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                  var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
                         Serilog.Log.Error($"SyncMixViedosByMixId fail: {data}");
                     return model;
@@ -413,7 +410,7 @@ namespace dy.net.service
                     Serilog.Log.Error($"SyncShortList fail: {respose.StatusCode}");
                     return null;
                 }
-           
+
             }
             catch (Exception ex)
             {
@@ -472,7 +469,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
                         Serilog.Log.Error($"SyncSeriesViedosByMSeriesId fail: {data}");
                     return model;
@@ -544,7 +541,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
                         Serilog.Log.Error($"SyncFavoriteVideos fail: {data}");
                     return model;
@@ -616,7 +613,7 @@ namespace dy.net.service
                 if (respose.IsSuccessStatusCode)
                 {
                     var data = await respose.Content.ReadAsStringAsync();
-                    var model= JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
+                    var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
                         Serilog.Log.Error($"SyncUpderPostVideos fail: {data}");
                     return model;

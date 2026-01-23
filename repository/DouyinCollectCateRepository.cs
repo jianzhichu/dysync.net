@@ -3,8 +3,6 @@ using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.utils;
 using SqlSugar;
-using System;
-using System.Linq.Expressions;
 
 namespace dy.net.repository
 {
@@ -24,7 +22,7 @@ namespace dy.net.repository
         public async Task<(List<DouyinCollectCate> list, int totalCount)> GetPagedAsync(DouyinCollectCateRequestDto dto)
         {
             var where = this.Db.Queryable<DouyinCollectCate>()
-                .Where(x=>x.CateType==dto.cateType)
+                .Where(x => x.CateType == dto.cateType)
                 .WhereIF(!string.IsNullOrWhiteSpace(dto.cookieId), x => x.CookieId == dto.cookieId);
 
             var totalCount = await where.CountAsync();
@@ -174,7 +172,7 @@ namespace dy.net.repository
         {
             var videoCounts = await Db.Queryable<DouyinVideo>().Where(x => x.CateId == cate.Id && x.CateXId == cate.XId && x.ViedoType == cate.CateType).CountAsync();
             cate.IsEnd = videoCounts == cate.Total;
-         
+
             var update = await Db.Updateable(cate).UpdateColumns(x => new { x.IsEnd }).ExecuteCommandAsync();
             return update > 0;
         }

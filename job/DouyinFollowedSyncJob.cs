@@ -4,10 +4,6 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
-using Newtonsoft.Json;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace dy.net.job
 {
@@ -21,10 +17,10 @@ namespace dy.net.job
 
         protected override async Task<List<DouyinCookie>> GetSyncCookies()
         {
-            return  await douyinCookieService.GetOpendCookiesAsync(x => !string.IsNullOrWhiteSpace(x.UpSavePath));
+            return await douyinCookieService.GetOpendCookiesAsync(x => !string.IsNullOrWhiteSpace(x.UpSavePath));
         }
 
-        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed,DouyinCollectCate cate)
+        protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
         {
             return await douyinHttpClientService.SyncUpderPostVideos(count, cursor, followed.SecUid, cookie.Cookies);
         }
@@ -47,7 +43,7 @@ namespace dy.net.job
         /// <param name="cate"></param>
         /// <param name="config"></param>
         /// <returns></returns>
-        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed,DouyinCollectCate cate)
+        protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
             #region 默认使用UP主名称作为文件夹名称，若关注列表中有自定义保存路径则使用自定义路径
             // 1. 优先获取有效的作者名称（遵循原有优先级：followed.UperName > item.Author.Nickname > 默认值）
@@ -75,14 +71,14 @@ namespace dy.net.job
         /// <param name="config"></param>
         /// <param name="cate"></param>
         /// <returns></returns>
-        protected override string GetVideoFileName(DouyinCookie cookie, Aweme item,AppConfig config,DouyinCollectCate cate)
+        protected override string GetVideoFileName(DouyinCookie cookie, Aweme item, AppConfig config, DouyinCollectCate cate)
         {
-            
+
             string Format = "mp4";
             string FileHash = "";
             string Height = "";
             string Width = "";
-            
+
             if (item.Video != null && item.Video.BitRate != null)
             {
                 var bitrate = item.Video.BitRate.FirstOrDefault();
@@ -95,8 +91,9 @@ namespace dy.net.job
             {
                 //图片合成视频，参数要自己写。
                 var image = item.Images?.FirstOrDefault();
-                if(image != null){
-                    FileHash = IdGener.GetGuid().ToLower().Replace("-","");//使用随机值，避免重复
+                if (image != null)
+                {
+                    FileHash = IdGener.GetGuid().ToLower().Replace("-", "");//使用随机值，避免重复
                     Height = image.Height.ToString();
                     Width = image.Width.ToString();
                 }
@@ -113,24 +110,24 @@ namespace dy.net.job
             //else
             //{
 
-                if (!string.IsNullOrWhiteSpace(config.FullFollowedTitleTemplate))
+            if (!string.IsNullOrWhiteSpace(config.FullFollowedTitleTemplate))
+            {
+                var fullName = VideoTitleGenerator.Generate(config.FullFollowedTitleTemplate, new VideoTitleDataTemplate
                 {
-                    var fullName = VideoTitleGenerator.Generate(config.FullFollowedTitleTemplate, new VideoTitleDataTemplate
-                    {
-                        FileHash = FileHash,
-                        Id = item.AwemeId,
-                        ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
-                        Resolution = $"{Width}×{Height}",
-                        VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId),
-                        Author = item.Author.Nickname
-                    });
+                    FileHash = FileHash,
+                    Id = item.AwemeId,
+                    ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
+                    Resolution = $"{Width}×{Height}",
+                    VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId),
+                    Author = item.Author.Nickname
+                });
 
-                    fileName= $"{fullName}.{Format}";
-                }
-                else
-                {
-                    fileName = $"{item.AwemeId}.{Format}";
-                }
+                fileName = $"{fullName}.{Format}";
+            }
+            else
+            {
+                fileName = $"{item.AwemeId}.{Format}";
+            }
             //}
             return fileName;
 
@@ -146,7 +143,7 @@ namespace dy.net.job
         /// <param name="imageType"></param>
         /// <param name="cate"></param>
         /// <returns></returns>
-        protected override string GetNfoFileName(DouyinCookie cookie, Aweme item, AppConfig config, string imageType,DouyinCollectCate cate)
+        protected override string GetNfoFileName(DouyinCookie cookie, Aweme item, AppConfig config, string imageType, DouyinCollectCate cate)
         {
             return base.GetNfoFileName(cookie, item, config, imageType, cate);
         }
@@ -158,6 +155,6 @@ namespace dy.net.job
         //    await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
         //}
 
-      
+
     }
 }

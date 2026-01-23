@@ -311,7 +311,7 @@ namespace dy.net.repository
         {
             return await Db.Queryable<T>().Where(whereExpression).ToListAsync();
         }
-      
+
         /// <summary>
         /// 分页查询
         /// </summary>

@@ -17,7 +17,7 @@ namespace dy.net.repository
             // 1. 初始化查询：先加固定条件 Status == 1
             var query = Db.Queryable<DouyinCookie>()
                           .Where(x => x.Status == 1)
-                          .Where(x=>!string.IsNullOrWhiteSpace(x.Cookies)); // 固定条件（必选）
+                          .Where(x => !string.IsNullOrWhiteSpace(x.Cookies)); // 固定条件（必选）
 
             // 2. 若传入自定义条件，叠加 Where（自动 AND 组合）
             if (whereExpression != null)
@@ -38,16 +38,16 @@ namespace dy.net.repository
             return (list, totalCount);
         }
 
-        public  DouyinCookie GetDefault()
+        public DouyinCookie GetDefault()
         {
-            return  Db.Queryable<DouyinCookie>()
+            return Db.Queryable<DouyinCookie>()
                                 .First();
         }
 
 
         public async Task<bool> SwitchAsync(DouyinCookieSwitchDto dto)
         {
-            var res =await Db.Updateable<DouyinCookie>().SetColumns(x => new DouyinCookie { Status = dto.Status }).Where(x => x.Id == dto.Id).ExecuteCommandAsync();
+            var res = await Db.Updateable<DouyinCookie>().SetColumns(x => new DouyinCookie { Status = dto.Status }).Where(x => x.Id == dto.Id).ExecuteCommandAsync();
 
             return res > 0;
         }
@@ -60,7 +60,7 @@ namespace dy.net.repository
                 return res > 0;
             }
             return false;
-        
+
         }
     }
 }

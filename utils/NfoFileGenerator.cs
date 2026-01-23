@@ -1,6 +1,5 @@
 ﻿using dy.net.model.dto;
 using dy.net.model.entity;
-using System.IO;
 using System.Text;
 using System.Xml.Linq;
 
@@ -19,7 +18,7 @@ namespace dy.net.utils
         /// </summary>
         /// <param name="video">视频信息</param>
         /// <returns>一个表示异步操作的任务</returns>
-        public static  void GenerateVideoNfoFile(DouyinVideo video)
+        public static void GenerateVideoNfoFile(DouyinVideo video)
         {
             try
             {
@@ -39,7 +38,7 @@ namespace dy.net.utils
                         {
                             var fileExt = Path.GetExtension(video.AuthorAvatar);
                             var actorsDir = Path.Combine(videoDirectory, ".actors");
-                            if(!Directory.Exists(actorsDir))
+                            if (!Directory.Exists(actorsDir))
                             {
                                 Directory.CreateDirectory(actorsDir);
                             }
@@ -55,7 +54,7 @@ namespace dy.net.utils
                 }
 
 
-              var nfoInfo=  new DouyinVideoNfo
+                var nfoInfo = new DouyinVideoNfo
                 {
                     Actors = new List<Actor>
                     {
@@ -82,7 +81,7 @@ namespace dy.net.utils
                 {
                     GenerateNfoFile(nfoInfo, nfoFullPath);
                 }
-               
+
             }
             catch (Exception ex)
             {
@@ -90,7 +89,7 @@ namespace dy.net.utils
             }
         }
 
-        private static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath,string xmlRoot= "movie")
+        private static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath, string xmlRoot = "movie")
         {
             try
             {
@@ -143,7 +142,7 @@ namespace dy.net.utils
                             if (!string.IsNullOrWhiteSpace(actor.Role))
                                 actorElement.Add(new XElement("role", CleanInvalidXmlChars(actor.Role)));
 
-                                actorElement.Add(new XElement("tmdbid", ""));
+                            actorElement.Add(new XElement("tmdbid", ""));
 
                             root.Add(actorElement);
                         }

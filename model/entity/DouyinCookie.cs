@@ -32,16 +32,16 @@ namespace dy.net.model.entity
         /// <summary>
         /// 是否按收藏夹文件夹来存储视频
         /// </summary>
-        public bool UseCollectFolder { get; set; } 
+        public bool UseCollectFolder { get; set; }
 
         /// <summary>
         /// 是否下载合集
         /// </summary>
-        public bool DownMix { get; set; } 
+        public bool DownMix { get; set; }
         /// <summary>
         /// 是否下载短剧
         /// </summary>
-        public bool DownSeries { get; set; } 
+        public bool DownSeries { get; set; }
         /// <summary>
         /// 1 开启同步 0 关闭同步
         /// </summary>
