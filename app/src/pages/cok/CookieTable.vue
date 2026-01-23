@@ -573,7 +573,7 @@ const saveDrawerData = () => {
             <a-switch v-model:checked="form.downMix" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{ form.downMix ? '' : '' }}</span>
             <!-- 给输入框对应的form-item添加name属性 -->
-            <a-form-item name="mixPath" noStyle>
+            <a-form-item name="mixPath" noStyle v-if="form.downMix">
               <a-input v-model:value="form.mixPath" class="form-item-div-input" />
             </a-form-item>
 
@@ -581,7 +581,7 @@ const saveDrawerData = () => {
             </a-button>
           </div>
 
-          <a-alert message="开启后会同步下载收藏的合集（需要开启合集同步开关，不设置路径默认存储到收藏，设置后记得docker里面加映射），" :type="form.downMix?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert message="开启后会同步下载收藏的合集（需要开启合集同步开关，不设置路径默认存储到收藏，设置后记得docker里面加映射）" :type="form.downMix?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -592,7 +592,7 @@ const saveDrawerData = () => {
             <a-switch v-model:checked="form.downSeries" :checked-value="true" :un-checked-value="false" size="default" />
             <span style="margin-left:10px;">{{ form.downSeries ? '' : '' }}</span>
             <!-- 给输入框对应的form-item添加name属性 -->
-            <a-form-item name="seriesPath" noStyle>
+            <a-form-item name="seriesPath" noStyle v-if="form.downSeries">
               <a-input v-model:value="form.seriesPath" class="form-item-div-input" />
             </a-form-item>
 

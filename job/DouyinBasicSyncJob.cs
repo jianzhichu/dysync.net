@@ -498,17 +498,16 @@ namespace dy.net.job
 
                 // 1. 查询数据库中是否已存在该视频（通过 AwemeId 唯一标识）
                 var exitVideo = await douyinVideoService.GetByAwemeId(item.AwemeId);
-
+                //判断视频是否是强制删除且不再下载的视频
+                var deleteVideo = await douyinCommonService.ExistDeleteVideo(item.AwemeId);
+                if (deleteVideo)
+                {
+                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
+                    continue;
+                }
                 if (cate == null)
                 {
-                    //判断视频是否是强制删除且不再下载的视频
-                    var deleteVideo = await douyinCommonService.ExistDeleteVideo(item.AwemeId);
-                    if (deleteVideo)
-                    {
-                        //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
-                        continue;
-                    }
-
+                  
 
                     bool Goon = await AutoDistinct(config, exitVideo);
                     if (!Goon)

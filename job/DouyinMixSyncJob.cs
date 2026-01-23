@@ -29,7 +29,7 @@ namespace dy.net.job
         {
             if (cate != null)
             {
-                if(string.IsNullOrWhiteSpace(config.MixPath))
+                if(string.IsNullOrWhiteSpace(cookie.MixPath))
                 {
                     var folder = Path.Combine(cookie.SavePath, VideoType.GetDesc(), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
@@ -37,7 +37,7 @@ namespace dy.net.job
                 }
                 else
                 {
-                    var folder = Path.Combine(config.MixPath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
+                    var folder = Path.Combine(cookie.MixPath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
                     if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
                     return folder;
                 }
