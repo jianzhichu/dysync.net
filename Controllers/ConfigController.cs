@@ -196,7 +196,7 @@ namespace dy.net.Controllers
             return saved ? ApiResult.Success() : ApiResult.Fail("添加失败");
         }
 
-        private (bool Success, string Message) ValidatePaths(DouyinCookie cookie)
+        private static (bool Success, string Message) ValidatePaths(DouyinCookie cookie)
         {
             var pathsToCheck = new Dictionary<string, string>
     {

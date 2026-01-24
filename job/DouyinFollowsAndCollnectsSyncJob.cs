@@ -53,9 +53,7 @@ namespace dy.net.job
 
             foreach (var ck in cookies)
             {
-                Log.Information($"开始处理Cookie用户：[{ck.UserName}]（ID：{ck.Id}）");
 
-                // 调用通用方法，传入差异化参数（无委托，参数直观）
                 if (ck.UseCollectFolder)
                 {
                     await SyncCollectGenericAsync(ck, VideoTypeEnum.dy_custom_collect,
@@ -116,7 +114,7 @@ namespace dy.net.job
                 }
 
                 await SyncFollowListAsync(ck, conf);
-                Log.Debug($"完成[{ck.UserName}] [列表]同步， 包括 [自定义收藏夹、关注、合集、短剧] ");
+                Log.Debug($"[{ck.UserName}]所有[基础数据(list)]同步完成，包括 [收藏列表、关注列表、合集列表、短剧列表] ");
             }
 
         }
@@ -163,7 +161,7 @@ namespace dy.net.job
                     if (currentItems?.Any() == true)
                     {
                         collectDataList.AddRange(currentItems.Select(entityConvertFunc));
-                        Log.Debug($"[{cookie.UserName}] - {logTag}：获取{currentItems.Count}条，累计{collectDataList.Count}条");
+                        Log.Debug($"[{cookie.UserName}][{logTag}]：获取{currentItems.Count}条，累计{collectDataList.Count}条");
                     }
                 }
 
@@ -171,16 +169,16 @@ namespace dy.net.job
                 if (collectDataList.Any())
                 {
                     var (add, update, delete, succ) = await _douyinCollectCateService.Sync(collectDataList, cookie.Id, cateType);
-                    Log.Debug($"[{cookie.UserName}] - {logTag}：同步完成 新增:{add} 更新:{update} 删除:{delete} 成功:{succ}");
+                    Log.Debug($"[{cookie.UserName}][{logTag}]：同步完成 新增:{add} 更新:{update} 删除:{delete} 成功:{succ}");
                 }
                 else
                 {
-                    Log.Debug($"[{cookie.UserName}] - {logTag}：无有效数据");
+                    Log.Debug($"[{cookie.UserName}][{logTag}]：无有效数据");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"[{cookie.UserName}] - {logTag}：同步失败");
+                Log.Error(ex, $"[{cookie.UserName}][{logTag}]：同步失败");
             }
         }
         #endregion
@@ -190,7 +188,7 @@ namespace dy.net.job
         {
             if (string.IsNullOrWhiteSpace(cookie.SecUserId))
             {
-                Log.Debug($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：未设置SecUserId，跳过");
+                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：未设置SecUserId，跳过");
                 return;
             }
 
@@ -237,20 +235,20 @@ namespace dy.net.job
                         followList.AddRange(data.Followings);
                         //Log.Debug($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：获取{data.Followings.Count}条，累计{followList.Count}条");
                     }
-
+                    //Serilog.Log.Debug("isRestart2=" + config.IsFirstRunning);
                     if (!config.IsFirstRunning) hasMore = false;
                 }
 
                 if (followList.Any())
                 {
                     var (add, update, succ) = await _followService.Sync(followList, cookie);
-                    Log.Information($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}");
+                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}");
                 }
                 await _douyinCommonService.SetConfigNotFirstRunning();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：同步失败");
+                Log.Error(ex, $"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：同步失败");
             }
         }
         #endregion

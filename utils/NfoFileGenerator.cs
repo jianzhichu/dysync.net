@@ -42,7 +42,7 @@ namespace dy.net.utils
                             {
                                 Directory.CreateDirectory(actorsDir);
                             }
-                            var nfoActorFullPath = Path.Combine(actorsDir, $"{video.Author}{fileExt}");
+                            var nfoActorFullPath = Path.Combine(actorsDir, $"{DouyinFileNameHelper.SanitizeLinuxFileName(video.Author,"",true)}{fileExt}");
 
                             if (!File.Exists(nfoActorFullPath))
                             {
@@ -59,11 +59,11 @@ namespace dy.net.utils
                     Actors = new List<Actor>
                     {
                         new() {
-                            Name = video.Author,
+                            Name = DouyinFileNameHelper.SanitizeLinuxFileName(video.Author,"",true),
                             Role = "主演",
                         }
                     },
-                    Author = video.Author,
+                    Author = DouyinFileNameHelper.SanitizeLinuxFileName(video.Author, "", true),
                     Poster = "poster.jpg",
                     Title = video.VideoTitle,
                     Thumbnail = "poster.jpg",// 使用poster作为缩略图

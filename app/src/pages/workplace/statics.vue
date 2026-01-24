@@ -478,7 +478,7 @@ const initFullChart = async () => {
   try {
     // 初始化全屏图表
     fullChartInstance = echarts.init(fullChartRef.value);
-    const option = getChartOption(syncData.value);
+    const option = getChartOption(syncFullData.value);
     // 调整全屏图表的网格和字号，优化显示效果
     option.grid = {
       left: '4%',

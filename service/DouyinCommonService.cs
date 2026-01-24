@@ -97,7 +97,7 @@ namespace dy.net.service
 
             else
             {
-                int update = await sqlSugarClient.Updateable(config).ExecuteCommandAsync();
+                int update = await sqlSugarClient.Updateable(config).IgnoreColumns(x => new { x.IsFirstRunning }).ExecuteCommandAsync();
                 return update > 0;
             }
 

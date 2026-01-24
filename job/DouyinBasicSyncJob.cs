@@ -264,7 +264,7 @@ namespace dy.net.job
         {
             var tag = cate?.Name ?? followed?.UperName ?? string.Empty;
             tag = !string.IsNullOrWhiteSpace(tag) ? $"-[{tag}]" : tag;
-            Log.Debug($"[{VideoType.GetDesc()}][{cookie.UserName}]{tag},本次成功同步{syncCount}条视频");
+            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]{tag},本次成功同步{syncCount}条视频");
 
             if (cate != null)
             {
@@ -487,7 +487,7 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                //if (item.AwemeId != "7440444948844956985")
+                //if (item.AwemeId != "7586278721292733722")
                 //{
                 //    continue;
                 //}

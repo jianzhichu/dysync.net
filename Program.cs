@@ -217,20 +217,28 @@ namespace dy.net
                 //commonService.UpdateCollectViedoType();
                 // 重置博主作品同步状态为未同步
                 //commonService.UpdateAllCookieSyncedToZero();
-                // 初始化配置
-                var config = commonService.InitConfig();
-                if (!isDevelopment)
-                {
-                    // 启动定时任务
-                    var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
-                    quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
-                }
+
                 // 初始化Cookie
+                var cookieService = services.GetRequiredService<DouyinCookieService>();
                 var deploy = Appsettings.Get("deploy");
                 if (deploy != null && deploy == "docker")//docker环境直接初始化一个默认的配置
                 {
-                    var cookieService = services.GetRequiredService<DouyinCookieService>();
                     cookieService.InitCookie();
+                }
+                // 初始化配置
+                var config = commonService.InitConfig();
+
+                //Serilog.Log.Debug("isRestart1=" + config.IsFirstRunning);
+
+                //if (!isDevelopment)
+                {
+                    var cookie = cookieService.GetOpendCookies();
+                    if (cookie != null && cookie.Any())
+                    {
+                        // 启动定时任务
+                        var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
+                        quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
+                    }
                 }
             }
             catch (Exception ex)

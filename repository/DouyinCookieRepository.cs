@@ -12,7 +12,7 @@ namespace dy.net.repository
         {
         }
 
-        public async Task<List<DouyinCookie>> GetAllCookies(Expression<Func<DouyinCookie, bool>> whereExpression = null)
+        public async Task<List<DouyinCookie>> GetAllCookiesAsync(Expression<Func<DouyinCookie, bool>> whereExpression = null)
         {
             // 1. 初始化查询：先加固定条件 Status == 1
             var query = Db.Queryable<DouyinCookie>()
@@ -28,6 +28,24 @@ namespace dy.net.repository
             // 3. 执行查询（SqlSugar 自动合并所有 Where 条件）
             return await query.ToListAsync();
         }
+
+        public List<DouyinCookie> GetAllCookies(Expression<Func<DouyinCookie, bool>> whereExpression = null)
+        {
+            // 1. 初始化查询：先加固定条件 Status == 1
+            var query = Db.Queryable<DouyinCookie>()
+                          .Where(x => x.Status == 1)
+                          .Where(x => !string.IsNullOrWhiteSpace(x.Cookies)); // 固定条件（必选）
+
+            // 2. 若传入自定义条件，叠加 Where（自动 AND 组合）
+            if (whereExpression != null)
+            {
+                query = query.Where(whereExpression); // 自定义条件（可选）
+            }
+
+            // 3. 执行查询（SqlSugar 自动合并所有 Where 条件）
+            return  query.ToList();
+        }
+
 
         public async Task<(List<DouyinCookie> list, int totalCount)> GetPagedAsync(int pageIndex, int pageSize)
         {

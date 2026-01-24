@@ -18,9 +18,14 @@ namespace dy.net.service
 
         public Task<List<DouyinCookie>> GetOpendCookiesAsync(Expression<Func<DouyinCookie, bool>> whereExpression = null)
         {
-            return _cookieRepository.GetAllCookies(whereExpression);
+            return _cookieRepository.GetAllCookiesAsync(whereExpression);
         }
 
+
+        public List<DouyinCookie> GetOpendCookies()
+        {
+            return _cookieRepository.GetAllCookies();
+        }
         public Task<List<DouyinCookie>> GetAllAsync()
         {
             return _cookieRepository.GetAllAsync();
