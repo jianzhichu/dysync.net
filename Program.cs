@@ -230,7 +230,7 @@ namespace dy.net
 
                 //Serilog.Log.Debug("isRestart1=" + config.IsFirstRunning);
 
-                //if (!isDevelopment)
+                if (!isDevelopment)
                 {
                     var cookie = cookieService.GetOpendCookies();
                     if (cookie != null && cookie.Any())

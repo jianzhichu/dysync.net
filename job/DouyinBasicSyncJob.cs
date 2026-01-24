@@ -264,7 +264,11 @@ namespace dy.net.job
         {
             var tag = cate?.Name ?? followed?.UperName ?? string.Empty;
             tag = !string.IsNullOrWhiteSpace(tag) ? $"-[{tag}]" : tag;
-            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]{tag},本次成功同步{syncCount}条视频");
+
+            if (VideoType != VideoTypeEnum.dy_custom_collect || cookie.UseCollectFolder)
+            {
+                Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]{tag},本次成功同步{syncCount}条视频");
+            }
 
             if (cate != null)
             {
@@ -299,7 +303,8 @@ namespace dy.net.job
         {
             try
             {
-                Log.Debug($"[{VideoType.GetDesc()}][{cookie.UserName}]开始同步...");
+                if (VideoType != VideoTypeEnum.dy_custom_collect || cookie.UseCollectFolder)
+                    Log.Debug($"[{VideoType.GetDesc()}][{cookie.UserName}]开始同步...");
 
                 switch (VideoType)
                 {
@@ -487,7 +492,7 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                //if (item.AwemeId != "7586278721292733722")
+                //if (item.AwemeId != "7562107303323782434")
                 //{
                 //    continue;
                 //}
@@ -533,7 +538,7 @@ namespace dy.net.job
                     }
                 }
                 // 处理单个视频
-                var video = await ProcessSingleVideo(cookie, item, data, config, followed, cate);
+                var video = await ProcessSingleVideo(cookie, item, config, followed, cate);
                 if (video != null)
                 {
                     videos.Add(video);
@@ -706,7 +711,7 @@ namespace dy.net.job
                                 try
                                 {
                                     //File.Delete(exitVideo.VideoSavePath);
-                                    DeleteOldViedo(config, exitVideo);
+                                    DeleteOldViedo( exitVideo);
                                     //Log.Debug($"已删除旧文件：{exitVideo.VideoSavePath}");
                                 }
                                 catch (Exception ex)
@@ -739,7 +744,7 @@ namespace dy.net.job
                                     // 当前类型优先级更高 → 替换旧视频
                                     //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在低优先级视频（{exitVideoType.GetVideoTypeDesc()}），替换为当前优先级：{currentVideoType.GetVideoTypeDesc()}");
                                     // 删除旧文件
-                                    DeleteOldViedo(config, exitVideo);
+                                    DeleteOldViedo(exitVideo);
                                     // 继续下载
                                 }
                                 else
@@ -770,7 +775,7 @@ namespace dy.net.job
             return true;
         }
 
-        private void DeleteOldViedo(AppConfig config, DouyinVideo exitVideo)
+        private static void DeleteOldViedo(DouyinVideo exitVideo)
         {
             if (File.Exists(exitVideo.VideoSavePath))
             {
@@ -801,25 +806,32 @@ namespace dy.net.job
         /// <param name="followed">关注</param>
         /// <param name="cate"></param>
         /// <returns>处理后的视频实体，如果处理失败则为null</returns>
-        protected async Task<DouyinVideo> ProcessSingleVideo(DouyinCookie cookie, Aweme item, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
+        protected async Task<DouyinVideo> ProcessSingleVideo(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
         {
             // 检查视频数据是否有效
             if (!IsAwemeValid(item)) return null;
-
-            // 获取视频的码率信息
-            var v = item.Video.BitRate.Where(x => !string.IsNullOrEmpty(x.Format)).FirstOrDefault();
-            if (v == null) return null;
-
-            // 获取视频播放地址
+            // 获取视频最佳下载地址
+            var v = GetBestMatchedVideoUrl(item, config);
+            
+            if (v == null)
+            {
+                Serilog.Log.Error($"[{VideoType}][{cookie.UserName}][{item.Desc}]未获取到下载地址");
+                return null;
+            }
+            //Serilog.Log.Debug($"{v.QualityType}-{v.BitRateValue}-{v.IsH265}-{v.HdrBit}");
             var videoUrl = v.PlayAddr.UrlList.Where(x => !string.IsNullOrEmpty(x))?.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(videoUrl)) return null;
-
+            if (string.IsNullOrWhiteSpace(videoUrl))
+            {
+                Serilog.Log.Error($"[{VideoType}][{cookie.UserName}][{item.Desc}]未获取到下载地址");
+                return null;
+            }
             // 创建保存文件夹
             var saveFolder = CreateSaveFolder(cookie, item, config, followed, cate);
             // 获取视频文件名
             var fileName = GetVideoFileName(cookie, item, config, cate);
             // 拼接视频保存路径
             var savePath = Path.Combine(saveFolder, fileName);
+            var savePath2 = Path.Combine(saveFolder, DateTime.Now.Ticks + ".mp4");
 
             // 如果文件已存在，跳过
             if (File.Exists(savePath))
@@ -833,7 +845,7 @@ namespace dy.net.job
             await Task.Delay(_random.Next(1, 4) * 1000);
 
             // 下载视频
-            var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
+            var (Success, _) = await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies);
             if (!Success)
             {
                 Log.Error($"[{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载失败!!!");
@@ -855,6 +867,29 @@ namespace dy.net.job
 
             // 创建视频实体
             return await CreateVideoEntity(config, cookie, item, v, savePath, saveFolder, avatarSavePath, null, cate);
+        }
+
+        private static VideoBitRate  GetBestMatchedVideoUrl(Aweme item, AppConfig config)
+        {
+            VideoBitRate v;
+            if (config.VideoEncoder.HasValue && config.VideoEncoder.Value == 265)
+            {
+                v = item.Video.BitRate.Where(v => v.IsH265 == 1 && v.PlayAddr?.UrlList != null && v.PlayAddr.UrlList.Any())
+                                .OrderByDescending(v => v.BitRateValue)
+                                .FirstOrDefault();
+                v ??= item.Video.BitRate.Where(v => v.IsH265 == 0 && v.PlayAddr?.UrlList != null && v.PlayAddr.UrlList.Any())
+                                .OrderByDescending(v => v.BitRateValue)
+                                .FirstOrDefault();
+            }
+
+            else
+            {
+                v = item.Video.BitRate.Where(v => v.IsH265 == 0 && v.PlayAddr?.UrlList != null && v.PlayAddr.UrlList.Any())
+                                  .OrderByDescending(v => v.BitRateValue)
+                                  .FirstOrDefault();
+            }
+
+            return v;
         }
 
         /// <summary>

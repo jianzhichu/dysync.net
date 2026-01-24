@@ -174,7 +174,7 @@
 
       <!-- 系统配置 -->
       <div class="form-section">
-        <h3 class="section-title">视频去重</h3>
+        <h3 class="section-title">其他配置</h3>
 
         <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
           <!-- Tag 拖拽容器 -->
@@ -193,6 +193,12 @@
             <span>同一个视频同时存在在多个类型的视频分类时，按照优先级保优先级最高的一个。
               鼠标放到≡，点击鼠标左键即可拖拽调整优先级，</span>
           </div>
+        </a-form-item>
+        <a-form-item label="视频编码" name="VideoEncoder">
+          <a-radio-group v-model:value="formState.VideoEncoder" button-style="solid">
+            <a-radio-button :value="264">H264</a-radio-button>
+            <a-radio-button :value="265">H265</a-radio-button>
+          </a-radio-group>
         </a-form-item>
       </div>
 
@@ -314,6 +320,7 @@ interface FormState {
   MegDynamicVideo: boolean; // 补充原有缺失字段
   KeepDynamicVideo: boolean; // 补充原有缺失字段
   OnlySyncNew: boolean;
+  VideoEncoder: number;
 }
 
 // 表单初始数据
@@ -337,6 +344,7 @@ const formState: UnwrapRef<FormState> = reactive({
   MegDynamicVideo: false, // 初始化缺失字段
   KeepDynamicVideo: false, // 初始化缺失字段
   OnlySyncNew: false,
+  VideoEncoder: 264,
 });
 
 // 实时计算完整模板
@@ -410,6 +418,7 @@ const getConfig = () => {
           MegDynamicVideo: res.data.megDynamicVideo || false, // 补充赋值
           KeepDynamicVideo: res.data.keepDynamicVideo || false, // 补充赋值
           OnlySyncNew: res.data.onlySyncNew,
+          VideoEncoder: res.data.videoEncoder,
         });
 
         tagData.value = JSON.parse(res.data.priorityLevel || '[]');

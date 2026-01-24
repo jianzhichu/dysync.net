@@ -109,6 +109,12 @@ namespace dy.net.model.entity
         ///// </summary>
         //[SugarColumn(Length = 500, IsNullable = true)]
         //public string SeriesPath { get; set; }
+
+        /// <summary>
+        /// 264 265 0-默认0=264
+        /// </summary>
+        [SugarColumn(IsNullable = true)]
+        public int? VideoEncoder { get; set; } = 265;
     }
 
 }

@@ -95,8 +95,8 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 | 镜像标签          | 架构           |
 | ----------------- | -------------- |
-| `beta_2.0.3`      | x86_64 (amd64) |
-| `arm_2.0.3`       | ARM64          |
+| `beta_2.0.5`      | x86_64 (amd64) |
+| `arm_2.0.5`       | ARM64          |
 
 
 ### 构建命令示例
@@ -115,7 +115,7 @@ version: '3.8'
 
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.0.3
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.0.5
     container_name: dysync2026  # 容器名称
     restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
@@ -127,9 +127,11 @@ services:
       - /vol2/1000/media/dysync/mp3:/app/mp3         
       - /vol2/1000/media/dysync/dy1/coll:/app/collect   # 个人收藏视频目录
       - /vol2/1000/media/dysync/dy1/fav:/app/favorite  # 个人喜欢视频目录
-      - /vol2/1000/media/dysync/dy1/up:/app/uper      # 指定博主视频目录
+      - /vol2/1000/media/dysync/dy1/up:/app/uper      # 指定博主视频目录 
+      - /vol2/1000/media/dysync/dy1/mix:/app/mix      # 合集 不需要可以删除
+      - /vol2/1000/media/dysync/dy1/series:/app/series      # 短剧 不需要可以删除
       
-      # 多账号路径映射示例（可选，需在后台对应账号配置中指定存储路径）
+      # 多账号时路径映射示例（可选，也可以再授权时设置路径与第一个账号的路径一致）
       - /vol2/1000/media/dysync/dy2/collect:/app/collect2 
       - /vol2/1000/media/dysync/dy2/fav:/app/favorite2  
 	  - /vol2/1000/media/dysync/dy2/up:/app/uper2

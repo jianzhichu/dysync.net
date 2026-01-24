@@ -1188,14 +1188,14 @@ namespace dy.net.model.response
         [JsonProperty("FPS")]
         public int Fps { get; set; }
 
-        //[JsonProperty("HDR_bit")]
-        //public string HdrBit { get; set; }
+        [JsonProperty("HDR_bit")]
+        public string HdrBit { get; set; }
 
-        //[JsonProperty("HDR_type")]
-        //public string HdrType { get; set; }
+        [JsonProperty("HDR_type")]
+        public string HdrType { get; set; }
 
-        //[JsonProperty("bit_rate")]
-        //public int BitRateValue { get; set; }
+        [JsonProperty("bit_rate")]
+        public int BitRateValue { get; set; }
 
         [JsonProperty("format")]
         public string Format { get; set; }
@@ -1206,14 +1206,14 @@ namespace dy.net.model.response
         //[JsonProperty("is_bytevc1")]
         //public int IsBytevc1 { get; set; }
 
-        //[JsonProperty("is_h265")]
-        //public int IsH265 { get; set; }
+        [JsonProperty("is_h265")]
+        public int IsH265 { get; set; }
 
         [JsonProperty("play_addr")]
         public PlayAddr PlayAddr { get; set; }
 
-        //[JsonProperty("quality_type")]
-        //public int QualityType { get; set; }
+        [JsonProperty("quality_type")]
+        public int QualityType { get; set; }
 
         //[JsonProperty("video_extra")]
         //public string VideoExtra { get; set; }
