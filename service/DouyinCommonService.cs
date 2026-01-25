@@ -33,6 +33,7 @@ namespace dy.net.service
                 }
                 conf.IsFirstRunning = true;//标记为程序刚启动第一次运行
                 conf.AutoDistinct = true;
+                if(!conf.VideoEncoder.HasValue)
                 conf.VideoEncoder = 264;
                 sqlSugarClient.Updateable(conf).ExecuteCommand();
                 //兼容旧版本

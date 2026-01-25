@@ -492,7 +492,7 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                //if (item.AwemeId != "7562107303323782434")
+                //if (item.AwemeId != "7565895895016295726")
                 //{
                 //    continue;
                 //}
@@ -819,7 +819,7 @@ namespace dy.net.job
                 return null;
             }
             //Serilog.Log.Debug($"{v.QualityType}-{v.BitRateValue}-{v.IsH265}-{v.HdrBit}");
-            var videoUrl = v.PlayAddr.UrlList.Where(x => !string.IsNullOrEmpty(x))?.FirstOrDefault();
+            var videoUrl = v.PlayAddr.UrlList.Where(x => !string.IsNullOrEmpty(x))?.LastOrDefault();
             if (string.IsNullOrWhiteSpace(videoUrl))
             {
                 Serilog.Log.Error($"[{VideoType}][{cookie.UserName}][{item.Desc}]未获取到下载地址");
