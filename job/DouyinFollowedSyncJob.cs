@@ -53,15 +53,15 @@ namespace dy.net.job
                 : DouyinFileNameHelper.SanitizeLinuxFileName(rawAuthorName, "", true);
             // 2. 确定最终文件夹路径（遵循原有优先级：followed.SavePath > authorName > 基础路径）
             var targetFolderName = !string.IsNullOrWhiteSpace(followed?.SavePath) ? followed.SavePath : authorName;
-            var folder = Path.Combine(cookie.UpSavePath, targetFolderName);
+            var rootFolder = Path.Combine(cookie.UpSavePath, targetFolderName);
 
-            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            if (!Directory.Exists(rootFolder)) Directory.CreateDirectory(rootFolder);
             #endregion
 
             var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
             var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
             var fileNameFolder = string.IsNullOrWhiteSpace(existingName) ? sampleName : existingName;
-            return Path.Combine(folder, fileNameFolder);
+            return Path.Combine(rootFolder, fileNameFolder);
         }
         /// <summary>
         /// 关注的视频，生成文件名称
@@ -133,27 +133,6 @@ namespace dy.net.job
 
         }
 
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="cookie"></param>
-        /// <param name="item"></param>
-        /// <param name="config"></param>
-        /// <param name="imageType"></param>
-        /// <param name="cate"></param>
-        /// <returns></returns>
-        protected override string GetNfoFileName(DouyinCookie cookie, Aweme item, AppConfig config, string imageType, DouyinCollectCate cate)
-        {
-            return base.GetNfoFileName(cookie, item, config, imageType, cate);
-        }
-
-        //protected override async Task HandleSyncCompletion(DouyinCookie cookie, int syncCount, DouyinFollowed followed, DouyinCollectCate cate)
-        //{
-        //    cookie.UperSyncd = 1;
-        //    await douyinCookieService.UpdateAsync(cookie);
-        //    await base.HandleSyncCompletion(cookie, syncCount, followed, cate);
-        //}
 
 
     }

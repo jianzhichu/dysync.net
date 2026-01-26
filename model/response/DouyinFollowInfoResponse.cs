@@ -64,7 +64,8 @@ namespace dy.net.model.response
         /// <summary>
         /// 
         /// </summary>
-        public int status_code { get; set; }
+        [JsonProperty("status_code")]
+        public int StatusCode { get; set; }
         /// <summary>
         /// 
         /// </summary>

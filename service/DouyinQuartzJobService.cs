@@ -77,11 +77,11 @@ namespace dy.net.service
                     "抖音收藏夹短剧同步任务")
             },
             {
-                "follow_user_once",
+                "sync_follow_user_once",
                 new JobConfig(
                     typeof(DouyinFollowsAndCollnectsSyncJob),
-                    "dy.job.key.follow_user_once",
-                    "dy.trigger.key.follow_user_once",
+                    "dy.job.key.sync_follow_user_once",
+                    "dy.trigger.key.sync_follow_user_once",
                     "抖音关注同步任务(单次执行)")
             }
         };
@@ -115,7 +115,7 @@ namespace dy.net.service
                 // 执行任务启动逻辑
                 foreach (var jobKey in JobConfigs.Keys)
                 {
-                    if (jobKey == "follow_user_once")
+                    if (jobKey == "sync_follow_user_once")
                         continue;
                     if (jobKey == "follow_user") expression = "60";
                     var startSuccess = await StartJobAsync(jobKey, expression);
@@ -147,13 +147,13 @@ namespace dy.net.service
         /// </summary>
         public async Task<bool> StartFollowJobOnceAsync()
         {
-            return await StartOneTimeJobAsync("follow_user_once");
+            return await StartOneTimeJobAsync("sync_follow_user_once");
         }
 
         /// <summary>
         /// 移除所有已存在的任务（避免重复调度）
         /// </summary>
-        private async Task RemoveAllExistingJobs(IScheduler scheduler)
+        private static async Task RemoveAllExistingJobs(IScheduler scheduler)
         {
             var jobKeys = JobConfigs.Values.Select(config => new JobKey(config.JobKey, DefaultJobGroup)).ToList();
             foreach (var jobKey in jobKeys)
@@ -246,7 +246,7 @@ namespace dy.net.service
                     .Build();
 
                 await scheduler.ScheduleJob(jobDetail, trigger);
-                Log.Information("【任务服务】启动单次任务成功 - 任务描述: {JobDescription}", jobConfig.Description);
+                Log.Debug("【任务服务】启动单次任务成功 - 任务描述: {JobDescription}", jobConfig.Description);
 
                 return true;
             }

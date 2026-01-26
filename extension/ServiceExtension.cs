@@ -1,15 +1,17 @@
-﻿using dy.net.service;
+﻿using dy.net.job;
+using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 //using Microsoft.OpenApi.Models;
 using Quartz;
+using Quartz.Impl;
+using Quartz.Spi;
 using Serilog;
 using Serilog.Events;
 using Serilog.Filters;
 using Serilog.Formatting.Compact;
-
 //using Serilog.Formatting.Compact;
 using SqlSugar;
 //using Swashbuckle.AspNetCore.SwaggerGen;
@@ -57,7 +59,7 @@ namespace dy.net.extension
         //    return connectionString;
         //}
 
-        private static string CreateSqliteDBConn(string dbPath = "")
+         static string CreateSqliteDBConn(string dbPath = "")
         {
             string fileFloder = Path.Combine(Environment.CurrentDirectory, "db");
             if (!string.IsNullOrEmpty(dbPath))
@@ -90,7 +92,6 @@ namespace dy.net.extension
             }
 
             return conn;
-
         }
 
 
@@ -173,16 +174,44 @@ namespace dy.net.extension
         /// 
         /// </summary>
         /// <param name="services"></param>
-        public static void AddQuartzService(this IServiceCollection services)
+        public static void AddQuartzService(this IServiceCollection services,string dbPath)
         {
-            //services.AddTransient<DouyinCollectSyncJob>();
-            //services.AddTransient<DouyinFavoritSyncJob>();
-            //services.AddTransient<DouyinUperPostSyncJob>();
+       
+            // 1. 注册所有 Job 到 DI 容器，推荐使用 Scoped（最符合 Job 执行特性）
+            services.AddScoped<DouyinCollectSyncJob>();
+            services.AddScoped<DouyinFavoritSyncJob>();
+            services.AddScoped<DouyinFollowedSyncJob>();
+            services.AddScoped<DouyinFollowsAndCollnectsSyncJob>();
+            services.AddScoped<DouyinCollectCustomSyncJob>();
+            services.AddScoped<DouyinMixSyncJob>();
+            services.AddScoped<DouyinSeriesSyncJob>();
 
-            // 注册Quartz服务
-            services.AddQuartz();
+            // 3. 配置 Quartz
+            services.AddQuartz(q =>
+            {
+                q.SchedulerId = "DouyinQuartzScheduler";
+                q.SchedulerName = "DouyinSyncScheduler";
+                q.InterruptJobsOnShutdownWithWait = false;
+                q.UseDedicatedThreadPool(5); // 建议增加线程数，1个太少容易阻塞
+                q.MisfireThreshold = TimeSpan.FromMinutes(2);
 
-            services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+                q.UsePersistentStore(s =>
+                {
+                    s.UseSQLite(config =>
+                    {
+                        config.ConnectionString = CreateSqliteDBConn(dbPath);
+                        config.TablePrefix = "QRTZ_";
+                    });
+                    s.UseProperties = false;
+                    s.UseBinarySerializer();
+                });
+            });
+
+            services.AddQuartzHostedService(q =>
+            {
+                q.WaitForJobsToComplete = true;
+                q.AwaitApplicationStarted = true;
+            });
 
             services.AddTransient<DouyinQuartzJobService>();
         }
@@ -201,7 +230,7 @@ namespace dy.net.extension
                     // 禁用代理自动检测（减少不必要的延迟）
                     UseProxy = false,
                     // 连接超时（建立连接的超时时间）
-                    ConnectTimeout = TimeSpan.FromSeconds(120),
+                    ConnectTimeout =  Timeout.InfiniteTimeSpan,// TimeSpan.FromSeconds(120),
                     // 忽略HTTPS证书验证
                     SslOptions = new SslClientAuthenticationOptions
                     {

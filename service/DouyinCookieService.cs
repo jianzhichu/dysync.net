@@ -22,9 +22,9 @@ namespace dy.net.service
         }
 
 
-        public List<DouyinCookie> GetOpendCookies()
+        public async Task<List<DouyinCookie>> GetOpendCookies()
         {
-            return _cookieRepository.GetAllCookies();
+            return await _cookieRepository.GetAllCookies();
         }
         public Task<List<DouyinCookie>> GetAllAsync()
         {

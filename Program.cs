@@ -10,7 +10,7 @@ namespace dy.net
     public class Program
     {
         // 常量定义
-        private static string DefaultListenUrl = "http://*:10101";
+        private static readonly string DefaultListenUrl = "http://*:10101";
         private const string SpaRootPath = "app/dist";
         private const string SpaSourcePath = "app/";
         private const string SwaggerDocTitle = "dy.net WebApi Docs";
@@ -18,7 +18,7 @@ namespace dy.net
         /// <summary>
         /// 
         /// </summary>
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // 初始化编码提供器
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -35,10 +35,10 @@ namespace dy.net
             ConfigureMiddleware(app, builder.Environment);
             Log.Debug($"dy.sync app is started successfully  on  {DefaultListenUrl}");
             // 初始化应用服务
-            InitApplicationServices(app, isDevelopment);
+            await InitApplicationServices(app, isDevelopment);
             Console.WriteLine();
 
-            app.Run();
+            await app.RunAsync();
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace dy.net
             services.AddSqlsugar(dbPath);
 
             // 定时任务
-            services.AddQuartzService();
+            services.AddQuartzService(dbPath);
 
             // 仓储和服务注册
             services.AddServicesFromNamespace("dy.net.repository")
@@ -201,7 +201,7 @@ namespace dy.net
         /// <summary>
         /// 初始化应用服务数据
         /// </summary>
-        private static void InitApplicationServices(WebApplication app, bool isDevelopment)
+        private static async Task InitApplicationServices(WebApplication app, bool isDevelopment)
         {
             using var scope = app.Services.CreateScope();
             var services = scope.ServiceProvider;
@@ -230,14 +230,14 @@ namespace dy.net
 
                 //Serilog.Log.Debug("isRestart1=" + config.IsFirstRunning);
 
-                if (!isDevelopment)
+                //if (!isDevelopment)
                 {
-                    var cookie = cookieService.GetOpendCookies();
+                    var cookie = await cookieService.GetOpendCookies();
                     if (cookie != null && cookie.Any())
                     {
                         // 启动定时任务
                         var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
-                        quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
+                        await quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
                     }
                 }
             }

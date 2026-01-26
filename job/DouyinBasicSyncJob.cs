@@ -213,7 +213,8 @@ namespace dy.net.job
         /// <returns>创建的视频保存文件夹路径</returns>
         protected virtual string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            var folder = Path.Combine(cookie.SavePath, DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true));
+            var subFolder = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
+            var folder = Path.Combine(cookie.SavePath, subFolder);
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             return folder;
 
@@ -289,7 +290,7 @@ namespace dy.net.job
         /// <returns>封面图片的文件名</returns>
         protected virtual string GetNfoFileName(DouyinCookie cookie, Aweme item, AppConfig config, string fileName, DouyinCollectCate cate)
         {
-            return fileName;
+            return $"{item.AwemeId}_{fileName}";
         }
 
         /// <summary>
@@ -314,7 +315,6 @@ namespace dy.net.job
                             var follows = await douyinFollowService.GetSyncFollows(cookie.MyUserId);
                             if (follows != null && follows.Any())
                             {
-                                //int totalSyncCount = 0;
                                 foreach (var followed in follows)
                                 {
                                     int syncCount = 0; // 本次同步成功的视频数量
@@ -322,12 +322,6 @@ namespace dy.net.job
                                     bool hasMore = true;
                                     (syncCount, cursor, hasMore) = await GetAndSaveViedos(cookie, config, syncCount, cursor, hasMore, followed);
                                     await HandleSyncCompletion(cookie, syncCount, followed);
-                                    //totalSyncCount += syncCount;
-                                    //if (totalSyncCount >= config.BatchCount)
-                                    //{
-                                    //    Log.Debug($"[{VideoType.GetVideoTypeDesc()}][{cookie.UserName}]:本次同步数量{totalSyncCount}，已达配置上限，等下次任务继续同步");
-                                    //    break;
-                                    //} 
                                 }
                             }
                         }
@@ -336,7 +330,7 @@ namespace dy.net.job
                     case VideoTypeEnum.dy_collects:
                         if (VideoType == VideoTypeEnum.dy_collects && cookie.UseCollectFolder)
                         {
-                            Serilog.Log.Debug($"[{VideoType.GetDesc()}]-已开启自定义收藏夹同步...break;");
+                            Log.Debug($"[{VideoType.GetDesc()}]-已开启自定义收藏夹同步...break;");
                             break;
                         }
                         else
@@ -350,28 +344,16 @@ namespace dy.net.job
                         break;
 
                     case VideoTypeEnum.dy_mix:
+                        if (cookie.DownMix)
+                            await SyncCustomListVideos(cookie, config);
+                        break;
                     case VideoTypeEnum.dy_series:
+                        if (cookie.DownSeries)
+                            await SyncCustomListVideos(cookie, config);
+                        break;
                     case VideoTypeEnum.dy_custom_collect:
-                        {
-
-                            var cates = await douyinCollectCateService.GetSyncCates(cookie.Id, VideoType);
-                            if (cates != null && cates.Any())
-                            {
-                                foreach (var cate in cates)
-                                {
-                                    int syncCount = 0; // 本次同步成功的视频数量
-                                    string cursor = "0";
-                                    bool hasMore = true;
-                                    (syncCount, cursor, hasMore) = await GetAndSaveViedos(cookie, config, syncCount, cursor, hasMore, null, cate);
-                                    await HandleSyncCompletion(cookie, syncCount, null);
-
-                                }
-                            }
-                            else
-                            {
-                                Serilog.Log.Debug($"[{VideoType.GetDesc()}]没有查询到已开启的对象");
-                            }
-                        }
+                        if (cookie.UseCollectFolder)
+                            await SyncCustomListVideos(cookie, config);
                         break;
                     case VideoTypeEnum.ImageVideo:
                     default:
@@ -383,6 +365,32 @@ namespace dy.net.job
             catch (Exception ex)
             {
                 Log.Error(ex, $"[{VideoType.GetDesc()}][{cookie.UserName}]同步出错!!!,{ex.StackTrace}");
+            }
+        }
+        /// <summary>
+        /// 同步下载自定义收藏夹、合集、短剧
+        /// </summary>
+        /// <param name="cookie"></param>
+        /// <param name="config"></param>
+        /// <returns></returns>
+        private async Task SyncCustomListVideos(DouyinCookie cookie, AppConfig config)
+        {
+            var cates = await douyinCollectCateService.GetSyncCates(cookie.Id, VideoType);
+            if (cates != null && cates.Any())
+            {
+                foreach (var cate in cates)
+                {
+                    int syncCount = 0; // 本次同步成功的视频数量
+                    string cursor = "0";
+                    bool hasMore = true;
+                    (syncCount, cursor, hasMore) = await GetAndSaveViedos(cookie, config, syncCount, cursor, hasMore, null, cate);
+                    await HandleSyncCompletion(cookie, syncCount, null);
+
+                }
+            }
+            else
+            {
+                Serilog.Log.Debug($"[{VideoType.GetDesc()}]没有查询到已开启的对象");
             }
         }
 
@@ -711,7 +719,7 @@ namespace dy.net.job
                                 try
                                 {
                                     //File.Delete(exitVideo.VideoSavePath);
-                                    DeleteOldViedo( exitVideo);
+                                    DeleteOldViedo(exitVideo);
                                     //Log.Debug($"已删除旧文件：{exitVideo.VideoSavePath}");
                                 }
                                 catch (Exception ex)
@@ -812,7 +820,7 @@ namespace dy.net.job
             if (!IsAwemeValid(item)) return null;
             // 获取视频最佳下载地址
             var v = GetBestMatchedVideoUrl(item, config);
-            
+
             if (v == null)
             {
                 Serilog.Log.Error($"[{VideoType}][{cookie.UserName}][{item.Desc}]未获取到下载地址");
@@ -869,7 +877,7 @@ namespace dy.net.job
             return await CreateVideoEntity(config, cookie, item, v, savePath, saveFolder, avatarSavePath, null, cate);
         }
 
-        private static VideoBitRate  GetBestMatchedVideoUrl(Aweme item, AppConfig config)
+        private static VideoBitRate GetBestMatchedVideoUrl(Aweme item, AppConfig config)
         {
             VideoBitRate v;
             if (config.VideoEncoder.HasValue && config.VideoEncoder.Value == 265)

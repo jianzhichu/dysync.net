@@ -35,7 +35,7 @@ namespace dy.net.service
             string refererValue,
             string cookie)
         {
-            string fullUrl = "{requestUrl}";
+            string fullUrl = $"{requestUrl}";
             if (requestParameters != null && requestParameters.Count > 0)
             {
                 fullUrl = QueryHelpers.AddQueryString(
@@ -109,7 +109,7 @@ namespace dy.net.service
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
-                        Serilog.Log.Error($"SyncCollectVideos fail: {data}");
+                        Serilog.Log.Error($"SyncCollectVideos fail, data= {data}");
                     return model;
                 }
                 else
@@ -161,7 +161,7 @@ namespace dy.net.service
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinCollectListResponse>(data);
                     if (model == null)
-                        Serilog.Log.Error($"SyncCollectFolderList fail: {data}");
+                        Serilog.Log.Error($"SyncCollectFolderList fail, data= {data}");
                     return model;
                 }
                 else
@@ -282,7 +282,7 @@ namespace dy.net.service
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinMixListResponse>(data);
                     if (model == null)
-                        Serilog.Log.Error($"SyncMixList fail: {data}");
+                        Serilog.Log.Error($"SyncMixList fail, data= {data}");
                     return model;
                 }
                 else
@@ -402,7 +402,7 @@ namespace dy.net.service
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinSeriesListResponse>(data);
                     if (model == null)
-                        Serilog.Log.Error($"SyncShortList fail: {data}");
+                        Serilog.Log.Error($"SyncShortList fail, data= {data}");
                     return model;
                 }
                 else
@@ -543,7 +543,7 @@ namespace dy.net.service
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
-                        Serilog.Log.Error($"SyncFavoriteVideos fail: {data}");
+                        Serilog.Log.Error($"SyncFavoriteVideos fail, data=  {data}");
                     return model;
                 }
                 else
@@ -601,7 +601,7 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/aweme/post";
                 var refererValue = "https://www.douyin.com/user/";
 
-                var requestParameters = DouyinRequestParamManager.DouyinUpderPostParams;//修复关注的不下载图文视频
+                var requestParameters = DouyinRequestParamManager.DouyinUpderPostParams;
                 {
                     // 添加动态参数
                     requestParameters["max_cursor"] = cursor;
@@ -615,12 +615,12 @@ namespace dy.net.service
                     var data = await respose.Content.ReadAsStringAsync();
                     var model = JsonConvert.DeserializeObject<DouyinVideoInfoResponse>(data);
                     if (model == null)
-                        Serilog.Log.Error($"SyncUpderPostVideos fail: {data}");
+                        Serilog.Log.Error($"SyncUpderPostVideos fail, data= {data}");
                     return model;
                 }
                 else
                 {
-                    Serilog.Log.Error($"SyncUpderPostVideos fail: {respose.StatusCode}");
+                    Serilog.Log.Error($"SyncUpderPostVideos StatusCode fail: {respose.StatusCode}");
                     return null;
                 }
             }
@@ -740,12 +740,12 @@ namespace dy.net.service
             if (!string.IsNullOrWhiteSpace(douyinCookie.SecUserId))
             {
                 var res = await SyncMyFollows("1", "1", douyinCookie.SecUserId, douyinCookie.Cookies, null);
-                return res != null && res.status_code == 0 && res.Followings != null && res.Followings.Any();
+                return res != null && res.StatusCode == 0;
             }
             else
             {
                 var res = await SyncCollectVideos("0", "1", douyinCookie.Cookies);
-                return res != null && res.AwemeList != null && res.AwemeList.Any();
+                return res != null && res.StatusCode == 0;
             }
         }
 

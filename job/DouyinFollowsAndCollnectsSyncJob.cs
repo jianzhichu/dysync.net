@@ -53,6 +53,8 @@ namespace dy.net.job
 
             foreach (var ck in cookies)
             {
+                //同步关注列表
+                await SyncFollowListAsync(ck, conf);
 
                 if (ck.UseCollectFolder)
                 {
@@ -113,7 +115,6 @@ namespace dy.net.job
                         LOG_TAG_SERIES);
                 }
 
-                await SyncFollowListAsync(ck, conf);
                 Log.Debug($"[{ck.UserName}]所有[基础数据(list)]同步完成，包括 [收藏列表、关注列表、合集列表、短剧列表] ");
             }
 

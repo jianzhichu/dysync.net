@@ -29,7 +29,7 @@ namespace dy.net.repository
             return await query.ToListAsync();
         }
 
-        public List<DouyinCookie> GetAllCookies(Expression<Func<DouyinCookie, bool>> whereExpression = null)
+        public async Task<List<DouyinCookie>> GetAllCookies(Expression<Func<DouyinCookie, bool>> whereExpression = null)
         {
             // 1. 初始化查询：先加固定条件 Status == 1
             var query = Db.Queryable<DouyinCookie>()
@@ -43,7 +43,7 @@ namespace dy.net.repository
             }
 
             // 3. 执行查询（SqlSugar 自动合并所有 Where 条件）
-            return  query.ToList();
+            return await  query.ToListAsync();
         }
 
 

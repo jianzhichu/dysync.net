@@ -114,6 +114,7 @@ namespace dy.net.Controllers
            PageRequestDto dto)
         {
             var (list, totalCount) = await dyCookieService.GetPagedAsync(dto.PageIndex, dto.PageSize);
+
             return ApiResult.Success(new
             {
                 data = list,
@@ -145,29 +146,6 @@ namespace dy.net.Controllers
         {
             var init = await dyCookieService.IsInit();
             return ApiResult.Success(init);
-        }
-
-
-        /// <summary>
-        /// 新增用户Cookie
-        /// </summary>
-        [HttpPost("add")]
-        public async Task<IActionResult> AddAsync([FromBody] DouyinCookie dyUserCookies)
-        {
-
-            var checkCk = await httpClientService.CheckCookie(dyUserCookies);
-            if (!checkCk)
-            {
-                return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
-            }
-
-            var result = await dyCookieService.Add(dyUserCookies);
-            if (result)
-            {
-                ReStartJob();
-                return ApiResult.Success();
-            }
-            return ApiResult.Fail("添加失败");
         }
 
 
@@ -244,7 +222,7 @@ namespace dy.net.Controllers
         /// 更新用户Cookie
         /// </summary>
         [HttpPost("update")]
-        public async Task<IActionResult> UpdateAsync([FromBody] DouyinCookie dyUserCookies)
+        public async Task<IActionResult> AddOrUpdateAsync([FromBody] DouyinCookie dyUserCookies)
         {
             var checkCk = await httpClientService.CheckCookie(dyUserCookies);
             if (!checkCk)

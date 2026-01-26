@@ -184,6 +184,8 @@ function submit() {
             message.success('修改成功，同步任务将在5-10秒按新配置运行...');
             reset();
             GetRecords();
+          }else{
+            message.success('修改失败，'+res.message);
           }
         });
     })

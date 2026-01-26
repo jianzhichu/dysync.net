@@ -21,6 +21,12 @@ namespace dy.net.model.response
 
         [JsonProperty("has_more")]
         public int HasMore { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonProperty("status_code")]
+        public int StatusCode { get; set; }
     }
 
     public class Aweme
