@@ -72,6 +72,24 @@ namespace dy.net.service
             return _cookieRepository.Insert(cookie);
         }
 
+        /// <summary>
+        /// 新增字段，兼容旧版本
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> UpdateCookieToSupportOldVersionAsync()
+        {
+            var cookies = _cookieRepository.GetAll();
+
+            foreach (var item in cookies)
+            {
+                item.DownCollect = !string.IsNullOrWhiteSpace(item.SavePath) && !item.UseCollectFolder;
+                item.DownFavorite = !string.IsNullOrWhiteSpace(item.FavSavePath);
+                item.DownFollowd = !string.IsNullOrWhiteSpace(item.UpSavePath);
+            }
+            await _cookieRepository.UpdateRangeAsync(cookies);
+            return true;
+        }
+
         // 查询单个
         public async Task<DouyinCookie> GetByIdAsync(string id)
         {

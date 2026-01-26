@@ -115,7 +115,7 @@ namespace dy.net.job
                         LOG_TAG_SERIES);
                 }
 
-                Log.Debug($"[{ck.UserName}]所有[基础数据(list)]同步完成，包括 [收藏列表、关注列表、合集列表、短剧列表] ");
+                Log.Debug($"[{ck.UserName}][基础数据]同步完成，包括 [收藏列表、关注列表、合集列表、短剧列表],这不是同步视频！！！ ");
             }
 
         }
@@ -189,7 +189,7 @@ namespace dy.net.job
         {
             if (string.IsNullOrWhiteSpace(cookie.SecUserId))
             {
-                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：未设置SecUserId，跳过");
+                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：未设置SecUserId，如果要同步关注列表（你关注的博主）,需要在授权页面填写你的sce_user_id");
                 return;
             }
 
@@ -197,29 +197,25 @@ namespace dy.net.job
             string offset = "0";
             bool hasMore = true;
             int total = 0;
-            FollowErrorDto currentError = null;
 
             try
             {
                 while (hasMore)
                 {
                     var data = await _douyinService.SyncMyFollows(
-                        DEFAULT_FOLLOW_COUNT, offset, cookie.SecUserId, cookie.Cookies,
-                        async (err) =>
-                        {
-                            currentError = err;
-                            cookie.StatusMsg = err.StatusCode == INVALID_COOKIE_STATUS_CODE ? "无效" : "正常";
-                            cookie.StatusCode = err.StatusCode;
-                            await _dyCookieService.UpdateAsync(cookie);
-                        });
+                        DEFAULT_FOLLOW_COUNT, offset, cookie.SecUserId, cookie.Cookies);
 
-                    if (currentError != null && currentError.StatusCode != 0)
+                    if (data == null)
                     {
-                        Log.Error($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：错误 状态码:{currentError.StatusCode} 信息:{currentError.StatusMsg}");
-                        if (currentError.StatusCode == INVALID_COOKIE_STATUS_CODE) break;
+                        Log.Error($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}同步异常，请检查cookie");
+                      break;
                     }
-
-                    if (data == null) break;
+                    else
+                    {
+                        cookie.StatusCode = data.StatusCode;
+                        cookie.StatusMsg = data.StatusCode == 0 ? "正常" : "异常";
+                        await _dyCookieService.UpdateAsync(cookie);
+                    }
 
                     if (string.IsNullOrWhiteSpace(cookie.MyUserId))
                     {
@@ -243,7 +239,7 @@ namespace dy.net.job
                 if (followList.Any())
                 {
                     var (add, update, succ) = await _followService.Sync(followList, cookie);
-                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}");
+                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}，这是同步关注列表，这不是同步视频！！！");
                 }
                 await _douyinCommonService.SetConfigNotFirstRunning();
             }

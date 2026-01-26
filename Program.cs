@@ -229,8 +229,9 @@ namespace dy.net
                 var config = commonService.InitConfig();
 
                 //Serilog.Log.Debug("isRestart1=" + config.IsFirstRunning);
+                await cookieService.UpdateCookieToSupportOldVersionAsync();
 
-                //if (!isDevelopment)
+                if (!isDevelopment)
                 {
                     var cookie = await cookieService.GetOpendCookies();
                     if (cookie != null && cookie.Any())

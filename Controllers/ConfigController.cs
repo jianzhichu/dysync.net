@@ -169,6 +169,8 @@ namespace dy.net.Controllers
             if (!cookieValid)
                 return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
 
+            dyUserCookies.StatusCode = 0;
+            dyUserCookies.StatusMsg = "正常";
             // 4. 保存到数据库
             var saved = await dyCookieService.Add(dyUserCookies);
             return saved ? ApiResult.Success() : ApiResult.Fail("添加失败");
@@ -229,7 +231,8 @@ namespace dy.net.Controllers
             {
                 return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
             }
-
+            dyUserCookies.StatusCode = 0;
+            dyUserCookies.StatusMsg = "正常";
             if (dyUserCookies.Id == "0")
             {
                 dyUserCookies.Id = IdGener.GetLong().ToString();

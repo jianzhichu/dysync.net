@@ -43,6 +43,19 @@ namespace dy.net.model.entity
         /// </summary>
         public bool DownSeries { get; set; }
         /// <summary>
+        /// 是否下载收藏夹视频
+        /// </summary>
+        public bool DownCollect { get; set; }
+   
+        /// <summary>
+        /// 是否下载点赞（喜欢的）视频
+        /// </summary>
+        public bool DownFavorite { get; set; }
+        /// <summary>
+        /// 是否下载关注的博主的作品
+        /// </summary>
+        public bool DownFollowd { get; set; }
+        /// <summary>
         /// 1 开启同步 0 关闭同步
         /// </summary>
         public int Status { get; set; }

@@ -38,6 +38,14 @@
         /// </summary>
         //[Description("收藏短剧")]
         dy_series = 7,
+        /// <summary>
+        /// 同步关注列表--
+        /// </summary>
+        dy_followuser=1000,
+        /// <summary>
+        /// 同步关注列表一次
+        /// </summary>
+        dy_followuser_once = 2000,
 
     }
 

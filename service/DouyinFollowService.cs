@@ -125,6 +125,13 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> OpenOrCloseSync(FollowUpdateDto dto)
         {
+
+            var followdOpendCount = await _followRepository.CountAsync(x => x.OpenSync);
+            if (followdOpendCount > 20)
+            {
+                throw new Exception("为了减少被风控的可能，关注列表最多同时开启20个,抱歉");
+            }
+
             var followed = await _followRepository.GetByIdAsync(dto.Id);
             if (followed != null)
             {

@@ -642,9 +642,8 @@ namespace dy.net.service
         /// <param name="offset"></param>
         /// <param name="secUserId"></param>
         /// <param name="cookie"></param>
-        /// <param name="callBack"></param>
         /// <returns></returns>
-        public async Task<DouyinFollowInfoResponse> SyncMyFollows(string count, string offset, string secUserId, string cookie, Action<FollowErrorDto> callBack)
+        public async Task<DouyinFollowInfoResponse> SyncMyFollows(string count, string offset, string secUserId, string cookie)
         {
 
             #region 检查参数
@@ -686,29 +685,6 @@ namespace dy.net.service
                 {
                     var data = await respose.Content.ReadAsStringAsync();
                     var res = JsonConvert.DeserializeObject<DouyinFollowInfoResponse>(data);
-                    if (res != null)
-                    {
-                        if (res.Followings == null)
-                        {
-                            var err = JsonConvert.DeserializeObject<FollowErrorDto>(data);
-
-                            if (err != null)
-                            {
-                                Serilog.Log.Error($"SyncMyFollows error: {err.StatusMsg}");
-                                callBack?.Invoke(err);
-                            }
-                            Serilog.Log.Error($"SyncMyFollows error: 关注列表为空 :{data}");
-                        }
-                        else
-                        {
-                            callBack?.Invoke(new FollowErrorDto { StatusCode = 0 });
-                        }
-                    }
-                    else
-                    {
-                        Serilog.Log.Error($"SyncMyFollows error: 反序列化结果为空,接口返回数据：{data}");
-                        callBack?.Invoke(new FollowErrorDto { StatusCode = 8, StatusMsg = "未知" });
-                    }
                     return res;
                 }
                 else
@@ -739,12 +715,12 @@ namespace dy.net.service
 
             if (!string.IsNullOrWhiteSpace(douyinCookie.SecUserId))
             {
-                var res = await SyncMyFollows("1", "1", douyinCookie.SecUserId, douyinCookie.Cookies, null);
+                var res = await SyncMyFollows("1", "10", douyinCookie.SecUserId, douyinCookie.Cookies);
                 return res != null && res.StatusCode == 0;
             }
             else
             {
-                var res = await SyncCollectVideos("0", "1", douyinCookie.Cookies);
+                var res = await SyncCollectVideos("0", "10", douyinCookie.Cookies);
                 return res != null && res.StatusCode == 0;
             }
         }

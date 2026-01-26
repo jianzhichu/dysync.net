@@ -1,5 +1,6 @@
 ﻿using dy.net.job;
 using dy.net.model.dto;
+using dy.net.model.entity;
 using dy.net.utils;
 using Quartz;
 using Serilog;
@@ -12,16 +13,17 @@ namespace dy.net.service
     public class DouyinQuartzJobService
     {
         private readonly ISchedulerFactory _schedulerFactory;
+        private readonly DouyinCookieService douyinCookieService;
         private const string DefaultJobGroup = "dysync.net";
         private const int DefaultIntervalMinutes = 30;
         private const int DefaultCronStartDelaySeconds = 30;
         private const int DefaultSimpleStartDelaySeconds = 3;
 
         // 任务配置信息（修复了series任务的Key重复问题，确保每个任务Key唯一）
-        public static Dictionary<string, JobConfig> JobConfigs { get; } = new()
+        public static Dictionary<VideoTypeEnum, JobConfig> JobConfigs { get; } = new()
         {
             {
-                VideoTypeEnum.dy_collects.GetDesc(),
+                VideoTypeEnum.dy_collects,
                 new JobConfig(
                     typeof(DouyinCollectSyncJob),
                     "dy.job.key.collect",
@@ -29,7 +31,7 @@ namespace dy.net.service
                     "抖音收藏同步任务")
             },
             {
-                VideoTypeEnum.dy_favorite.GetDesc(),
+                VideoTypeEnum.dy_favorite,
                 new JobConfig(
                     typeof(DouyinFavoritSyncJob),
                     "dy.job.key.favorite",
@@ -37,7 +39,7 @@ namespace dy.net.service
                     "抖音点赞同步任务")
             },
             {
-                VideoTypeEnum.dy_follows.GetDesc(),
+                VideoTypeEnum.dy_follows,
                 new JobConfig(
                     typeof(DouyinFollowedSyncJob),
                     "dy.job.key.followed",
@@ -45,7 +47,7 @@ namespace dy.net.service
                     "抖音关注博主作品同步任务")
             },
             {
-                "关注列表",
+                VideoTypeEnum.dy_followuser,
                 new JobConfig(
                     typeof(DouyinFollowsAndCollnectsSyncJob),
                     "dy.job.key.follow_user",
@@ -53,7 +55,7 @@ namespace dy.net.service
                     "抖音关注列表同步任务")
             },
             {
-                VideoTypeEnum.dy_custom_collect.GetDesc(),
+                VideoTypeEnum.dy_custom_collect,
                 new JobConfig(
                     typeof(DouyinCollectCustomSyncJob),
                     "dy.job.key.custom_collect",
@@ -61,7 +63,7 @@ namespace dy.net.service
                     "抖音自定义收藏夹列表同步任务")
             },
             {
-               VideoTypeEnum.dy_mix.GetDesc(),
+               VideoTypeEnum.dy_mix,
                 new JobConfig(
                     typeof(DouyinMixSyncJob),
                     "dy.job.key.mix",
@@ -69,7 +71,7 @@ namespace dy.net.service
                     "抖音收藏夹合集同步任务")
             },
             {
-                VideoTypeEnum.dy_series.GetDesc(),
+                VideoTypeEnum.dy_series,
                 new JobConfig(
                     typeof(DouyinSeriesSyncJob),
                     "dy.job.key.series",
@@ -77,7 +79,7 @@ namespace dy.net.service
                     "抖音收藏夹短剧同步任务")
             },
             {
-                "sync_follow_user_once",
+              VideoTypeEnum.dy_followuser_once,
                 new JobConfig(
                     typeof(DouyinFollowsAndCollnectsSyncJob),
                     "dy.job.key.sync_follow_user_once",
@@ -86,68 +88,160 @@ namespace dy.net.service
             }
         };
 
-        public DouyinQuartzJobService(ISchedulerFactory schedulerFactory)
+        public DouyinQuartzJobService(ISchedulerFactory schedulerFactory,DouyinCookieService douyinCookieService)
         {
             _schedulerFactory = schedulerFactory ?? throw new ArgumentNullException(nameof(schedulerFactory));
+            this.douyinCookieService = douyinCookieService;
         }
 
+       
         /// <summary>
-        /// 启动所有抖音相关定时任务（所有任务独立执行）
+        /// 初始化或重启所有抖音定时任务
         /// </summary>
-        /// <param name="expression">Cron表达式或间隔分钟数（所有任务使用相同的执行频率）</param>
-        /// <returns>是否启动成功</returns>
-        public async Task<bool> InitOrReStartAllJobs(string expression)
+        /// <param name="cronExpression">定时任务表达式（分钟数）</param>
+        /// <returns>是否成功初始化</returns>
+        public async Task<bool> InitOrReStartAllJobs(string cronExpression)
         {
-            if (string.IsNullOrWhiteSpace(expression))
-            {
-                Log.Debug("定时任务表达式为空，使用默认配置（{DefaultMinutes}分钟）", DefaultIntervalMinutes);
-                expression = DefaultIntervalMinutes.ToString();
-            }
-
             try
             {
-                var scheduler = await _schedulerFactory.GetScheduler();
+                // 1. 获取并验证Cookie
+                var validCookies = await douyinCookieService.GetOpendCookiesAsync();
+                if (validCookies == null || !validCookies.Any())
+                {
+                    Serilog.Log.Debug("没有有效的抖音Cookie，无法启动定时任务");
+                    return false;
+                }
 
-                // 移除所有已存在的任务（避免重复调度）
+                // 2. 处理定时任务表达式
+                var taskIntervalExpression = ResolveTaskExpression(cronExpression);
+
+                // 3. 获取调度器并清理现有任务
+                var scheduler = await _schedulerFactory.GetScheduler();
+                if (scheduler == null)
+                {
+                    Log.Error("获取任务调度器失败，无法初始化定时任务");
+                    return false;
+                }
+
                 await RemoveAllExistingJobs(scheduler);
 
+                // 4. 检查各类型任务的启用条件
+                var taskEnableConditions = GetTaskEnableConditions(validCookies);
 
-                // 执行任务启动逻辑
+                // 5. 启动符合条件的定时任务
+                int successfullyStartedJobs = 0;
                 foreach (var jobKey in JobConfigs.Keys)
                 {
-                    if (jobKey == "sync_follow_user_once")
+                    // 跳过一次性关注用户任务
+                    if (jobKey == VideoTypeEnum.dy_followuser_once)
                         continue;
-                    if (jobKey == "follow_user") expression = "60";
-                    var startSuccess = await StartJobAsync(jobKey, expression);
-                    if (startSuccess)
+
+                    // 处理关注用户任务（固定60分钟执行频率）
+                    if (jobKey == VideoTypeEnum.dy_followuser)
                     {
-                        Log.Debug($"成功启动任务：{jobKey}，执行频率：{expression}");
+                        bool startSuccess = await StartSingleJobAsync(jobKey, "60");
+                        if (startSuccess) successfullyStartedJobs++;
+                        continue;
                     }
-                    else
+
+                    // 根据不同任务类型和启用条件启动任务
+                    bool isTaskEnabled = jobKey switch
                     {
-                        Log.Error($"启动任务失败：{jobKey}");
+                        VideoTypeEnum.dy_favorite => taskEnableConditions.IsFavoriteEnabled,
+                        VideoTypeEnum.dy_collects => taskEnableConditions.IsCollectEnabled,
+                        VideoTypeEnum.dy_follows => taskEnableConditions.IsFollowedEnabled,
+                        VideoTypeEnum.dy_custom_collect => taskEnableConditions.IsCustomCollectEnabled,
+                        VideoTypeEnum.dy_mix => taskEnableConditions.IsMixEnabled,
+                        VideoTypeEnum.dy_series => taskEnableConditions.IsSeriesEnabled,
+                        _ => false
+                    };
+
+                    if (isTaskEnabled)
+                    {
+                        bool startSuccess = await StartSingleJobAsync(jobKey, taskIntervalExpression);
+                        if (startSuccess) successfullyStartedJobs++;
                     }
                 }
-                Log.Information($"共启动 {JobConfigs.Count - 1} 个定时任务");
 
+                // 6. 输出任务启动统计日志
+                Log.Information($"定时任务初始化完成，共尝试启动 {JobConfigs.Count - 1} 个任务，成功启动 {successfullyStartedJobs} 个");
 
-                //await StartJobAsync(VideoTypeEnum.dy_custom_collect.GetDesc(), expression);
-                //await StartFollowJobOnceAsync();
                 return true;
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "【任务服务】初始化所有定时任务异常");
+                Log.Error(ex, "【quartz】初始化所有抖音定时任务时发生异常");
                 return false;
             }
         }
 
+
+        /// <summary>
+        /// 解析任务执行表达式，为空时使用默认值
+        /// </summary>
+        /// <param name="inputExpression">输入的表达式</param>
+        /// <returns>处理后的表达式</returns>
+        private static string ResolveTaskExpression(string inputExpression)
+        {
+            if (string.IsNullOrWhiteSpace(inputExpression))
+            {
+                Log.Debug("定时任务表达式为空，使用默认配置（{DefaultMinutes}分钟）", DefaultIntervalMinutes);
+                return DefaultIntervalMinutes.ToString();
+            }
+            return inputExpression;
+        }
+
+        /// <summary>
+        /// 获取各类型任务的启用条件
+        /// </summary>
+        /// <param name="cookies">有效的抖音Cookie列表</param>
+        /// <returns>任务启用条件集合</returns>
+        private static TaskEnableConditions GetTaskEnableConditions(IEnumerable<DouyinCookie> cookies)
+        {
+            return new TaskEnableConditions
+            {
+                IsCollectEnabled = cookies.Any(x => x.DownCollect && !x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath)),
+                IsFavoriteEnabled = cookies.Any(x => x.DownFavorite && !string.IsNullOrWhiteSpace(x.FavSavePath)),
+                IsFollowedEnabled = cookies.Any(x => x.DownFollowd && !string.IsNullOrWhiteSpace(x.UpSavePath)),
+                IsMixEnabled = cookies.Any(x => x.DownMix && !string.IsNullOrWhiteSpace(x.MixPath) && !string.IsNullOrWhiteSpace(x.SavePath)),
+                IsSeriesEnabled = cookies.Any(x => x.DownSeries && !string.IsNullOrWhiteSpace(x.SeriesPath) && !string.IsNullOrWhiteSpace(x.SavePath)),
+                IsCustomCollectEnabled = cookies.Any(x => x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath))
+            };
+        }
+
+        /// <summary>
+        /// 启动单个定时任务（封装重复的启动逻辑）
+        /// </summary>
+        /// <param name="jobKey">任务类型</param>
+        /// <param name="expression">执行频率表达式</param>
+        /// <returns>是否启动成功</returns>
+        private async Task<bool> StartSingleJobAsync(VideoTypeEnum jobKey, string expression)
+        {
+            try
+            {
+                bool startSuccess = await StartJobAsync(jobKey, expression);
+                if (startSuccess)
+                {
+                    Log.Debug($"【quartz】成功启动任务：{jobKey}，执行频率：{expression}分钟");
+                }
+                else
+                {
+                    Log.Error($"【quartz】启动任务失败：{jobKey}");
+                }
+                return startSuccess;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"【quartz】启动任务 {jobKey} 时发生异常");
+                return false;
+            }
+        }
         /// <summary>
         /// 启动关注同步任务（单次执行）
         /// </summary>
         public async Task<bool> StartFollowJobOnceAsync()
         {
-            return await StartOneTimeJobAsync("sync_follow_user_once");
+            return await StartOneTimeJobAsync(VideoTypeEnum.dy_followuser_once);
         }
 
         /// <summary>
@@ -160,7 +254,7 @@ namespace dy.net.service
             {
                 if (await scheduler.CheckExists(jobKey))
                 {
-                    Log.Information("【任务服务】移除已存在的任务: {JobKey}", jobKey);
+                    Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
                     await scheduler.DeleteJob(jobKey);
                 }
             }
@@ -172,11 +266,11 @@ namespace dy.net.service
         /// <param name="configKey">任务配置Key（如：collect、favorite）</param>
         /// <param name="expression">定时表达式（Cron或间隔分钟数）</param>
         /// <returns>是否启动成功</returns>
-        public async Task<bool> StartJobAsync(string configKey, string expression)
+        public async Task<bool> StartJobAsync(VideoTypeEnum configKey, string expression)
         {
             if (!JobConfigs.TryGetValue(configKey, out var jobConfig))
             {
-                Log.Error("【任务服务】找不到任务配置: {ConfigKey}", configKey);
+                Log.Error("【quartz】找不到任务配置: {ConfigKey}", configKey);
                 return false;
             }
 
@@ -201,7 +295,7 @@ namespace dy.net.service
 
                 // 调度任务
                 await scheduler.ScheduleJob(jobDetail, trigger);
-                Log.Information("【任务服务】启动任务成功 - 任务描述: {JobDescription}, 执行频率: {Expression}",
+                Log.Information("【quartz】启动任务成功 - 任务描述: {JobDescription}, 执行频率: {Expression}",
                     jobConfig.Description,
                     expression);
 
@@ -209,7 +303,7 @@ namespace dy.net.service
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "【任务服务】启动任务失败 - 任务描述: {JobDescription}", jobConfig.Description);
+                Log.Error(ex, "【quartz】启动任务失败 - 任务描述: {JobDescription}", jobConfig.Description);
                 return false;
             }
         }
@@ -217,11 +311,11 @@ namespace dy.net.service
         /// <summary>
         /// 启动单次执行任务
         /// </summary>
-        private async Task<bool> StartOneTimeJobAsync(string configKey)
+        private async Task<bool> StartOneTimeJobAsync(VideoTypeEnum configKey)
         {
             if (!JobConfigs.TryGetValue(configKey, out var jobConfig))
             {
-                Log.Error("【任务服务】找不到任务配置: {ConfigKey}", configKey);
+                Log.Error("【quartz】找不到任务配置: {ConfigKey}", configKey);
                 return false;
             }
 
@@ -246,13 +340,13 @@ namespace dy.net.service
                     .Build();
 
                 await scheduler.ScheduleJob(jobDetail, trigger);
-                Log.Debug("【任务服务】启动单次任务成功 - 任务描述: {JobDescription}", jobConfig.Description);
+                Log.Debug("【quartz】启动单次任务成功 - 任务描述: {JobDescription}", jobConfig.Description);
 
                 return true;
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "【任务服务】启动单次任务失败 - 任务描述: {JobDescription}", jobConfig.Description);
+                Log.Error(ex, "【quartz】启动单次任务失败 - 任务描述: {JobDescription}", jobConfig.Description);
                 return false;
             }
         }
@@ -288,8 +382,8 @@ namespace dy.net.service
             }
 
             // 无效表达式，使用默认配置
-            Log.Warning("【任务服务】无效的任务表达式: {Expression}，使用默认间隔{DefaultMinutes}分钟",
-                expression, DefaultIntervalMinutes);
+            //Log.Debug("【任务服务】无效的任务表达式: {Expression}，使用默认间隔{DefaultMinutes}分钟",
+            //    expression, DefaultIntervalMinutes);
 
             return TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
@@ -308,9 +402,25 @@ namespace dy.net.service
         {
             if (await scheduler.CheckExists(jobKey))
             {
-                Log.Information("【任务服务】移除已存在的任务: {JobKey}", jobKey);
+                Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
                 await scheduler.DeleteJob(jobKey);
             }
+        }
+
+
+
+
+        /// <summary>
+        /// 任务启用条件模型
+        /// </summary>
+        private class TaskEnableConditions
+        {
+            public bool IsCollectEnabled { get; set; }
+            public bool IsFavoriteEnabled { get; set; }
+            public bool IsFollowedEnabled { get; set; }
+            public bool IsMixEnabled { get; set; }
+            public bool IsSeriesEnabled { get; set; }
+            public bool IsCustomCollectEnabled { get; set; }
         }
     }
 }

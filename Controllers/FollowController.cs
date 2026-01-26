@@ -103,7 +103,11 @@ namespace dy.net.Controllers
             return await OpenOrCloseSync(dto);
         }
 
-
+       /// <summary>
+       /// 删除关注对象
+       /// </summary>
+       /// <param name="dto"></param>
+       /// <returns></returns>
         [HttpPost("delete")]
         public async Task<IActionResult> DeleteFollow(FollowUpdateDto dto)
         {
