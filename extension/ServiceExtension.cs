@@ -197,7 +197,7 @@ namespace dy.net.extension
 
                 q.UsePersistentStore(s =>
                 {
-                    s.UseSQLite(config =>
+                    s.UseMicrosoftSQLite(config =>
                     {
                         config.ConnectionString = CreateSqliteDBConn(dbPath);
                         config.TablePrefix = "QRTZ_";

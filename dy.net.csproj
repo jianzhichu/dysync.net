@@ -58,13 +58,11 @@
 	  <PackageReference Include="ClockSnowFlake" Version="1.1.0" />
 	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
 	  <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="6.0.10" />
-	  <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
 	  <PackageReference Include="Quartz" Version="3.15.1" />
 	  <PackageReference Include="Quartz.AspNetCore" Version="3.8.0" />
 	  <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.15.1" />
 	  <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.1" />
 	  <PackageReference Include="SqlSugarCore" Version="5.1.4.128" />
-	  <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
 	  <!--<PackageReference Include="SqlSugarCoreNoDrive" Version="5.1.4.124" />-->
 	  <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
 	  <!--<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="5.6.3" />
@@ -130,7 +128,7 @@
 		</ItemGroup>
 	</Target>
 
-	<!-- 核心配置：仅用核心版本号2.0.6，自动拼接前缀 -->
+	<!-- 核心配置：仅用核心版本号2.0.7，自动拼接前缀 -->
 	<!--<Target Name="DockerBuildAndPushAfterPublish" AfterTargets="Publish">
 		<Exec Command="docker build -t jianzhichu/dysync.net:beta_$(DockerCoreVersion) . &amp;&amp; docker tag jianzhichu/dysync.net:beta_$(DockerCoreVersion) ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion) &amp;&amp; docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion)"
 			  Condition="'$(DockerArch)' == 'x86'" />

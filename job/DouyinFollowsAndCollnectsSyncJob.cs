@@ -239,7 +239,7 @@ namespace dy.net.job
                 if (followList.Any())
                 {
                     var (add, update, succ) = await _followService.Sync(followList, cookie);
-                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}，这是同步关注列表，这不是同步视频！！！");
+                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}，这是同步关注列表，这不是同步视频！！！");
                 }
                 await _douyinCommonService.SetConfigNotFirstRunning();
             }

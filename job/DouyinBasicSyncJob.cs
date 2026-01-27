@@ -856,7 +856,7 @@ namespace dy.net.job
                 return null;
             }
             //Serilog.Log.Debug($"{v.QualityType}-{v.BitRateValue}-{v.IsH265}-{v.HdrBit}");
-            var videoUrl = v.PlayAddr.UrlList.Where(x => !string.IsNullOrEmpty(x))?.LastOrDefault();
+            var videoUrl = v.PlayAddr.UrlList.Where(x => !string.IsNullOrEmpty(x))?.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(videoUrl))
             {
                 Serilog.Log.Error($"[{cookie.UserName}][{VideoType.GetDesc()}]未获取到下载地址");
