@@ -64,9 +64,9 @@ namespace dy.net.utils
                         }
                     },
                     Author = DouyinFileNameHelper.SanitizeLinuxFileName(video.Author, "", true),
-                    Poster = $"{video.AwemeId}_poster.jpg",
+                    Poster = "poster.jpg",
                     Title = video.VideoTitle,
-                    Thumbnail = $"{video.AwemeId}_poster.jpg",// 使用poster作为缩略图
+                    Thumbnail = "poster.jpg",// 使用poster作为缩略图
                     ReleaseDate = video.CreateTime,
                     Genres = new List<string> { video.Tag1, video.Tag2, video.Tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
                 };

@@ -204,7 +204,16 @@ namespace dy.net.job
         {
             var subFolder = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
             var folder = Path.Combine(cookie.SavePath, subFolder);
-            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+            else
+            {
+                //说明文件夹存在，检查里面有没有文件，如果已经有视频文件了，说明视频标题相同，那么应该重新创建文件夹,+id
+
+                folder = Path.Combine(cookie.SavePath, subFolder + "_" + item.AwemeId);
+            }
             return folder;
 
         }
@@ -265,21 +274,6 @@ namespace dy.net.job
                 //更新合集短剧完结状态
                 await douyinCollectCateService.UpdateCate2EndStatus(cate);
             }
-        }
-
-
-        /// <summary>
-        /// 获取NFO文件中的图片（如海报）文件名
-        /// </summary>
-        /// <param name="cookie">当前操作的Cookie</param>
-        /// <param name="item">视频信息</param>
-        /// <param name="config">应用配置</param>
-        /// <param name="fileName">原文件名称（如poster.jpg）</param>
-        /// <param name="cate"></param>
-        /// <returns>封面图片的文件名</returns>
-        protected virtual string GetNfoFileName(DouyinCookie cookie, Aweme item, AppConfig config, string fileName, DouyinCollectCate cate)
-        {
-            return $"{item.AwemeId}_{fileName}";
         }
 
         /// <summary>
@@ -1363,8 +1357,7 @@ namespace dy.net.job
         {
             if (string.IsNullOrWhiteSpace(coverUrl)) return;
             // 获取封面图片文件名
-            var coverImgName = GetNfoFileName(cookie, item, config, "poster.jpg", cate);
-            var coverSavePath = Path.Combine(saveFolder, coverImgName);
+            var coverSavePath = Path.Combine(saveFolder, "poster.jpg");
 
             // 如果封面文件不存在，则下载
             if (!File.Exists(coverSavePath))
