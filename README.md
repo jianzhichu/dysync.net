@@ -111,8 +111,6 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 ```bash
 
-version: '3.8'
-
 services:
   dysync:
     image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.0.8

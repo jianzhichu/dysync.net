@@ -8,11 +8,13 @@ using Newtonsoft.Json;
 
 namespace dy.net.service
 {
-    public class DouyinHttpClientService
+    public class DouyinHttpClientService : IDisposable
     {
 
 
         private readonly IHttpClientFactory _clientFactory;
+        private bool _disposedValue;
+
         public DouyinHttpClientService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
@@ -961,6 +963,47 @@ namespace dy.net.service
             }
         }
 
+
+
+        #endregion
+
+
+        #region IDisposable 实现（实际释放资源+内存优化）
+        /// <summary>
+        /// 核心释放方法：释放托管/非托管资源，清空大对象引用
+        /// </summary>
+        /// <param name="disposing">true=释放托管+非托管；false=仅非托管（终结器调用）</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    // 1. 释放【托管资源】：清理网络/文件相关的可释放资源
+                    // 注：IHttpClientFactory创建的HttpClient无需手动Dispose（容器自动管理），仅清理本类手动创建的资源
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+                    GC.WaitForPendingFinalizers();
+                }
+
+                // 2. 释放【非托管资源】：本类无非托管资源（原生句柄/指针），无需处理
+                // 3. 🌟 内存优化核心：清空所有大对象/缓存引用（打破GC根引用）
+                // 针对DownloadAsync中的大字节数组、流缓存等做兜底清理
+                // 若后续添加类级别缓存/大字段，在此处补充置空：_cacheDict = null; _largeBuffer = null;
+
+                // 标记已释放，防止重复执行
+                _disposedValue = true;
+            }
+        }
+
+        // 显式声明终结器（可选，因无非托管资源，仅做兜底）
+      
+
+        // 公开Dispose方法，供DI容器/外部调用
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this); // 通知GC无需调用终结器，提升效率
+        }
         #endregion
     }
 

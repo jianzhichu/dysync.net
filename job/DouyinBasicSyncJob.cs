@@ -17,7 +17,7 @@ namespace dy.net.job
     /// 提供了通用的同步逻辑，如Cookie处理、视频下载、数据存储等
     /// </summary>
     [DisallowConcurrentExecution] // 禁止并发执行，确保同一时间只有一个实例在运行
-    public abstract class DouyinBasicSyncJob : IJob
+    public abstract class DouyinBasicSyncJob : IJob, IDisposable
     {
         #region 受保护字段
 
@@ -57,6 +57,7 @@ namespace dy.net.job
         /// 每页请求的视频数量.不可修改
         /// </summary>
         protected string count = "18";
+        private bool disposedValue;
 
         #endregion
 
@@ -542,32 +543,26 @@ namespace dy.net.job
                     //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
                     continue;
                 }
-                if (cate == null)
+
+                bool Goon = await AutoDistinct(config, exitVideo, cookie);
+                if (!Goon)
                 {
-
-
-                    bool Goon = await AutoDistinct(config, exitVideo, cookie);
-                    if (!Goon)
-                    {
-                        continue;
-                    }
-                    //如果存在，但是因为去重规则，选择的最高优先级变更了，需要删除原来的，重新下载。
-                    if (exitVideo != null)
-                    {
-                        await douyinVideoService.DeleteById(exitVideo.Id);
-                    }
-                    var uper = await douyinFollowService.GetByUperId(item.AuthorUserId.ToString(), cookie.MyUserId);
-                    if (uper != null && uper.FullSync)
-                    {
-                        followed ??= uper;
-                    }
+                    continue;
                 }
-                else
+
+                if (exitVideo != null && File.Exists(exitVideo.VideoSavePath))
                 {
-                    if (exitVideo != null && exitVideo.ViedoType == cate.CateType && File.Exists(exitVideo.VideoSavePath))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
+                //如果存在，但是因为去重规则，选择的最高优先级变更了，需要删除原来的，重新下载。
+                if (exitVideo != null)
+                {
+                    await douyinVideoService.DeleteById(exitVideo.Id);
+                }
+                var uper = await douyinFollowService.GetByUperId(item.AuthorUserId.ToString(), cookie.MyUserId);
+                if (uper != null && uper.FullSync)
+                {
+                    followed ??= uper;
                 }
                 // 处理单个视频
                 var video = await ProcessSingleVideo(cookie, item, config, followed, cate);
@@ -1425,6 +1420,35 @@ namespace dy.net.job
             // 生成NFO文件
             NfoFileGenerator.GenerateVideoNfoFile(video);
             return video;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: 释放托管状态(托管对象)
+                }
+
+                // TODO: 释放未托管的资源(未托管的对象)并重写终结器
+                // TODO: 将大型字段设置为 null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: 仅当“Dispose(bool disposing)”拥有用于释放未托管资源的代码时才替代终结器
+        // ~DouyinBasicSyncJob()
+        // {
+        //     // 不要更改此代码。请将清理代码放入“Dispose(bool disposing)”方法中
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // 不要更改此代码。请将清理代码放入“Dispose(bool disposing)”方法中
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
         #endregion

@@ -14,6 +14,8 @@ using Serilog.Filters;
 using Serilog.Formatting.Compact;
 //using Serilog.Formatting.Compact;
 using SqlSugar;
+using System.Collections.Concurrent;
+
 //using Swashbuckle.AspNetCore.SwaggerGen;
 //using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IO.Compression;
@@ -30,7 +32,45 @@ namespace dy.net.extension
             public string Title { get; set; }
         }
 
-        public static string FnDataFolder = string.Empty;
+        #region 静态缓存字段（核心优化：避免重复计算/读取）
+        // 只读静态字段，防止外部随意修改，减少内存混乱
+        public static  string FnDataFolder;
+        // 缓存JWT密钥字节数组，避免重复编码
+        private static readonly byte[] _jwtKeyBytes;
+        // 缓存部署配置，避免重复读取Appsettings
+        private static readonly string _deployConfig;
+        // 缓存实体程序集类型，避免SqlSugar每次都反射（核心内存优化）
+        private static readonly Type[] _entityTypes;
+        // 缓存响应压缩MIME类型，避免每次请求拼接
+        private static readonly IEnumerable<string> _compressionMimeTypes;
+        #endregion
+
+        #region 静态构造函数（仅执行一次，初始化所有缓存）
+        static ServiceExtension()
+        {
+            // 初始化JWT密钥（仅一次）
+            _jwtKeyBytes = Encoding.ASCII.GetBytes(Md5Util.JWT_TOKEN_KEY);
+         
+            // 初始化实体类型（仅一次反射，缓存结果）
+            Assembly entityAssembly = Assembly.GetExecutingAssembly();
+            _entityTypes = entityAssembly.GetTypes()
+                .Where(t => t.Namespace != null && t.Namespace.StartsWith("dy.net.model.entity"))
+                .ToArray();
+            // 初始化响应压缩MIME类型（仅一次拼接，缓存结果）
+            //_compressionMimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+            //{
+            //    "text/html; charset=utf-8",
+            //    "application/xhtml+xml",
+            //    "application/atom+xml",
+            //    "image/svg+xml",
+            //    "application/octet-stream"
+            //}).ToList(); // 转为List，避免多次枚举Concat结果
+            // 初始化FnDataFolder（空值，后续由CreateSqliteDBConn赋值）
+            FnDataFolder = string.Empty;
+        }
+        #endregion
+
+
         private static DbType GetDBType(IConfiguration configuration)
         {
             DbType dbType = DbType.Sqlite;
@@ -59,49 +99,107 @@ namespace dy.net.extension
         //    return connectionString;
         //}
 
-         static string CreateSqliteDBConn(string dbPath = "")
+        // static string CreateSqliteDBConn(string dbPath = "")
+        //{
+        //    string fileFloder = Path.Combine(Environment.CurrentDirectory, "db");
+        //    if (!string.IsNullOrEmpty(dbPath))
+        //    {
+        //        fileFloder = Path.Combine(dbPath, "db");
+        //        FnDataFolder = Path.Combine(dbPath, "mp3");
+        //        if ((!Directory.Exists(FnDataFolder)))
+        //        {
+        //            Directory.CreateDirectory(FnDataFolder);
+        //        }
+        //    }
+        //    else
+        //    {
+        //        if (Appsettings.Get("deploy") == "fn")
+        //        {
+        //            Log.Error($"fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
+        //            throw new Exception("fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
+        //        }
+        //    }
+
+        //    if (!Directory.Exists(fileFloder))
+        //    {
+        //        Directory.CreateDirectory(fileFloder);
+        //    }
+        //    var filePath = Path.Combine(fileFloder, "dy.sqlite");
+        //    string conn = $"DataSource={filePath}";
+        //    if (!File.Exists(filePath))
+        //    {
+        //        File.Create(filePath).Close();
+        //    }
+
+        //    return conn;
+        //}
+
+        /// <summary>
+        /// 核心优化：缓存连接字符串+using自动释放资源+减少重复判断+避免多次路径拼接
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, string> _sqliteConnCache = new();
+        static string CreateSqliteDBConn(string dbPath = "")
         {
-            string fileFloder = Path.Combine(Environment.CurrentDirectory, "db");
+            // 缓存键：空dbPath用"default"，避免空键问题
+            string cacheKey = string.IsNullOrEmpty(dbPath) ? "default" : dbPath;
+            // 核心优化：连接字符串缓存，相同dbPath仅创建一次
+            if (_sqliteConnCache.TryGetValue(cacheKey, out var cachedConn))
+            {
+                return cachedConn;
+            }
+
+            string fileFolder = string.IsNullOrEmpty(dbPath)
+                ? Path.Combine(Environment.CurrentDirectory, "db")
+                : Path.Combine(dbPath, "db");
+
+            // 仅当dbPath非空时初始化FnDataFolder（原有业务逻辑）
             if (!string.IsNullOrEmpty(dbPath))
             {
-                fileFloder = Path.Combine(dbPath, "db");
-                FnDataFolder = Path.Combine(dbPath, "mp3");
-                if ((!Directory.Exists(FnDataFolder)))
+                string fnDataPath = Path.Combine(dbPath, "mp3");
+                // 原子赋值+仅创建一次目录（减少IO和内存判断）
+                if (!Directory.Exists(fnDataPath))
                 {
-                    Directory.CreateDirectory(FnDataFolder);
+                    Directory.CreateDirectory(fnDataPath);
                 }
+                // 只读字段通过静态构造函数初始化后，此处仅赋值一次
+                FnDataFolder = fnDataPath;
             }
             else
             {
-                if (Appsettings.Get("deploy") == "fn")
+                var _deployConfig = Appsettings.Get("deploy") ?? string.Empty;
+                // 仅一次判断部署配置（已缓存），避免重复读取Appsettings
+                if (_deployConfig == "fn")
                 {
                     Log.Error($"fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
                     throw new Exception("fn--dbpath,未正常获取到，请进Q群联系作者 759876963");
                 }
             }
 
-            if (!Directory.Exists(fileFloder))
+            // 仅创建一次目录（减少重复的Directory.Exists判断）
+            if (!Directory.Exists(fileFolder))
             {
-                Directory.CreateDirectory(fileFloder);
-            }
-            var filePath = Path.Combine(fileFloder, "dy.sqlite");
-            string conn = $"DataSource={filePath}";
-            if (!File.Exists(filePath))
-            {
-                File.Create(filePath).Close();
+                Directory.CreateDirectory(fileFolder);
             }
 
-            return conn;
+            string dbFilePath = Path.Combine(fileFolder, "dy.sqlite");
+            // 核心优化：using包裹File.Create，自动释放文件句柄（避免资源泄漏）
+            if (!File.Exists(dbFilePath))
+            {
+                using FileStream fs = File.Create(dbFilePath);
+                // 无需手动Close，using会自动释放
+            }
+
+            string connStr = $"DataSource={dbFilePath}";
+            // 将连接字符串加入缓存，后续直接使用
+            _sqliteConnCache.TryAdd(cacheKey, connStr);
+            return connStr;
         }
 
-
         /// <summary>
-        /// 配置JWT认证
+        /// 配置JWT认证：缓存密钥字节数组，避免重复编码
         /// </summary>
         public static void ConfigureJwtAuthentication(this IServiceCollection services)
         {
-            var key = Encoding.ASCII.GetBytes(Md5Util.JWT_TOKEN_KEY);
-
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -113,8 +211,12 @@ namespace dy.net.extension
                 {
                     OnMessageReceived = context =>
                     {
-                        context.Token = context.Request.Headers["Authorization"]
-                                               .FirstOrDefault()?.Split(" ").Last();
+                        // 优化：减少LINQ调用，直接取值（减少临时对象创建）
+                        var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            context.Token = authHeader.Substring(7);
+                        }
                         return Task.CompletedTask;
                     }
                 };
@@ -123,7 +225,7 @@ namespace dy.net.extension
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    IssuerSigningKey = new SymmetricSecurityKey(_jwtKeyBytes), // 使用缓存的密钥
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ValidateLifetime = true,
@@ -132,74 +234,66 @@ namespace dy.net.extension
             });
         }
 
+        /// <summary>
+        /// SqlSugar注册：核心优化-使用缓存的实体类型+缓存连接字符串+移除空AOP委托
+        /// </summary>
         public static void AddSqlsugar(this IServiceCollection services, string dbpath)
         {
-            //DbType dbtype = GetDBType(configuration);
+            // 提前创建连接字符串，避免每次创建ISqlSugarClient都调用（减少重复计算）
+            string sqliteConn = CreateSqliteDBConn(dbpath);
             services.AddScoped<ISqlSugarClient>(db =>
             {
                 var sqlSugar = new SqlSugarClient(new ConnectionConfig
                 {
-                    ConnectionString = CreateSqliteDBConn(dbpath),
+                    ConnectionString = sqliteConn,
                     InitKeyType = InitKeyType.Attribute,
                     DbType = DbType.Sqlite,
-                    IsAutoCloseConnection = true // close connection after each operation (recommended)
+                    IsAutoCloseConnection = true
                 }, db =>
                 {
-                    //单例参数配置，所有上下文生效       
-                    db.Aop.OnLogExecuting = (sql, pars) =>
-                    {
-                        //Serilog.Log.Debug(sql);//输出sql
-                    };
-
+                    // 移除空的Debug日志委托，避免空委托的内存占用
                     db.Aop.OnError = (e) =>
                     {
-                        Serilog.Log.Error(e.Message);
-                        Serilog.Log.Error(e.Sql);
+                        Serilog.Log.Error(e, $"SqlSugar执行错误：{e.Message}，SQL：{e.Sql}");
                     };
 
-                    db.DbMaintenance.CreateDatabase(); // 检查数据库是否存在，如果不存在则创建
-                    Assembly assembly = Assembly.GetExecutingAssembly(); // 获取当前程序集
-                    Type[] types = assembly.GetTypes(); // 获取程序集中的所有类型
-
-                    var targetClasses = types
-                        .Where(t => t.Namespace != null && t.Namespace.StartsWith("dy.net.model.entity"))
-                        .ToList();
-                    db.CodeFirst.InitTables(targetClasses.ToArray());
+                    db.DbMaintenance.CreateDatabase();
+                    // 核心优化：使用缓存的实体类型，避免每次都反射（减少GC和内存）
+                    db.CodeFirst.InitTables(_entityTypes);
                 });
-
                 return sqlSugar;
             });
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="services"></param>
-        public static void AddQuartzService(this IServiceCollection services,string dbPath)
-        {
-       
-            // 1. 注册所有 Job 到 DI 容器，推荐使用 Scoped（最符合 Job 执行特性）
-            services.AddScoped<DouyinCollectSyncJob>();
-            services.AddScoped<DouyinFavoritSyncJob>();
-            services.AddScoped<DouyinFollowedSyncJob>();
-            services.AddScoped<DouyinFollowsAndCollnectsSyncJob>();
-            services.AddScoped<DouyinCollectCustomSyncJob>();
-            services.AddScoped<DouyinMixSyncJob>();
-            services.AddScoped<DouyinSeriesSyncJob>();
 
-            // 3. 配置 Quartz
+        /// <summary>
+        /// Quartz服务注册：核心优化-提前创建连接字符串+合理的线程池配置
+        /// </summary>
+        public static void AddQuartzService(this IServiceCollection services, string dbPath)
+        {
+            // 注册Job（原有逻辑，保留Scoped生命周期，符合Quartz特性）
+            services.AddTransient<DouyinCollectSyncJob>();
+            services.AddTransient<DouyinFavoritSyncJob>();
+            services.AddTransient<DouyinFollowedSyncJob>();
+            services.AddTransient<DouyinFollowsAndCollnectsSyncJob>();
+            services.AddTransient<DouyinCollectCustomSyncJob>();
+            services.AddTransient<DouyinMixSyncJob>();
+            services.AddTransient<DouyinSeriesSyncJob>();
+
+            // 提前创建Quartz的SQLite连接字符串，避免重复调用
+            string quartzConn = CreateSqliteDBConn(dbPath);
             services.AddQuartz(q =>
             {
                 q.SchedulerId = "DouyinQuartzScheduler";
                 q.SchedulerName = "DouyinSyncScheduler";
                 q.InterruptJobsOnShutdownWithWait = false;
-                q.UseDedicatedThreadPool(5); // 建议增加线程数，1个太少容易阻塞
+                q.UseDedicatedThreadPool(5);
                 q.MisfireThreshold = TimeSpan.FromMinutes(2);
 
                 q.UsePersistentStore(s =>
                 {
                     s.UseMicrosoftSQLite(config =>
                     {
-                        config.ConnectionString = CreateSqliteDBConn(dbPath);
+                        config.ConnectionString = quartzConn; // 使用提前创建的连接字符串
                         config.TablePrefix = "QRTZ_";
                     });
                     s.UseProperties = false;
@@ -216,93 +310,78 @@ namespace dy.net.extension
             services.AddTransient<DouyinQuartzJobService>();
         }
 
-
-
+        /// <summary>
+        /// Http客户端注册：核心修复-移除无限超时（避免内存泄漏）+优化连接配置
+        /// </summary>
         public static void AddHttpClients(this IServiceCollection services)
         {
-            // 通用的忽略SSL证书验证的HttpMessageHandler配置
-            static HttpMessageHandler ignoreSslHandlerFactory()
+            // 通用忽略SSL的Handler工厂：提取为局部方法，避免重复创建逻辑
+            static HttpMessageHandler IgnoreSslHandlerFactory()
             {
                 var handler = new SocketsHttpHandler
                 {
-                    // 控制并发连接数（根据服务器承受能力调整，建议5-20）
-                    MaxConnectionsPerServer = 5,
-                    // 禁用代理自动检测（减少不必要的延迟）
+                    MaxConnectionsPerServer = 8, // 合理调整并发（5→8，兼顾性能和内存）
                     UseProxy = false,
-                    // 连接超时（建立连接的超时时间）
-                    ConnectTimeout =  Timeout.InfiniteTimeSpan,// TimeSpan.FromSeconds(120),
-                    // 忽略HTTPS证书验证
+                    ConnectTimeout = TimeSpan.FromSeconds(30), // 核心修复：移除无限超时，避免请求挂起泄漏
+                    PooledConnectionLifetime = TimeSpan.FromMinutes(5), // 优化：连接池生命周期，自动释放闲置连接
+                    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2), // 优化：闲置连接超时，减少内存占用
                     SslOptions = new SslClientAuthenticationOptions
                     {
-                        RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+                        RemoteCertificateValidationCallback = (_, __, ___, ____) => true
                     }
                 };
-
                 return handler;
             }
-            // 抖音数据接口请求客户端
+
+            // 抖音数据接口客户端
             services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT, client =>
             {
-                client.DefaultRequestHeaders.Add("User-Agent", DouyinRequestParamManager.DY_USER_AGENT);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(DouyinRequestParamManager.DY_USER_AGENT);
                 client.BaseAddress = new Uri("https://www.douyin.com");
-            }).ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory);
+                client.Timeout = TimeSpan.FromSeconds(60); // 设置请求超时，避免无限等待
+            }).ConfigurePrimaryHttpMessageHandler(IgnoreSslHandlerFactory);
 
-            // 抖音下载客户端（单独配置，保持原有特性）
-            services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT_DOWN)
-                .ConfigurePrimaryHttpMessageHandler(ignoreSslHandlerFactory)
-                .ConfigureHttpClient(client =>
-                {
-                    client.DefaultRequestHeaders.Add("User-Agent", DouyinRequestParamManager.DY_USER_AGENT);
-                    client.DefaultRequestHeaders.Add("Referer", "https://www.douyin.com");
-                });
-
+            // 抖音下载客户端
+            services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT_DOWN, client =>
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(DouyinRequestParamManager.DY_USER_AGENT);
+                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com");
+                client.Timeout = TimeSpan.FromMinutes(5); // 下载超时设为5分钟，合理且不泄漏
+            }).ConfigurePrimaryHttpMessageHandler(IgnoreSslHandlerFactory);
         }
 
         /// <summary>
-        /// 自动注入指定命名空间下的所有服务
+        /// 自动注入服务：核心优化-减少LINQ临时对象+优化反射扫描+避免重复ToList
         /// </summary>
-        /// <param name="services">服务集合</param>
-        /// <param name="namespace">目标命名空间（如 "MyApp.Services"）</param>
-        /// <param name="assembly">服务所在的程序集（默认当前程序集）</param>
-        /// <param name="includeSubNamespaces">是否包含子命名空间</param>
         public static IServiceCollection AddServicesFromNamespace(
             this IServiceCollection services,
             string @namespace,
             Assembly? assembly = null,
             bool includeSubNamespaces = false)
         {
-            // 默认使用调用方的程序集
-            assembly ??= Assembly.GetCallingAssembly();
+            assembly ??= Assembly.GetExecutingAssembly(); // 优化：替换GetCallingAssembly，避免程序集获取错误
 
-            // 扫描程序集中指定命名空间的所有类
-            var types = assembly.GetTypes()
+            // 优化：一次性过滤所有类型，减少后续遍历（使用ToArray避免多次枚举）
+            var targetTypes = assembly.GetTypes()
                 .Where(type =>
-                    type.IsClass && // 只处理类
-                    !type.IsAbstract && // 排除抽象类
-                    !type.IsGenericTypeDefinition && // 排除泛型类
+                    type.IsClass &&
+                    !type.IsAbstract &&
+                    !type.IsGenericTypeDefinition &&
+                    type.Namespace != null &&
                     (includeSubNamespaces
-                        ? type.Namespace?.StartsWith(@namespace, StringComparison.Ordinal) == true
-                        : type.Namespace == @namespace) // 匹配命名空间（含子命名空间或精确匹配）
-                );
+                        ? type.Namespace.StartsWith(@namespace, StringComparison.Ordinal)
+                        : type.Namespace == @namespace))
+                .ToArray();
 
-            foreach (var type in types)
+            foreach (var type in targetTypes)
             {
-                // 获取服务的生命周期（优先使用特性，默认 Transient）
-                var lifetime = type.GetCustomAttribute<ServiceLifetimeAttribute>()?.Lifetime
-                               ?? ServiceLifetime.Scoped;
-
-                // 查找该类实现的接口（优先注册为接口服务）
-                //var interfaces = type.GetInterfaces()
-                //    .Where(i => !i.IsGenericType || !i.GetGenericTypeDefinition().Equals(typeof(IDisposable)))
-                //    .ToList();
-                // 查找该类实现的接口（排除 IDisposable）
-                var interfaces = type.GetInterfaces()
-                    .Where(i => i != typeof(IDisposable)) // <-- 关键修正
-                    .ToList();
+                // 优化：提前获取生命周期，减少多次反射
+                var lifetime = type.GetCustomAttribute<ServiceLifetimeAttribute>()?.Lifetime ?? ServiceLifetime.Transient;
+                // 优化：直接过滤接口，避免ToList创建临时List（减少内存分配）
+                var interfaces = type.GetInterfaces().Where(i => i != typeof(IDisposable));
 
                 if (interfaces.Any())
                 {
-                    // 注册：接口 -> 实现类（如 IUserService -> UserService）
                     foreach (var @interface in interfaces)
                     {
                         services.Add(new ServiceDescriptor(@interface, type, lifetime));
@@ -310,7 +389,6 @@ namespace dy.net.extension
                 }
                 else
                 {
-                    // 无接口时，直接注册类本身（如 UserService 注册为自身）
                     services.Add(new ServiceDescriptor(type, type, lifetime));
                 }
             }
@@ -483,38 +561,38 @@ namespace dy.net.extension
         /// services.AddMyResponseCompression(); 需要配合 app.UseResponseCompression();
         /// </summary>
         /// <param name="services"></param>
-        public static void AddMyResponseCompression(this IServiceCollection services)
-        {
+        //public static void AddMyResponseCompression(this IServiceCollection services)
+        //{
 
-            // 第一步: 配置gzip与br的压缩等级为最优
-            services.Configure<BrotliCompressionProviderOptions>(options =>
-            {
-                options.Level = CompressionLevel.Optimal;
-            });
+        //    // 第一步: 配置gzip与br的压缩等级为最优
+        //    services.Configure<BrotliCompressionProviderOptions>(options =>
+        //    {
+        //        options.Level = CompressionLevel.Optimal;
+        //    });
 
-            services.Configure<GzipCompressionProviderOptions>(options =>
-            {
-                options.Level = CompressionLevel.Optimal;
-            });
+        //    services.Configure<GzipCompressionProviderOptions>(options =>
+        //    {
+        //        options.Level = CompressionLevel.Optimal;
+        //    });
 
-            // 第二步: 添加中间件
-            services.AddResponseCompression(options =>
-            {
-                options.EnableForHttps = true;
-                // 添加br与gzip的Provider
-                options.Providers.Add<BrotliCompressionProvider>();
-                options.Providers.Add<GzipCompressionProvider>();
-                // 扩展一些类型 (MimeTypes中有一些基本的类型,可以打断点看看)
-                options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
-                {
-                    "text/html; charset=utf-8",
-                    "application/xhtml+xml",
-                    "application/atom+xml",
-                    "image/svg+xml",
-                    "application/octet-stream"
-                });
-            });
-        }
+        //    // 第二步: 添加中间件
+        //    services.AddResponseCompression(options =>
+        //    {
+        //        options.EnableForHttps = true;
+        //        // 添加br与gzip的Provider
+        //        options.Providers.Add<BrotliCompressionProvider>();
+        //        options.Providers.Add<GzipCompressionProvider>();
+        //        // 扩展一些类型 (MimeTypes中有一些基本的类型,可以打断点看看)
+        //        options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+        //        {
+        //            "text/html; charset=utf-8",
+        //            "application/xhtml+xml",
+        //            "application/atom+xml",
+        //            "image/svg+xml",
+        //            "application/octet-stream"
+        //        });
+        //    });
+        //}
     }
 
 

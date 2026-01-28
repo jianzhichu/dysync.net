@@ -276,6 +276,15 @@ const columns = ref([
     dataIndex: 'syncTimeStr',
     align: 'center',
     width: 180,
+    sorter: true, // 开启排序
+    // 绑定排序状态：当前排序字段是syncTime时显示对应排序方向
+    sortOrder: sortParams.value.field === 'syncTime' ? sortParams.value.order : null,
+    // 点击表头触发排序，指定排序字段为syncTime（对应后端字段）
+    onHeaderCell: () => ({
+      onClick: () => {
+        handleSortChange('syncTime');
+      },
+    }),
   },
   {
     title: '发布时间',
@@ -335,24 +344,28 @@ const columns = ref([
   },
 ]);
 
-// 📌 新增：排序切换方法
+// 📌支持同步时间/发布时间/博主列的排序图标正确更新
 const handleSortChange = (field: string) => {
   // 如果点击的是当前排序字段，切换排序方向
   if (sortParams.value.field === field) {
     sortParams.value.order = sortParams.value.order === 'ascend' ? 'descend' : 'ascend';
   } else {
-    // 如果是新的排序字段，默认降序
+    // 新排序字段，默认降序
     sortParams.value.field = field;
     sortParams.value.order = 'descend';
   }
 
-  // 更新表格列的排序状态（刷新排序图标）
+  // 遍历所有列，根据排序字段映射更新对应列的sortOrder（核心修复）
   columns.value.forEach((col) => {
-    if (col.dataIndex === 'createTimeStr') {
-      col.sortOrder = sortParams.value.order;
-    } else {
-      col.sortOrder = null;
-    }
+    // 字段映射：列的dataIndex -> 后端排序字段sortParams.field
+    const fieldMap = {
+      syncTimeStr: 'syncTime',
+      createTimeStr: 'createTime',
+      author: 'author',
+    };
+    // 只有当前排序字段对应的列，显示排序方向，其他列置空
+    col.sortOrder =
+      fieldMap[col.dataIndex as keyof typeof fieldMap] === sortParams.value.field ? sortParams.value.order : null;
   });
 
   // 重新查询数据（传递排序参数）
@@ -515,34 +528,36 @@ const GetRecords = () => {
     });
 };
 
-// 📌 修改表格变化处理：支持分页时保留排序状态
+// 📌 修复：分页时无排序操作，强制保留默认syncTime排序
 const handleTableChange = (paginationObj: any, filters: any, sorter: any) => {
   pagination.value.current = paginationObj.current;
   pagination.value.defaultPageSize = paginationObj.pageSize;
 
-  // 如果是排序变化（用户点击表头排序）
+  // 1. 如果是排序变化（用户点击表头），更新排序参数
   if (sorter.field) {
-    // 📌 处理不同列的字段映射
-    if (sorter.field === 'createTimeStr') {
-      sortParams.value.field = 'createTime'; // 映射到后端的createTime字段
-    } else if (sorter.field === 'author') {
-      sortParams.value.field = 'author'; // 博主列直接使用author字段
-    } else {
-      sortParams.value.field = sorter.field;
-    }
+    // 列dataIndex -> 后端排序字段的映射
+    const fieldMap: Record<string, string> = {
+      syncTimeStr: 'syncTime',
+      createTimeStr: 'createTime',
+      author: 'author',
+    };
+    // 转换排序字段
+    sortParams.value.field = fieldMap[sorter.field] || sorter.field;
     sortParams.value.order = sorter.order;
 
-    // 更新所有列的排序状态
+    // 更新所有列的排序图标
     columns.value.forEach((col) => {
-      if (col.dataIndex === sorter.field) {
-        col.sortOrder = sorter.order;
-      } else if (col.dataIndex === 'createTimeStr' && sorter.field === 'createTime') {
-        col.sortOrder = sorter.order;
-      } else if (col.dataIndex === 'author' && sorter.field === 'author') {
-        col.sortOrder = sorter.order;
-      } else {
-        col.sortOrder = null;
-      }
+      col.sortOrder = fieldMap[col.dataIndex as string] === sortParams.value.field ? sorter.order : null;
+    });
+  }
+  // 2. 分页跳转（无排序操作），强制恢复默认排序syncTime的图标状态
+  else if (!sorter.field && sortParams.value.field !== 'syncTime') {
+    // 重置排序参数为默认：syncTime 降序
+    sortParams.value.field = 'syncTime';
+    sortParams.value.order = 'descend';
+    // 刷新列的排序图标，只显示同步时间列的降序
+    columns.value.forEach((col) => {
+      col.sortOrder = col.dataIndex === 'syncTimeStr' ? 'descend' : null;
     });
   }
 
@@ -551,6 +566,7 @@ const handleTableChange = (paginationObj: any, filters: any, sorter: any) => {
     selectedRowKeys.value = [];
   }
 
+  // 重新查询数据（携带正确的排序参数）
   GetRecords();
 };
 
