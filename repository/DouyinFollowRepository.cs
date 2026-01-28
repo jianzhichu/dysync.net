@@ -199,7 +199,7 @@ namespace dy.net.repository
 
                     if (!batchUpdateSuccess)
                     {
-                        Serilog.Log.Error("同步关注列表失败：关注信息更新异常");
+                        Serilog.Log.Error( $"[{ck.UserName}]同步关注列表失败");
                         return (toAddFollows.Count, toUpdateFollows.Count, false);
                     }
                 }
@@ -207,13 +207,13 @@ namespace dy.net.repository
                 // 6. 提交事务
                 await Db.Ado.CommitTranAsync();
                 // 【重要】删除逻辑已移除：增量场景下不能通过批次对比删除，需单独设计取消关注逻辑
-                Serilog.Log.Debug($"[{ck.UserName}]关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条");
+                //Serilog.Log.Debug($"[{ck.UserName}]关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条");
                 return (toAddFollows.Count, toUpdateFollows.Count, true);
             }
             catch (Exception ex)
             {
                 await Db.Ado.RollbackTranAsync();
-                Serilog.Log.Error(ex, $"同步关注列表失败（{ck.UserName}）：{ex.Message}");
+                Serilog.Log.Error(ex, $"[{ck.UserName}]同步关注列表失败：{ex.Message}");
                 return (0, 0, false);
 
             }
