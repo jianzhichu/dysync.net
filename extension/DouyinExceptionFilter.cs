@@ -27,7 +27,7 @@ namespace dy.net.extension
         /// <summary>
         /// 记录异常日志
         /// </summary>
-        private void LogException(ExceptionContext ex)
+        private static void LogException(ExceptionContext ex)
         {
             Serilog.Log.Error($"系统异常：{ex.Exception.Message},{ex.HttpContext.Request.Path}");
         }

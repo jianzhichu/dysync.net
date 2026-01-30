@@ -1572,4 +1572,8 @@ onMounted(() => {
 :deep(.ant-table-column-title[data-column-key='author']:hover) {
   color: #1890ff !important;
 }
+
+html.dark-mode .ant-table-column-sort {
+  background: #161627;
+}
 </style>
