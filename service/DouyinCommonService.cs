@@ -157,7 +157,37 @@ namespace dy.net.service
         }
 
 
+        ///// <summary>
+        ///// 获取已经下载过视频的作者的保存路径
+        ///// </summary>
+        ///// <param name="uperId"></param>
+        ///// <returns></returns>
+        //public async Task<string> GetDouyinUpSavePath(string uperId)
+        //{
+        //    return await sqlSugarClient.Queryable<DouyinVideoUp>().Where(x => x.UperId == uperId).Select(x => x.SavePath).FirstAsync();
+        //}
+        ///// <summary>
+        ///// 保存下载过视频的作者的保存路径
+        ///// </summary>
+        ///// <param name="uperId"></param>
+        ///// <param name="SavePath"></param>
+        ///// <returns></returns>
+        //public async Task<bool> SaveDouyinUpSavePath(string uperId, string SavePath)
+        //{
 
+        //    var upSavePath = await GetDouyinUpSavePath(uperId);
+        //    if (string.IsNullOrWhiteSpace(upSavePath))
+        //    {
+        //       await sqlSugarClient.Insertable(new DouyinVideoUp
+        //        {
+        //            Id = IdGener.GetLong().ToString(),
+        //            SavePath = SavePath,
+        //            UperId = uperId
+        //        }).ExecuteCommandAsync();
+        //    }
+        //    return true;
+
+        //}
 
         #region 测试创建数据库
 

@@ -2,6 +2,8 @@
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.model.response;
+using dy.net.utils;
+using Quartz.Util;
 using SqlSugar;
 
 namespace dy.net.repository
@@ -100,7 +102,7 @@ namespace dy.net.repository
             if (followInfos == null) followInfos = new List<FollowingsItem>();
             if (ck == null || string.IsNullOrWhiteSpace(ck.MyUserId))
             {
-                Serilog.Log.Error("同步关注列表失败：当前用户ID为空");
+                Serilog.Log.Error("同步关注列表失败：当前用户MyUserId为空");
                 return (0, 0, false);
             }
 
@@ -142,7 +144,7 @@ namespace dy.net.repository
 
                     if (nameChanged || signatureChanged || uperAvatarChanged || enterpriseChanged)
                     {
-                        toUpdateFollows.Add(new DouyinFollowed
+                        var updateFoll = new DouyinFollowed
                         {
                             Id = existFollow.Id, // 主键用于匹配
                             mySelfId = ck.MyUserId,
@@ -152,14 +154,19 @@ namespace dy.net.repository
                             Enterprise = newFollow.EnterpriseVerifyReason,
                             UperAvatar = newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "",
                             LastSyncTime = DateTime.UtcNow // 更新同步时间
-                        });
+                        };
+                        if (string.IsNullOrWhiteSpace(existFollow.SavePath))
+                        {
+                            updateFoll.SavePath = DouyinFileNameHelper.SanitizeLinuxFileName(newFollow.NickName, existFollow.UperId, true);
+                        }
+                        toUpdateFollows.Add(updateFoll);
                     }
                 }
 
                 // 4. 分批处理新增（单批200条）
                 if (toAddFollows.Any())
                 {
-                    Func<FollowingsItem, DouyinFollowed> mapToDouyinFollowed = follow => new DouyinFollowed
+                    DouyinFollowed mapToDouyinFollowed(FollowingsItem follow) => new()
                     {
                         Id = IdGener.GetLong().ToString(),
                         Enterprise = follow.EnterpriseVerifyReason,
@@ -170,7 +177,8 @@ namespace dy.net.repository
                         UperAvatar = follow.Avatar?.UrlList?.FirstOrDefault() ?? "",
                         UperName = follow.NickName,
                         Signature = follow.Signature,
-                        UperId = follow.UperId
+                        UperId = follow.UperId,
+                        SavePath= DouyinFileNameHelper.SanitizeLinuxFileName(follow.NickName, follow.UperId, true)
                     };
 
                     bool batchAddSuccess = await BatchProcessAsync(toAddFollows, 200,
@@ -190,7 +198,7 @@ namespace dy.net.repository
                         async batch =>
                         {
                             int affectedRows = await Db.Updateable(batch)
-                                .UpdateColumns(x => new { x.UperName, x.Signature, x.LastSyncTime, x.Enterprise, x.UperAvatar })
+                                .UpdateColumns(x => new { x.UperName, x.Signature, x.LastSyncTime, x.Enterprise, x.UperAvatar,x.SavePath })
                                 .WhereColumns(x => x.Id) // 按主键匹配
                                 .ExecuteCommandAsync();
 

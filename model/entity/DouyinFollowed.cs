@@ -11,8 +11,6 @@ namespace dy.net.model.entity
         /// </summary>
         [SugarColumn(IsPrimaryKey = true)]
         public string Id { get; set; }
-        //[SugarColumn(IsNullable = false,Length =200)]
-        //public string UperId { get; set; }
 
         /// <summary>
         /// 博主sec_uid

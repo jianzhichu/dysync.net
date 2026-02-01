@@ -85,6 +85,12 @@ namespace dy.net.service
                    updatedCount = await _dyCollectVideoRepository.UpdateRangeAsync(existingVideos);
                }
 
+
+               //foreach (var item in videos.Where(x=>x.ViedoType==VideoTypeEnum.dy_collects||x.ViedoType == VideoTypeEnum.dy_favorite).GroupBy(x => x.AuthorId))
+               //{
+                   
+               //}
+
            }, ex =>
            {
                Serilog.Log.Error(ex, "批量插入/更新抖音视频失败，AwemeIds：{AwemeIds}", string.Join(",", allAwemeIds));
