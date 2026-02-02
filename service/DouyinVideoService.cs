@@ -304,12 +304,12 @@ namespace dy.net.service
                         if (File.Exists(video.path))
                         {
                             File.Delete(video.path); // 异步删除，提升并发性能
-                            Serilog.Log.Debug("视频文件删除成功：Path={0}", video);
+                            Serilog.Log.Debug("视频文件删除成功：Path={0}", video.path);
 
                             if (!video.onlyImgOrMp3)//如果是纯图片或纯音频文件，则不删除所在文件夹
                             {
                                 //检查这个路径所在文件夹是否还有其他视频文件，如果没有则删除这个文件夹
-                                var dir = Path.GetDirectoryName(video.Item1);
+                                var dir = Path.GetDirectoryName(video.path);
 
                                 bool hasMp4File = Directory.EnumerateFiles(dir, "*.mp4", SearchOption.TopDirectoryOnly).Any(); // 只要存在一个MP4文件就返回true；
                                 if (!hasMp4File)

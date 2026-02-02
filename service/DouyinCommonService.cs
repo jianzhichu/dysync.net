@@ -1,5 +1,6 @@
 ﻿using ClockSnowFlake;
 using dy.net.model.entity;
+using dy.net.utils;
 using SqlSugar;
 //using static Org.BouncyCastle.Math.EC.ECCurve;
 
@@ -189,6 +190,34 @@ namespace dy.net.service
 
         //}
 
+        /// <summary>
+        /// 将所有关注博主的保存路径统一刷成博主姓名，防止博主名字改变后出现多个文件夹
+        /// </summary>
+        /// <returns></returns>
+        public async Task UpdateFollowedSavePathAsync()
+        {
+            var existNoSavePath =await sqlSugarClient.Queryable<DouyinFollowed>().Where(x => string.IsNullOrWhiteSpace(x.SavePath)).AnyAsync();
+            if (existNoSavePath)
+            {
+                var list = await sqlSugarClient.Queryable<DouyinFollowed>().ToListAsync();
+                var noSavePathList = list.Where(x => string.IsNullOrWhiteSpace(x.SavePath));
+                foreach (var item in noSavePathList)
+                {
+                    var path = DouyinFileNameHelper.SanitizeLinuxFileName(item.UperName, "抖音号" + item.UperId, true);
+                    path = DouyinFileNameHelper.LimitUnifiedCount(path, 20);
+                    var existFollow = list.Where(x => x.UperId != item.UperId && x.SavePath == path).Any();
+                    if (existFollow)
+                    {
+                        item.SavePath = path + "_" + item.UperId;
+                    }
+                    else
+                    {
+                        item.SavePath = path;
+                    }
+                }
+                await sqlSugarClient.Updateable(list).UpdateColumns(x => new { x.SavePath }).ExecuteCommandAsync();
+            }
+        }
         #region 测试创建数据库
 
         ///// <summary>

@@ -25,6 +25,7 @@ namespace dy.net.utils
 
                 string videoDirectory = Path.GetDirectoryName(video.VideoSavePath); // 视频所在目录
                 string videoFileNameWithoutExt = Path.GetFileNameWithoutExtension(video.VideoSavePath); // 无扩展名的文件名
+                var coverFileName = Path.GetFileName(video.VideoCoverSavePath);
                 string nfoFullPath = Path.Combine(videoDirectory, $"{videoFileNameWithoutExt}.nfo"); // NFO文件完整路径
                 //string postFullPath = Path.Combine(videoDirectory, "poster.jpg"); // NFO文件完整路径
 
@@ -64,9 +65,9 @@ namespace dy.net.utils
                         }
                     },
                     Author = DouyinFileNameHelper.SanitizeLinuxFileName(video.Author, "", true),
-                    Poster = "poster.jpg",
+                    Poster = coverFileName,
                     Title = video.VideoTitle,
-                    Thumbnail = "poster.jpg",// 使用poster作为缩略图
+                    Thumbnail = coverFileName,// 使用poster作为缩略图
                     ReleaseDate = video.CreateTime,
                     Genres = new List<string> { video.Tag1, video.Tag2, video.Tag3 }.Where(t => !string.IsNullOrWhiteSpace(t)).ToList()
                 };

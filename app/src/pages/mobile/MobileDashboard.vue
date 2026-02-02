@@ -122,7 +122,111 @@
       </div>
     </div>
 
-    <!-- 底部导航菜单 -->
+    <!-- 新增：关注列表 Tab 内容（移动端专属重构） -->
+    <div v-if="activeTab === 'follow'" class="tab-content follow-tab">
+      <!-- 搜索+操作栏：移动端单行布局，适配小屏 -->
+      <div class="follow-header">
+        <div class="search-wrapper">
+          <a-input v-model:value="quaryData.followUserName" placeholder="搜索博主名称" allow-clear @pressEnter="handleSearch" class="follow-search-input" @input="searchInputVisible = quaryData.followUserName && quaryData.followUserName.trim() !== ''" />
+        </div>
+        <div class="follow-actions">
+          <!-- 新增搜索按钮，和同步按钮同排 -->
+          <a-button type="default" class="follow-btn search-btn" @click="handleSearch" :disabled="!quaryData.followUserName || quaryData.followUserName.trim() === ''">
+            <SearchOutlined />
+          </a-button>
+          <!-- 原有同步按钮 -->
+          <a-button type="primary" class="follow-btn sync-btn" @click="handleSyncAll" :disabled="isSyncDisabled">
+            <SyncOutlined />
+          </a-button>
+        </div>
+      </div>
+
+      <!-- Tab导航：移动端横向滚动，适配多Tab -->
+      <div class="follow-tab-wrapper">
+        <div class="follow-tab-scroll">
+          <a-tabs v-model:value="activeFollowTabKey" type="line" class="follow-custom-tabs" @change="handleTabChange">
+            <a-tab-pane v-for="tab in tabList" :key="tab.key" :tab="`${tab.name}(${tab.total || 0})`" />
+          </a-tabs>
+        </div>
+      </div>
+
+      <!-- 关注列表：移动端单列卡片，滚动加载 -->
+      <div class="follow-list-container" @scroll="handleScroll">
+        <!-- 博主卡片：移动端专属布局【修复DOM结构】 -->
+        <a-card v-for="(item, index) in currentTabData" :key="item.id" :data-key="item.id" class="follow-card" :bordered="false" :hoverable="true" :class="{ 'no-followed-card': item.isNoFollowed }" style="margin: 0 !important; border-radius: 12px !important;">
+          <div class="follow-card-inner">
+            <!-- 顶部：头像+名称+操作【修复flex布局】 -->
+            <div class="follow-card-top">
+              <div class="avatar-wrapper">
+                <a-avatar shape="circle" size="large" :src="item.uperAvatar" v-if="item.uperAvatar" />
+                <a-avatar shape="circle" size="large" v-else class="avatar-placeholder">
+                  {{ item.uperName?.charAt(0) || '#' }} <!-- 增加空值处理 -->
+                </a-avatar>
+              </div>
+              <div class="name-actions">
+                <div class="name-wrapper">
+                  <h3 class="uper-name">{{ truncateText(item.uperName, 10) || '未知博主' }}</h3> <!-- 增加空值处理 -->
+                  <span v-if="item.isNoFollowed" class="no-followed-badge">非关注</span>
+                </div>
+                <div class="top-actions">
+                  <!-- 删除按钮：仅非关注显示 -->
+                  <a-button type="text" class="delete-btn" v-if="item.isNoFollowed" @click="(e) => { e.stopPropagation(); handleDeleteItem(item); }" :disabled="item.isSaving" title="删除">
+                    <DeleteOutlined />
+                  </a-button>
+                  <!-- 同步总开关 -->
+                  <a-switch v-model:checked="item.openSync" @change="(checked) => handleSwitchChange(item, checked)" checked-children="开" un-checked-children="关" :disabled="item.isSaving" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 签名：移动端单行截断【增加强制显示】 -->
+            <div class="follow-card-desc" v-if="item.signature && item.signature.trim()">
+              <a-tooltip placement="top" :title="item.signature">
+                <span class="signature-text">{{ truncateText(item.signature, 25) }}</span>
+              </a-tooltip>
+            </div>
+
+            <!-- 路径+全量同步：仅同步开启时显示【修复布局】 -->
+            <div class="follow-card-bottom" v-if="item.openSync">
+              <div class="path-area">
+                <template v-if="item.isEditing">
+                  <div class="edit-input-group">
+                    <a-input v-model:value="item.savePath" placeholder="默认用博主名" @keypress.enter="() => handleSavePath(item)" maxlength="20" :disabled="item.isSaving" class="path-input" />
+                    <a-button type="text" @click="() => handleSavePath(item)" :disabled="item.isSaving">
+                      <SaveOutlined />
+                    </a-button>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="path-text" :class="{ 'path-empty': !item.savePath }">
+                    {{ item.savePath || '默认用博主名字' }}
+                  </span>
+                  <a-button type="text" @click="() => handleEditPath(item)" :disabled="item.isSaving" title="编辑保存路径" class="edit-btn">
+                    <EditOutlined />
+                  </a-button>
+                </template>
+              </div>
+              <div class="full-sync-area">
+                <span class="full-sync-label">全量同步</span>
+                <a-switch v-model:checked="item.fullSync" size="small" @change="(checked) => handleSyncChange(item, checked)" :disabled="item.isSaving" />
+              </div>
+            </div>
+          </div>
+        </a-card>
+
+        <!-- 原有加载/空状态代码不变 -->
+        <div v-if="loading" class="loading-container">
+          <a-spin size="middle" />
+          <span class="loading-text">加载中...</span>
+        </div>
+        <div v-if="noMoreData && followData.length > 0" class="no-more-container">暂无更多</div>
+        <div v-if="followData.length === 0 && !loading" class="empty-container">
+          <Empty description="暂无关注博主" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部导航：新增【关注】Tab，改为三分栏 -->
     <div class="bottom-nav">
       <div class="nav-item" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -130,6 +234,15 @@
           <line x1="12" y1="2" x2="12" y2="20"></line>
         </svg>
         <span>看板</span>
+      </div>
+      <div class="nav-item" :class="{ active: activeTab === 'follow' }" @click="handleSwitchToFollow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="8.5" cy="7" r="4"></circle>
+          <line x1="20" y1="8" x2="20" y2="14"></line>
+          <line x1="23" y1="11" x2="17" y2="11"></line>
+        </svg>
+        <span>关注</span>
       </div>
       <div class="nav-item" :class="{ active: activeTab === 'log' }" @click="activeTab = 'log'">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -141,6 +254,7 @@
         </svg>
         <span>日志</span>
       </div>
+
     </div>
 
     <!-- 日志详情弹窗 -->
@@ -162,7 +276,6 @@
         </div>
 
         <div class="log-modal-body">
-          <!-- <div class="file-name">{{ currentLog?.fileName }}</div> -->
           <pre class="log-content">{{ logContent || '加载日志内容中...' }}</pre>
         </div>
 
@@ -178,7 +291,7 @@
       </div>
     </div>
 
-    <!-- 视频播放弹窗（竖屏铺满+横屏适配，无旋转） -->
+    <!-- 视频播放弹窗 -->
     <div v-if="showVideoPlayer" class="video-modal-mask" @click="closeVideoPlayer">
       <div class="video-modal-content" @click.stop>
         <button class="video-close-btn floating-close-btn" @click="closeVideoPlayer">
@@ -206,20 +319,29 @@
             <video ref="videoPlayerRef" class="video-player" controls autoplay playsinline :src="videoPlayUrl" @error="handleVideoError" @pause="onVideoPause" @play="onVideoPlay" width="100%" height="100%" preload="auto" @loadedmetadata="handleVideoLoadedMetadata">
               您的浏览器不支持HTML5视频播放
             </video>
-
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, UnwrapRef, reactive, nextTick, watch } from 'vue';
+import { message, Spin, Empty, Tooltip, Modal, Form, FormInstance } from 'ant-design-vue';
 import { useApiStore } from '@/store';
-import { message } from 'ant-design-vue';
+import {
+  CloseOutlined,
+  SearchOutlined,
+  PlusOutlined,
+  SyncOutlined,
+  SaveOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons-vue';
 
-// 类型接口
+// ========== 原有仪表盘类型定义 ==========
 interface Author {
   name: string;
   count: number;
@@ -231,7 +353,6 @@ interface Category {
   color: string;
   icon: string;
 }
-
 interface LogItem {
   id: string;
   type: 'DEBUG' | 'ERROR';
@@ -241,14 +362,40 @@ interface LogItem {
   date: string;
   fileName: string;
 }
-
 interface TopVideoItem {
   title: string;
   time: string;
   id: string;
 }
 
-// 状态管理
+// ========== 关注列表新增类型定义 ==========
+interface TabItem {
+  key: string;
+  name: string;
+  total?: number;
+}
+interface FollowItem {
+  id: string;
+  mySelfId: string;
+  uperName: string;
+  enterprise: string;
+  signature: string;
+  uperAvatar: string;
+  fullSync: boolean;
+  openSync: boolean;
+  savePath?: string;
+  isEditing: boolean;
+  isSaving?: boolean;
+  uperId?: string;
+  isNoFollowed: boolean;
+}
+interface QuaryParam {
+  pageIndex: number;
+  pageSize: number;
+  followUserName: string | null;
+  mySelfId?: string;
+}
+// ========== 原有仪表盘状态 ==========
 const totalVideos = ref<number>(0);
 const fileSizeTotal = ref<string>('0.00');
 const favoriteCount = ref<number>(0);
@@ -259,21 +406,13 @@ const favoriteSize = ref<string>('0.00');
 const collectSize = ref<string>('0.00');
 const followSize = ref<string>('0.00');
 const graphicVideoSize = ref<string>('0.00');
-
-// 导航相关状态
 const activeTab = ref<string>('dashboard');
 const logFilter = ref<string>('all');
 const logs = ref<LogItem[]>([]);
-
-// 弹窗相关状态
 const showLogModal = ref<boolean>(false);
 const currentLog = ref<LogItem | null>(null);
 const logContent = ref<string>('');
-
-// Top Videos 相关状态
 const topVideos = ref<TopVideoItem[]>([]);
-
-// 视频播放相关状态（无旋转相关）
 const showVideoPlayer = ref<boolean>(false);
 const currentVideo = ref<TopVideoItem | null>(null);
 const videoPlayUrl = ref<string>('');
@@ -281,25 +420,76 @@ const videoLoading = ref<boolean>(false);
 const videoError = ref<boolean>(false);
 const videoPlayerRef = ref<HTMLVideoElement | null>(null);
 const isVideoPaused = ref<boolean>(false);
-
-// 过滤后的日志列表
 const filteredLogs = computed(() => {
-  if (logFilter.value === 'all') {
-    return logs.value;
-  }
+  if (logFilter.value === 'all') return logs.value;
   return logs.value.filter((log) => log.type.toLowerCase() === logFilter.value);
+});
+
+// ========== 关注列表状态 ==========
+const tabList = ref<TabItem[]>([]);
+const activeFollowTabKey = ref('');
+const followData = ref<FollowItem[]>([]);
+const loading = ref(false);
+const noMoreData = ref(false);
+const hasMore = ref(true);
+const searchInputVisible = ref(false);
+const isSyncDisabled = ref(false);
+const isAddDisabled = ref(false);
+
+// 搜索参数
+const quaryData: UnwrapRef<QuaryParam> = reactive({
+  pageIndex: 0,
+  pageSize: 10, // 移动端每页加载10条，更友好
+  followUserName: null,
+  mySelfId: '',
+});
+// 计算当前Tab数据
+const currentTabData = computed(() => {
+  return followData.value.filter((item) => item.mySelfId === activeFollowTabKey.value);
 });
 
 // 组件名称
 defineOptions({ name: 'StatsDashboardMobile' });
 
-// 加载核心数据
+// ========== 生命周期 ==========
 onMounted(() => {
+  // 加载仪表盘数据
   loadDashboardData();
   loadLogData();
   TopVideo();
+  // 初始化关注列表参数
+  quaryData.pageIndex = 0;
+  // 监听滚动（关注列表）
+  const followContainer = document.querySelector('.follow-list-container');
+  if (followContainer) {
+    followContainer.addEventListener('scroll', handleScroll);
+  }
 });
 
+onUnmounted(() => {
+  // 移除关注列表滚动监听
+  const followContainer = document.querySelector('.follow-list-container');
+  if (followContainer) {
+    followContainer.removeEventListener('scroll', handleScroll);
+  }
+});
+
+// 监听关注Tab切换，初始化数据
+watch(
+  () => activeTab.value,
+  (newVal) => {
+    if (newVal === 'follow' && tabList.value.length === 0) {
+      GetCookies().then(() => {
+        if (activeFollowTabKey.value) {
+          quaryData.mySelfId = activeFollowTabKey.value;
+          GetFollows(true);
+        }
+      });
+    }
+  }
+);
+
+// ========== 原有仪表盘方法 ==========
 const loadDashboardData = async () => {
   try {
     const res = await useApiStore().VideoStatics();
@@ -317,153 +507,101 @@ const loadDashboardData = async () => {
     console.error('加载移动端仪表盘数据失败：', err);
   }
 };
-
 const loadLogData = async () => {
   try {
     useApiStore()
       .MobileLogs()
       .then((res) => {
-        if (res.code == 0) {
-          logs.value = res.data;
-        }
+        if (res.code == 0) logs.value = res.data;
       });
   } catch (err) {
     console.error('加载日志数据失败：', err);
   }
 };
-
 const TopVideo = () => {
   useApiStore()
     .TopVideo(10)
     .then((res) => {
-      if (res.code == 0) {
-        topVideos.value = res.data;
-      }
+      if (res.code == 0) topVideos.value = res.data;
     });
 };
-
 const openLogDetail = (log: LogItem) => {
   currentLog.value = log;
   showLogModal.value = true;
   loadLogDetailContent(log);
 };
-
 const closeLogModal = () => {
   showLogModal.value = false;
   currentLog.value = null;
   logContent.value = '';
 };
-
 const loadLogDetailContent = (log: LogItem) => {
   try {
-    const type = log.type.toLowerCase();
-    const date = log.date;
-    const requestParams = `${type}/${date}`;
-
+    const requestParams = `${log.type.toLowerCase()}/${log.date}`;
     useApiStore()
       .apiGetLogs(requestParams)
       .then((logContentStr: string) => {
         const formattedLog = formatLogTime(logContentStr);
-        const lines = formattedLog.split('\n');
-        const reversedLines = lines.reverse();
-        const reversedText = reversedLines.join('\n');
-        logContent.value = reversedText;
-      })
-      .catch((err) => {
-        console.error('加载日志详情失败：', err);
-        logContent.value = '日志内容加载失败，请重试';
+        logContent.value = formattedLog.split('\n').reverse().join('\n');
       });
   } catch (err) {
-    console.error('加载日志详情失败：', err);
     logContent.value = '日志内容加载失败，请重试';
   }
 };
-
 const formatShowDate = (dateStr?: string) => {
   if (!dateStr || dateStr.length !== 8) return dateStr || '';
   return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
 };
-
 const formatLogTime = (logContent: string) => {
   const timeRegex = /\d{4}-\d{2}-\d{2} (\d{2}:\d{2}:\d{2})\.\d+ \+08:00/g;
   return logContent.replace(timeRegex, '$1');
 };
-
 const copyLogContent = () => {
-  if (!logContent.value) {
-    message.warn('暂无日志内容可复制');
-    return;
-  }
-
+  if (!logContent.value) return message.warn('暂无日志内容可复制');
   if (navigator.clipboard) {
     navigator.clipboard
       .writeText(logContent.value)
-      .then(() => message.success('日志内容已复制到剪贴板'))
-      .catch(() => {
-        fallbackCopyTextToClipboard(logContent.value);
-      });
+      .then(() => message.success('复制成功'))
+      .catch(() => fallbackCopyTextToClipboard(logContent.value));
   } else {
     fallbackCopyTextToClipboard(logContent.value);
   }
 };
-
 const fallbackCopyTextToClipboard = (text: string) => {
   const textArea = document.createElement('textarea');
   textArea.value = text;
   textArea.style.position = 'fixed';
-  textArea.style.top = '0';
-  textArea.style.left = '0';
   textArea.style.opacity = '0';
   document.body.appendChild(textArea);
-  textArea.focus();
   textArea.select();
-
   try {
-    const successful = document.execCommand('copy');
-    const msg = successful ? '日志内容已复制到剪贴板' : '复制失败，请手动复制';
-    message.success(msg);
+    document.execCommand('copy') ? message.success('复制成功') : message.error('复制失败');
   } catch (err) {
-    console.error('Fallback: Oops, unable to copy', err);
     message.error('复制失败，请手动复制');
   }
-
   document.body.removeChild(textArea);
 };
-
 const openVideoPlayer = (video: TopVideoItem) => {
-  if (!video.id) {
-    message.warn('视频ID不存在，无法播放');
-    return;
-  }
-
+  if (!video.id) return message.warn('视频ID不存在');
   currentVideo.value = video;
   showVideoPlayer.value = true;
   loadVideo(video).then(() => {
-    if (videoPlayerRef.value) {
-      videoPlayerRef.value.play().catch((err) => console.log('自动播放被拦截：', err));
-    }
+    videoPlayerRef.value?.play().catch((err) => console.log('自动播放被拦截：', err));
   });
 };
-
 const loadVideo = async (video: TopVideoItem) => {
   try {
     videoLoading.value = true;
     videoError.value = false;
     const timestamp = new Date().getTime();
     videoPlayUrl.value = `${import.meta.env.VITE_API_URL}api/Video/play/${video.id}?t=${timestamp}`;
-    if (videoPlayerRef.value) {
-      videoPlayerRef.value.style.width = '100%';
-      videoPlayerRef.value.style.height = '100%';
-    }
   } catch (err) {
-    console.error('加载视频失败：', err);
     videoError.value = true;
-    message.error('视频加载失败，请稍后重试');
+    message.error('视频加载失败');
   } finally {
     videoLoading.value = false;
   }
 };
-
 const closeVideoPlayer = () => {
   showVideoPlayer.value = false;
   currentVideo.value = null;
@@ -471,74 +609,291 @@ const closeVideoPlayer = () => {
   videoLoading.value = false;
   videoError.value = false;
   isVideoPaused.value = false;
-  if (videoPlayerRef.value) {
-    videoPlayerRef.value.pause();
-    videoPlayerRef.value.style.width = '100%';
-    videoPlayerRef.value.style.height = '100%';
-  }
+  videoPlayerRef.value?.pause();
 };
-
 const handleVideoError = () => {
   videoError.value = true;
-  console.error('视频播放出错');
 };
-
 const onVideoPause = () => {
   isVideoPaused.value = true;
 };
-
 const onVideoPlay = () => {
   isVideoPaused.value = false;
 };
-
 const deleteCurrentVideo = async () => {
   closeVideoPlayer();
   TopVideo();
   loadDashboardData();
 };
-// 视频加载完成后，动态获取视频尺寸并调整容器
 const handleVideoLoadedMetadata = () => {
   if (!videoPlayerRef.value) return;
-
-  // 获取视频原宽高比
-  const videoWidth = videoPlayerRef.value.videoWidth;
-  const videoHeight = videoPlayerRef.value.videoHeight;
-  const videoRatio = videoWidth / videoHeight; // 宽/高：>1 横向，≤1 竖向
-
-  // 获取播放器容器
+  const video = videoPlayerRef.value;
   const wrapper = document.querySelector('.video-player-wrapper');
   if (!wrapper) return;
-  const wrapperWidth = wrapper.clientWidth;
-  const wrapperHeight = wrapper.clientHeight;
-
-  const video = videoPlayerRef.value;
-
-  // 1. 竖向视频（高≥宽）：全屏填满，无黑边
+  const videoRatio = video.videoWidth / video.videoHeight;
   if (videoRatio <= 1) {
     video.style.width = '100%';
     video.style.height = '100%';
-    video.style.objectFit = 'cover'; // 填满容器，裁剪多余部分
-    video.style.margin = '0';
+    video.style.objectFit = 'cover';
     video.style.position = 'static';
-  }
-  // 2. 横向视频（宽>高）：居中显示，完整保留，上下黑边
-  else {
-    // 重置为 contain，确保视频完整显示
+  } else {
     video.style.objectFit = 'contain';
-    video.style.width = '100%';
-    video.style.height = '100%';
-    // 强制视频垂直+水平居中，解决下方没填满的问题
     video.style.position = 'absolute';
     video.style.top = '50%';
     video.style.left = '50%';
     video.style.transform = 'translate(-50%, -50%)';
-    // 可选：限制横向视频最大高度不超过容器，避免溢出
     video.style.maxHeight = '100%';
     video.style.maxWidth = '100%';
   }
 };
+
+// ========== 关注列表核心方法 ==========
+// 切换到关注Tab时初始化
+const handleSwitchToFollow = () => {
+  activeTab.value = 'follow';
+  nextTick(() => {
+    if (tabList.value.length === 0) {
+      GetCookies();
+    }
+  });
+};
+// 获取Cookie/Tab列表
+const GetCookies = (): Promise<void> => {
+  return new Promise((resolve) => {
+    useApiStore()
+      .CookieList()
+      .then((res) => {
+        if (res.code === 0) {
+          tabList.value = res.data;
+          if (tabList.value.length > 0 && !activeFollowTabKey.value) {
+            activeFollowTabKey.value = tabList.value[0].key;
+          }
+        }
+        resolve();
+      })
+      .catch((err) => {
+        console.error('获取Tab数据失败：', err);
+        message.error('获取Tab数据失败，请刷新重试');
+        resolve();
+      });
+  });
+};
+// 获取关注列表
+const GetFollows = (isReset = false) => {
+  if (loading.value || (noMoreData.value && !isReset)) return;
+  loading.value = true;
+  useApiStore()
+    .FollowList(quaryData)
+    .then((res) => {
+      if (res.code === 0) {
+        const newData = res.data.data || [];
+        const total = res.data.total || 0;
+        // 格式化数据
+        const formattedData = newData.map((item) => ({
+          ...item,
+          isSaving: false,
+          isEditing: item.isEditing ?? false,
+          uperId: item.uperId || item.id,
+          isNoFollowed: item.isNoFollowed ?? false,
+        }));
+        // 更新Tab总数
+        if (isReset) {
+          const tabIndex = tabList.value.findIndex((tab) => tab.key === activeFollowTabKey.value);
+          if (tabIndex !== -1) tabList.value[tabIndex].total = total;
+        }
+        // 判断是否有更多
+        if (formattedData.length < quaryData.pageSize) {
+          noMoreData.value = true;
+          hasMore.value = false;
+        } else {
+          noMoreData.value = false;
+          hasMore.value = true;
+        }
+        // 合并数据
+        if (isReset) {
+          followData.value = formattedData;
+        } else {
+          const existingKeys = followData.value.map((item) => item.id);
+          const uniqueNewData = formattedData.filter((item) => !existingKeys.includes(item.id));
+          followData.value = [...followData.value, ...uniqueNewData];
+        }
+        quaryData.pageIndex += 1;
+      } else {
+        message.error('获取关注列表失败');
+        noMoreData.value = true;
+        hasMore.value = false;
+      }
+    })
+    .catch((err) => {
+      console.error('获取关注列表异常：', err);
+      message.error('网络异常，请重试');
+      noMoreData.value = true;
+      hasMore.value = false;
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+};
+// 清空搜索
+const clearSearch = () => {
+  quaryData.followUserName = null;
+  quaryData.pageIndex = 0;
+  GetFollows(true);
+};
+// 执行搜索
+const handleSearch = () => {
+  quaryData.pageIndex = 0;
+  noMoreData.value = false;
+  hasMore.value = true;
+  GetFollows(true);
+};
+// Tab切换
+const handleTabChange = (key: string) => {
+  if (activeFollowTabKey.value === key) return;
+  activeFollowTabKey.value = key;
+  quaryData.mySelfId = key;
+  quaryData.pageIndex = 0;
+  noMoreData.value = false;
+  hasMore.value = true;
+  quaryData.followUserName = null;
+  GetFollows(true);
+};
+// 滚动加载更多
+const handleScroll = () => {
+  const container = document.querySelector('.follow-list-container');
+  if (!container || loading.value || !hasMore.value || noMoreData.value) return;
+  const { scrollTop, scrollHeight, clientHeight } = container as HTMLDivElement;
+  if (scrollTop + clientHeight >= scrollHeight - 50) {
+    // 移动端提前50px加载
+    GetFollows(false);
+  }
+};
+// 同步总开关变更
+const handleSwitchChange = (item: FollowItem, checked: boolean) => {
+  item.openSync = checked;
+  uploadSyncStatus(item);
+};
+// 全量同步开关变更
+const handleSyncChange = (item: FollowItem, checked: boolean) => {
+  item.fullSync = checked;
+  uploadSyncStatus(item);
+};
+// 编辑路径
+const handleEditPath = (item: FollowItem) => {
+  if (item.isSaving) return;
+  item.isEditing = true;
+  nextTick(() => {
+    const input = document.querySelector(`.follow-card[data-key="${item.id}"] .path-input`) as HTMLInputElement | null;
+    input?.focus();
+  });
+};
+// 保存路径
+const handleSavePath = (item: FollowItem) => {
+  if (item.isSaving) return;
+  uploadSyncStatus(item);
+};
+// 更新同步状态
+const uploadSyncStatus = (item: FollowItem) => {
+  item.isSaving = true;
+  useApiStore()
+    .OpenOrCloseSync({
+      Id: item.id,
+      OpenSync: item.openSync,
+      FullSync: item.fullSync,
+      SavePath: item.savePath,
+      uperId: item.uperId,
+    })
+    .then((res) => {
+      if (res.code === 0) {
+        message.success(`保存成功，下次任务生效`);
+        item.isEditing = false;
+      } else {
+        message.error('保存失败' + (res.message || '未知错误'));
+      }
+    })
+    .catch((err) => {
+      console.error('保存失败', err);
+      message.error('保存失败，请重试');
+    })
+    .finally(() => {
+      item.isSaving = false;
+    });
+};
+// 批量同步
+const handleSyncAll = () => {
+  if (isSyncDisabled.value) return;
+  isSyncDisabled.value = true;
+  loading.value = true;
+  useApiStore()
+    .StartJobNow()
+    .then((res) => {
+      if (res.code === 0) {
+        message.success('后台开始同步，请注意查收');
+      } else {
+        message.error('同步失败：' + (res.message || '未知错误'));
+      }
+    })
+    .catch((err) => {
+      console.error('同步异常：', err);
+      message.error('同步失败，请重试');
+    })
+    .finally(() => {
+      isSyncDisabled.value = false;
+      loading.value = false;
+    });
+};
+// 文本截断
+const truncateText = (text: string, maxLength: number): string => {
+  if (!text || text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+};
+
+// 删除关注博主
+const handleDeleteItem = (item: FollowItem) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定删除「${item.uperName}」吗？删除后无法恢复`,
+    okText: '删除',
+    cancelText: '取消',
+    okType: 'danger',
+    maskClosable: false,
+    onOk: () => {
+      return new Promise((resolve, reject) => {
+        useApiStore()
+          .DelFollow({
+            id: item.id,
+            mySelfId: item.mySelfId,
+            uperId: item.uperId,
+          })
+          .then((res) => {
+            if (res.code === 0) {
+              message.success('删除成功！');
+              // 重新加载数据
+              quaryData.pageIndex = 0;
+              GetFollows(true);
+              // 更新Tab总数
+              const tabIndex = tabList.value.findIndex((tab) => tab.key === activeFollowTabKey.value);
+              if (tabIndex !== -1) {
+                tabList.value[tabIndex].total = (tabList.value[tabIndex].total || 1) - 1;
+              }
+              resolve(true);
+            } else {
+              message.error('删除失败：' + (res.message || '未知错误'));
+              reject(false);
+            }
+          })
+          .catch((err) => {
+            console.error('删除异常：', err);
+            message.error('网络异常，请重试');
+            reject(false);
+          });
+      });
+    },
+  });
+};
 </script>
-<!-- 全局样式，放在 scoped 样式外 -->
+
+<!-- 全局样式 -->
 <style>
 html,
 body {
@@ -554,9 +909,21 @@ body {
   width: 100%;
   height: 100%;
 }
+.ant-message {
+  z-index: 10000 !important;
+}
+/* 强制清除antd卡片默认边距和内边距 */
+.ant-card {
+  margin: 0 !important;
+  border-radius: 12px !important;
+}
+.ant-card-body {
+  padding: 0 !important;
+}
 </style>
 
 <style scoped>
+/* ========== 原有仪表盘样式（保留，无需修改） ========== */
 .stats-dashboard-mobile {
   min-height: 100vh;
   background-color: #ffffff;
@@ -792,7 +1159,7 @@ body {
   font-size: 14px;
 }
 
-/* 底部导航样式 */
+/* 底部导航样式：改为三分栏 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1063,7 +1430,7 @@ body {
 .copy-btn:hover:not(:disabled) {
   background-color: #43a047;
 }
-/* 视频弹窗遮罩：确保全屏无偏移 */
+/* 视频弹窗样式 */
 .video-modal-mask {
   position: fixed;
   top: 0;
@@ -1080,14 +1447,12 @@ body {
   box-sizing: border-box;
   overflow: hidden;
 }
-
-/* 视频弹窗内容：全屏铺满，无内边距 */
 .video-modal-content {
   width: 100vw;
   height: 100vh;
   max-width: none;
   max-height: none;
-  background-color: #000; /* 改为纯黑，即使有微小留白也不明显 */
+  background-color: #000;
   border-radius: 0;
   box-shadow: none;
   display: flex;
@@ -1097,24 +1462,19 @@ body {
   top: 0;
   left: 0;
   margin: 0;
-  padding: 0; /* 确保无内边距 */
+  padding: 0;
   box-sizing: border-box;
-  /* iOS安全区域适配：不额外增加留白，直接填充状态栏 */
   padding-top: env(safe-area-inset-top);
   height: calc(100vh - env(safe-area-inset-top));
 }
-
-/* 视频播放器容器：全屏铺满，无额外空间 */
 .video-player-wrapper {
-  position: relative; /* 新增：为视频绝对定位提供参考 */
+  position: relative;
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  /* 消除安全区域带来的高度偏差 */
   height: calc(100% - env(safe-area-inset-top));
-  /* 新增：确保容器内内容垂直居中（兜底） */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1153,15 +1513,6 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-}
-.video-player-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  height: calc(100% - env(safe-area-inset-top));
 }
 .video-player {
   width: 100%;
@@ -1250,7 +1601,381 @@ body {
   background-color: #1976d2;
 }
 
-/* 夜间模式 */
+/* ========== 关注列表样式【彻底修复：无数据不居中，页面布局正常】 ========== */
+.follow-tab {
+  padding: 0 5px;
+  width: 100%;
+  box-sizing: border-box;
+  /* 关键：让tab容器占满父级高度 */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+/* 搜索+操作栏 */
+.follow-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  width: 100%;
+  z-index: 10;
+  position: relative;
+  /* 固定在顶部，不随滚动移动 */
+  flex-shrink: 0;
+}
+.search-wrapper {
+  flex: 1;
+  position: relative;
+}
+.follow-search-input {
+  height: 40px !important;
+  border-radius: 20px !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  width: 100% !important;
+}
+/* 搜索图标定位 */
+.search-wrapper :deep(.ant-input-suffix) {
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+.follow-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.follow-btn {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.add-btn {
+  background-color: #4caf50 !important;
+  border-color: #4caf50 !important;
+}
+
+/* Tab导航：横向滚动 */
+.follow-tab-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 10px;
+  z-index: 10;
+  position: relative;
+  /* 固定在搜索栏下方，不随滚动移动 */
+  flex-shrink: 0;
+}
+.follow-tab-scroll {
+  width: max-content;
+  padding-right: 10px;
+}
+.follow-custom-tabs {
+  --ant-tabs-nav-item-spacing: 16px !important;
+}
+:deep(.follow-custom-tabs .ant-tabs-tab) {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  white-space: nowrap;
+}
+:deep(.follow-custom-tabs .ant-tabs-ink-bar) {
+  background-color: #4caf50 !important;
+}
+/* 列表容器：核心修复★★★ 固定高度+flex布局+滚动，无数据时不居中 */
+.follow-list-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px !important;
+  /* 适配底部导航，预留高度，固定计算方式 */
+  height: calc(100vh - 180px) !important;
+  max-height: calc(100vh - 180px) !important;
+  overflow-y: auto !important;
+  padding: 0 2px 20px 2px !important;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  /* 关键：让容器占满剩余高度，子元素按flex布局排列 */
+  flex: 1;
+  flex-grow: 1;
+  /* 关键：确保容器高度不超过视口高度 */
+  position: relative;
+}
+/* 博主卡片【核心修复：完整显示所有内容】 */
+.follow-card {
+  border-radius: 12px !important;
+  border: 1px solid #f0f0f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  background: #fff !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 1 !important;
+  /* 卡片不拉伸，固定高度 */
+  flex-shrink: 0;
+}
+/* 非关注卡片样式 */
+.follow-card.no-followed-card {
+  border-color: #fee2e2 !important;
+  background-color: #fef2f2 !important;
+}
+/* 卡片内层容器【强制显示所有子元素】 */
+.follow-card-inner {
+  padding: 16px 14px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 2 !important;
+  height: auto !important;
+  min-height: 120px !important; /* 最小高度，防止内容过少塌陷 */
+}
+/* 卡片顶部：头像+名称+操作 */
+.follow-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.avatar-wrapper {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+}
+/* 头像样式覆盖 */
+:deep(.follow-card .ant-avatar) {
+  width: 52px !important;
+  height: 52px !important;
+  font-size: 20px !important;
+  border-radius: 50% !important;
+}
+:deep(.follow-card .ant-avatar-lg) {
+  width: 52px !important;
+  height: 52px !important;
+}
+.avatar-placeholder {
+  background: linear-gradient(135deg, #4096ff, #69b1ff) !important;
+  color: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+/* 名称+操作容器：自动占满剩余宽度 */
+.name-actions {
+  flex: 1 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: calc(100% - 62px) !important;
+  box-sizing: border-box;
+}
+.name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.uper-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d2129;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+}
+.no-followed-badge {
+  background-color: #fee2e2;
+  color: #dc2626;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+/* 顶部操作按钮：删除+开关 */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  width: 100%;
+}
+.delete-btn {
+  color: #ef4444 !important;
+  font-size: 16px !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+/* 签名样式：强制显示 */
+.follow-card-desc {
+  font-size: 13px;
+  color: #86909c;
+  line-height: 1.5;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.signature-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  display: block !important;
+}
+/* 卡片底部：路径+全量同步【仅同步开启显示】 */
+.follow-card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px !important;
+  padding-top: 5px !important;
+  border-top: 1px solid #f5f5f5;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.path-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.path-text {
+  font-size: 13px;
+  color: #333;
+  flex: 1;
+  line-height: 1.4;
+}
+.path-text.path-empty {
+  color: #999;
+  font-style: italic;
+}
+.edit-btn {
+  color: #4096ff !important;
+  font-size: 14px !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+/* 编辑输入框 */
+.edit-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  width: 100%;
+}
+.path-input {
+  height: 32px !important;
+  font-size: 13px !important;
+  flex: 1 !important;
+}
+/* 全量同步 */
+.full-sync-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+}
+.full-sync-label {
+  font-size: 13px;
+  color: #666;
+}
+
+/* 状态容器：核心修复★★★ 加载/无数据/无更多 统一样式，占满剩余高度且内容居中 */
+.loading-container,
+.empty-container,
+.no-more-container {
+  width: 100%;
+  box-sizing: border-box;
+  /* 关键：占满列表容器剩余高度，内容垂直水平居中 */
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 20px 0 !important;
+}
+/* 加载状态 */
+.loading-container {
+  gap: 12px;
+  color: #6b7280;
+  font-size: 14px;
+}
+/* 无更多状态（取消居中，靠上显示） */
+.no-more-container {
+  flex: none !important; /* 不占满高度，仅自身高度 */
+  padding: 10px 0 !important;
+  color: #9ca3af;
+  font-size: 14px;
+}
+/* 无数据状态 */
+.empty-container {
+  padding: 40px 0 !important;
+}
+/* 黑暗模式下无数据文字颜色 */
+html.dark-mode .empty-container :deep(.ant-empty-description) {
+  color: #808099 !important;
+}
+
+/* ========== 小屏手机适配（375px以下，如SE/小屏安卓） ========== */
+@media screen and (max-width: 375px) {
+  .follow-list-container {
+    /* 小屏减少预留高度，适配更友好 */
+    height: calc(100vh - 160px) !important;
+    max-height: calc(100vh - 160px) !important;
+    gap: 10px !important;
+  }
+  .follow-card-inner {
+    padding: 14px 12px !important;
+    gap: 10px !important;
+    min-height: 100px !important;
+  }
+  .avatar-wrapper {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  :deep(.follow-card .ant-avatar) {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+  .uper-name {
+    font-size: 15px !important;
+  }
+  .follow-card-desc {
+    font-size: 12px !important;
+  }
+  .full-sync-label {
+    font-size: 12px !important;
+  }
+}
+/* 黑暗模式下无数据文字颜色 */
+html.dark-mode .empty-container :deep(.ant-empty-description) {
+  color: #808099 !important;
+}
+
+/* ========== 黑暗模式适配【完整适配follow-card】 ========== */
 html.dark-mode .stats-dashboard-mobile {
   background-color: #1a1a2e;
   color: #eaeaea;
@@ -1328,8 +2053,7 @@ html.dark-mode .video-time {
 html.dark-mode .empty-video-list {
   color: #808099;
 }
-
-/* 夜间模式 - 底部导航（完全保留） */
+/* 黑暗模式 - 底部导航 */
 html.dark-mode .bottom-nav {
   background-color: #16213e;
   border-top-color: rgba(255, 255, 255, 0.1);
@@ -1340,8 +2064,7 @@ html.dark-mode .nav-item {
 html.dark-mode .nav-item.active {
   color: #4caf50;
 }
-
-/* 夜间模式 - 日志样式（完全保留） */
+/* 黑暗模式 - 日志样式 */
 html.dark-mode .log-title {
   color: #ffffff;
 }
@@ -1365,8 +2088,7 @@ html.dark-mode .log-file {
 html.dark-mode .empty-log {
   color: #808099;
 }
-
-/* 夜间模式 - 弹窗样式（完全保留） */
+/* 黑暗模式 - 弹窗样式 */
 html.dark-mode .log-modal-content {
   background-color: #1e1e3f;
   border-color: rgba(255, 255, 255, 0.1);
@@ -1393,8 +2115,7 @@ html.dark-mode .close-btn:hover {
   background-color: #2a2a4a;
   color: #ffffff;
 }
-
-/* 夜间模式 - 视频弹窗样式适配（移除旋转按钮相关） */
+/* 黑暗模式 - 视频弹窗 */
 html.dark-mode .video-delete-btn {
   background-color: rgba(0, 0, 0, 0.4);
 }
@@ -1402,8 +2123,75 @@ html.dark-mode .video-delete-btn:hover,
 html.dark-mode .video-delete-btn:active {
   background-color: rgba(244, 67, 54, 0.6);
 }
+/* 黑暗模式 - 关注列表【完整适配】 */
+html.dark-mode .follow-card {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(30, 30, 50, 0.9) !important;
+}
+html.dark-mode .follow-card.no-followed-card {
+  border-color: #7f1d1d !important;
+  background-color: rgba(127, 29, 29, 0.2) !important;
+}
+html.dark-mode .uper-name {
+  color: #f3f4f6 !important;
+}
+html.dark-mode .no-followed-badge {
+  background-color: #7f1d1d !important;
+  color: #fecaca !important;
+}
+html.dark-mode .follow-card-desc {
+  color: #9ca3af !important;
+}
+html.dark-mode .follow-card-bottom {
+  border-top-color: rgba(255, 255, 255, 0.05) !important;
+}
+html.dark-mode .path-text {
+  color: #d1d5db !important;
+}
+html.dark-mode .path-text.path-empty {
+  color: #6b7280 !important;
+}
+html.dark-mode .full-sync-label {
+  color: #9ca3af !important;
+}
+html.dark-mode .delete-btn {
+  color: #fecaca !important;
+}
+html.dark-mode .edit-btn {
+  color: #60a5fa !important;
+}
+html.dark-mode .avatar-placeholder {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa) !important;
+}
 
-.ant-message {
-  z-index: 10000 !important;
+/* ========== 小屏手机适配（375px以下，如SE/小屏安卓） ========== */
+@media screen and (max-width: 375px) {
+  .follow-list-container {
+    max-height: calc(100vh - 160px) !important;
+    gap: 10px !important;
+  }
+  .follow-card-inner {
+    padding: 14px 12px !important;
+    gap: 10px !important;
+    min-height: 100px !important;
+  }
+  .avatar-wrapper {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  :deep(.follow-card .ant-avatar) {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+  .uper-name {
+    font-size: 15px !important;
+  }
+  .follow-card-desc {
+    font-size: 12px !important;
+  }
+  .full-sync-label {
+    font-size: 12px !important;
+  }
 }
 </style>

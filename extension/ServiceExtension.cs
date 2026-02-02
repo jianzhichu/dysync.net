@@ -337,7 +337,7 @@ namespace dy.net.extension
             services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT, client =>
             {
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(DouyinRequestParamManager.DY_USER_AGENT);
-                client.BaseAddress = new Uri("https://www.douyin.com");
+                client.BaseAddress = new Uri(DouyinRequestParamManager.DouyinHost);
                 client.Timeout = TimeSpan.FromSeconds(60); // 设置请求超时，避免无限等待
             }).ConfigurePrimaryHttpMessageHandler(IgnoreSslHandlerFactory);
 
@@ -345,7 +345,7 @@ namespace dy.net.extension
             services.AddHttpClient(DouyinRequestParamManager.DY_HTTP_CLIENT_DOWN, client =>
             {
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(DouyinRequestParamManager.DY_USER_AGENT);
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.douyin.com");
+                client.DefaultRequestHeaders.Referrer = new Uri(DouyinRequestParamManager.DouyinHost);
                 client.Timeout = TimeSpan.FromMinutes(5); // 下载超时设为5分钟，合理且不泄漏
             }).ConfigurePrimaryHttpMessageHandler(IgnoreSslHandlerFactory);
         }

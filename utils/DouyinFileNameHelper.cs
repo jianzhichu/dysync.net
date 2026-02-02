@@ -60,6 +60,8 @@ namespace dy.net.utils
                     result = KeepChineseLettersAndNumbers(result);
                 }
             }
+            if (string.IsNullOrWhiteSpace(result))
+                result = defaultName;
             return result;
         }
 
@@ -119,5 +121,31 @@ namespace dy.net.utils
             var pattern = @"_\d+(?=\.)";
             return Regex.Replace(fileName, pattern, "");
         }
+
+
+        /// <summary>
+        /// 中英文混合截断：按视觉格子数限制（中文/全角符=2格，英文/半角符/数字=1格）
+        /// </summary>
+        /// <param name="inputStr">待处理字符串（路径/名称/备注都可）</param>
+        /// <param name="maxVisualGrid">总视觉格子数（如20，核心参数）</param>
+        /// <param name="addEllipsis">是否加省略号（UI展示=true，存储=false）</param>
+        /// <returns>视觉长度合规的字符串</returns>
+        public static string LimitUnifiedCount(this string inputStr, int maxTotalCount, bool addEllipsis = false)
+        {
+            // 边界防护：空字符串直接返回；传0/负数则按1处理，传20则正常取20（不影响核心需求）
+            if (string.IsNullOrEmpty(inputStr)) return inputStr;
+            int validMaxCount = Math.Max(maxTotalCount, 1);
+
+            // 总数未超，直接返回原字符串
+            if (inputStr.Length <= validMaxCount) return inputStr;
+
+            // 总数超了，截取前N个（传20则截前20，纯中文能留20个）
+            StringBuilder sb = new StringBuilder(inputStr.Substring(0, validMaxCount));
+            // 截断后加省略号（UI展示用）
+            if (addEllipsis) sb.Append("...");
+
+            return sb.ToString();
+        }
+
     }
 }

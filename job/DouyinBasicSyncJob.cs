@@ -627,17 +627,17 @@ namespace dy.net.job
                                     var mp3Url = item?.Music?.PlayUrl?.UrlList?.FirstOrDefault();
 
 
-                                    var outPath = await douyinMergeVideoService.MergeMultipleVideosAsync(dynamicVideos, mp3Url, savePath, cookie.Cookies);
-                                    if (!string.IsNullOrWhiteSpace(outPath.mp4Path))
+                                    var (mp4Path, mp3Path) = await douyinMergeVideoService.MergeMultipleVideosAsync(dynamicVideos, mp3Url, savePath, cookie.Cookies);
+                                    if (!string.IsNullOrWhiteSpace(mp4Path))
                                     {
-                                        if (File.Exists(outPath.mp4Path))
+                                        if (File.Exists(mp4Path))
                                         {
-                                            dynamicVideo.VideoSavePath = outPath.mp4Path;
+                                            dynamicVideo.VideoSavePath = mp4Path;
                                             if (!config.KeepDynamicVideo)
                                             {
-                                                if (File.Exists(outPath.mp3Path))
+                                                if (File.Exists(mp3Path))
                                                 {
-                                                    File.Delete(outPath.mp3Path);
+                                                    File.Delete(mp3Path);
                                                 }
                                                 //不保留原视频-删除
                                                 foreach (var opath in dynamicVideos)
@@ -650,6 +650,8 @@ namespace dy.net.job
                                     }
                                 }
                             }
+                            //动态视频生成nfo
+                            NfoFileGenerator.GenerateVideoNfoFile(dynamicVideo);
                             videos.Add(dynamicVideo);
                             syncCount++;
                             if (syncCount + syncCount1 >= config.BatchCount)
@@ -887,12 +889,12 @@ namespace dy.net.job
                 Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载完成.");
             }
             // 下载视频封面
-            await GetDownVideoCover(item, saveFolder, cookie, config, cate);
+            var coverSavePath=  await DownVideoCover(item, savePath, cookie, cate);
             // 下载作者头像
-            var (avatarSavePath, avatarUrl) = await DownAuthorAvatar(cookie, item);
+            var avatarSavePath = await DownAuthorAvatar(cookie, item);
 
             // 创建视频实体
-            return await CreateVideoEntity(config, cookie, item, v, savePath, saveFolder, avatarSavePath, null, cate);
+            return await CreateVideoEntity(config, cookie, item, v, savePath, coverSavePath, avatarSavePath, null, cate);
         }
 
         private static VideoBitRate GetBestMatchedVideoUrl(Aweme item, AppConfig config)
@@ -968,14 +970,14 @@ namespace dy.net.job
                     dynamicSavePaths.Add(v);
                     Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-动态视频[{dynamicSavePath}]-00{i},下载完成.");
                 }
-                await Task.Delay(_random.Next(1, 4) * 1000);
+                await Task.Delay(_random.Next(2, 10) * 1000);
             }
 
 
-            //// 下载视频封面
-            //await DownVideoCover(item, saveFolder, cookie, config);
-            //// 下载作者头像
-            var (avatarSavePath, avatarUrl) = await DownAuthorAvatar(cookie, item);
+            // 下载视频封面
+           var coverSavePath = await DownVideoCover(item, savePath, cookie, cate);
+            // 下载作者头像
+            var avatarSavePath = await DownAuthorAvatar(cookie, item);
 
             // 创建视频实体
             var virtualBitRate = new VideoBitRate
@@ -987,7 +989,7 @@ namespace dy.net.job
                     DataSize = DouyinFileUtils.GetTotalFileSize(dynamicSavePaths.Select(x => x.Path).ToList())  // 合成视频的文件大小
                 }
             };
-            return await CreateVideoEntity(config, cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault()?.Path, saveFolder, avatarSavePath, dynamicSavePaths, cate);
+            return await CreateVideoEntity(config, cookie, item, virtualBitRate, dynamicSavePaths.FirstOrDefault()?.Path, coverSavePath, avatarSavePath, dynamicSavePaths, cate);
         }
 
 
@@ -1147,11 +1149,9 @@ namespace dy.net.job
                 var coverUrl = cate is not null && cate.CateType != VideoTypeEnum.dy_custom_collect
               ? (item.MixInfo?.CoverUrl?.UrlList?.FirstOrDefault() ?? imageUrls.FirstOrDefault() ?? item.Music?.CoverHd?.UrlList?.FirstOrDefault())
               : imageUrls.FirstOrDefault();
-                // 下载视频封面（使用第一张图片作为封面）
-                if (!string.IsNullOrWhiteSpace(coverUrl))
-                    await DownVideoCover(coverUrl, fileNamefolder, cookie, item, config, cate);
+               
                 // 下载作者头像
-                var (avatarSavePath, avatarUrl) = await DownAuthorAvatar(cookie, item);
+                var avatarSavePath = await DownAuthorAvatar(cookie, item);
 
                 // 为合成的视频创建一个“虚拟”的BitRate对象，以便复用CreateVideoEntity方法
                 var virtualBitRate = new VideoBitRate
@@ -1163,10 +1163,12 @@ namespace dy.net.job
                         DataSize = string.IsNullOrWhiteSpace(savePath) || !File.Exists(savePath) ? 0 : new FileInfo(savePath).Length // 合成视频的文件大小
                     }
                 };
-
+                // 下载视频封面（使用第一张图片作为封面）
+                string coverSavePath = await DownVideoCover(coverUrl, savePath, cookie);
+             
                 // 创建视频实体
                 var videoEntity = await CreateVideoEntity(config,
-                    cookie, item, virtualBitRate, savePath, fileNamefolder, avatarSavePath, null, cate);
+                    cookie, item, virtualBitRate, coverSavePath, fileNamefolder, avatarSavePath, null, cate);
 
                 // 特殊处理合成视频的字段
                 videoEntity.FileHash = string.Empty; // 合成视频没有原始文件哈希
@@ -1174,6 +1176,7 @@ namespace dy.net.job
                 videoEntity.ViedoType = VideoType;
                 videoEntity.IsMergeVideo = 1;// 标记为图片合成视频
 
+        
                 return videoEntity;
             }
             catch (Exception ex)
@@ -1212,12 +1215,11 @@ namespace dy.net.job
         /// 从视频信息中提取封面URL并下载到指定文件夹
         /// </summary>
         /// <param name="item">视频信息</param>
-        /// <param name="saveFolder">封面保存文件夹</param>
+        /// <param name="savePath">视频保存路径</param>
         /// <param name="cookie">用户Cookie</param>
-        /// <param name="config">应用配置</param>
         /// <param name="cate"></param>
         /// <returns>一个表示异步操作的任务</returns>
-        protected async Task GetDownVideoCover(Aweme item, string saveFolder, DouyinCookie cookie, AppConfig config, DouyinCollectCate cate)
+        protected async Task<string> DownVideoCover(Aweme item, string savePath, DouyinCookie cookie,  DouyinCollectCate cate)
         {
             // 定义封面URL变量
             string coverUrl;
@@ -1233,14 +1235,14 @@ namespace dy.net.job
             else
             {
                 // cate为空时：只取Video封面
-                coverUrl = item.Video.Cover.UrlList?.FirstOrDefault();
+                coverUrl = item.Video?.Cover?.UrlList?.FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(coverUrl))
+                {
+                    coverUrl = item.Images?.FirstOrDefault()?.DynamicVideo?.Cover?.UrlList?.FirstOrDefault();
+                }
             }
-
-            // 如果封面URL为空，直接返回
-            if (string.IsNullOrWhiteSpace(coverUrl)) return;
-
             // 调用下载封面的方法
-            await DownVideoCover(coverUrl, saveFolder, cookie, item, config, cate);
+           return await DownVideoCover(coverUrl, savePath, cookie);
         }
 
         /// <summary>
@@ -1250,12 +1252,12 @@ namespace dy.net.job
         /// <param name="cookie">用户Cookie</param>
         /// <param name="item">视频信息</param>
         /// <returns>一个元组，包含头像保存路径和头像URL</returns>
-        protected async Task<(string savePath, string url)> DownAuthorAvatar(DouyinCookie cookie, Aweme item)
+        protected async Task<string> DownAuthorAvatar(DouyinCookie cookie, Aweme item)
         {
-            if (item.Author == null) return (null, null);
+            if (item.Author == null) return string.Empty;
             // 优先获取高清头像
             var avatarUrl = item.Author.AvatarLarger?.UrlList?.FirstOrDefault() ?? item.Author.AvatarThumb?.UrlList?.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(avatarUrl)) return (null, null);
+            if (string.IsNullOrWhiteSpace(avatarUrl)) return  string.Empty;
 
             // 拼接头像保存路径
             var avatarSavePath = Path.Combine(GetAuthorAvatarBasePath(cookie), $"{item.Author.Uid}.jpg");
@@ -1267,7 +1269,7 @@ namespace dy.net.job
             {
                 await douyinHttpClientService.DownloadAsync(avatarUrl, avatarSavePath, cookie.Cookies);
             }
-            return (avatarSavePath, avatarUrl);
+            return avatarSavePath;
         }
 
         #endregion
@@ -1342,23 +1344,31 @@ namespace dy.net.job
         /// 根据指定的封面URL下载封面图片，并复制为fanart.jpg
         /// </summary>
         /// <param name="coverUrl">封面图片URL</param>
-        /// <param name="saveFolder">封面保存文件夹</param>
+        /// <param name="savePath">封面保存文件夹</param>
         /// <param name="cookie">用户Cookie</param>
-        /// <param name="item">视频信息</param>
-        /// <param name="config">应用配置</param>
-        /// <param name="cate"></param>
         /// <returns>一个表示异步操作的任务</returns>
-        private async Task DownVideoCover(string coverUrl, string saveFolder, DouyinCookie cookie, Aweme item, AppConfig config, DouyinCollectCate cate)
+        private async Task<string> DownVideoCover(string coverUrl, string savePath, DouyinCookie cookie)
         {
-            if (string.IsNullOrWhiteSpace(coverUrl)) return;
-            // 获取封面图片文件名
-            var coverSavePath = Path.Combine(saveFolder, "poster.jpg");
+            if (string.IsNullOrWhiteSpace(coverUrl)) return string.Empty;
+            if (string.IsNullOrWhiteSpace(savePath)) return string.Empty;
+
+            string directoryPath = Path.GetDirectoryName(savePath); // 获取文件所在目录，
+            string newFileName = "poster.jpg";
+            if (VideoType != VideoTypeEnum.dy_mix && VideoType != VideoTypeEnum.dy_series)
+            {
+                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(savePath); // 获取无后缀的原文件名，
+                newFileName = $"{fileNameWithoutExt}-poster.jpg"; // 拼接新文件名，
+            }
+
+           var coverSavePath = Path.Combine(directoryPath, newFileName);
+
 
             // 如果封面文件不存在，则下载
             if (!File.Exists(coverSavePath))
             {
                 await douyinHttpClientService.DownloadAsync(coverUrl, coverSavePath, cookie.Cookies);
             }
+            return coverSavePath;
         }
 
         /// <summary>
@@ -1370,13 +1380,13 @@ namespace dy.net.job
         /// <param name="item">视频信息</param>
         /// <param name="bitRate">视频码率信息</param>
         /// <param name="savePath">视频保存路径</param>
-        /// <param name="saveFolder">视频保存文件夹</param>
+        /// <param name="coverSavePath">海报保存路径</param>
         /// <param name="avatorPath"></param>
         /// <param name="dynamicVideos">动态视频</param>
         /// <param name="cate">短剧、合集、自定义收藏夹</param>
         /// <returns>创建的视频实体对象</returns>
         private async Task<DouyinVideo> CreateVideoEntity(AppConfig config,
-            DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string saveFolder, string avatorPath, List<DouyinDynamicVideoDto> dynamicVideos = null, DouyinCollectCate cate = null)
+            DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string coverSavePath, string avatorPath, List<DouyinDynamicVideoDto> dynamicVideos = null, DouyinCollectCate cate = null)
         {
             // 获取视频标签
             var (tag1, tag2, tag3) = GetVideoTags(item);
@@ -1401,7 +1411,7 @@ namespace dy.net.job
                 VideoUrl = bitRate.PlayAddr.UrlList?.FirstOrDefault(),
                 VideoCoverUrl = item.Video.Cover.UrlList?.FirstOrDefault(),
                 VideoSavePath = savePath,
-                VideoCoverSavePath = Path.Combine(saveFolder, "poster.jpg"),
+                VideoCoverSavePath = coverSavePath,
                 SyncTime = DateTime.Now,
                 DyUserId = item.AuthorUserId == 0 ? item.Author?.Uid : item.AuthorUserId.ToString(),
                 CookieId = cookie.Id,
@@ -1417,8 +1427,11 @@ namespace dy.net.job
             {
                 video.DynamicVideos = JsonConvert.SerializeObject(dynamicVideos);
             }
-            // 生成NFO文件
-            NfoFileGenerator.GenerateVideoNfoFile(video);
+            else
+            {
+                // 生成NFO文件,动态视频 合成后重新生成，不在这里生成nfo
+                NfoFileGenerator.GenerateVideoNfoFile(video);
+            }
             return video;
         }
 

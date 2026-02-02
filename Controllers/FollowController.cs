@@ -82,9 +82,9 @@ namespace dy.net.Controllers
                         return ApiResult.Fail("请输入有效文件夹名称（字母数字中文简体）");
                     }
 
-                    if (dto.SavePath.Length > 15)
+                    if (dto.SavePath.Length > 20)
                     {
-                        return ApiResult.Fail("请输入有效文件夹名称（最长15）");
+                        return ApiResult.Fail("请输入有效文件夹名称（最长20）");
                     }
                 }
             }
