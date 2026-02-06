@@ -534,8 +534,6 @@ namespace dy.net.job
                 //    continue;
                 //}
 
-                // 1. 查询数据库中是否已存在该视频（通过 AwemeId 唯一标识）
-                var exitVideo = await douyinVideoService.GetByAwemeId(item.AwemeId);
                 //判断视频是否是强制删除且不再下载的视频
                 var deleteVideo = await douyinCommonService.ExistDeleteVideo(item.AwemeId);
                 if (deleteVideo)
@@ -544,21 +542,46 @@ namespace dy.net.job
                     continue;
                 }
 
+                // 查询数据库中是否已存在该视频（通过 AwemeId 唯一标识）
+                var exitVideo = await douyinVideoService.GetByAwemeId(item.AwemeId);
+
                 bool Goon = await AutoDistinct(config, exitVideo, cookie);
                 if (!Goon)
                 {
                     continue;
                 }
 
-                if (exitVideo != null && File.Exists(exitVideo.VideoSavePath))
-                {
-                    continue;
-                }
-                //如果存在，但是因为去重规则，选择的最高优先级变更了，需要删除原来的，重新下载。
                 if (exitVideo != null)
                 {
-                    await douyinVideoService.DeleteById(exitVideo.Id);
+                    //文件存在
+                    if (File.Exists(exitVideo.VideoSavePath))
+                    {
+                        //如果当前时正在下载关注列表的视频，但是已经存在合集下载过了，那么跳过
+                        if (VideoType == VideoTypeEnum.dy_follows && exitVideo.ViedoType == VideoTypeEnum.dy_mix)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            //如果当前正在下载合集视频，但是发现已经存在了，但视频类型不是合集，那么删掉原来的记录以及文件，重新下载，合集优先级最高
+                            if (VideoType == VideoTypeEnum.dy_mix && exitVideo.ViedoType != VideoTypeEnum.dy_mix)
+                            {
+                                File.Delete(exitVideo.VideoSavePath);
+                                await douyinVideoService.DeleteById(exitVideo.Id);
+                            }
+                            else
+                            {
+                                await douyinVideoService.DeleteById(exitVideo.Id);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //文件不存在，直接删掉原始记录
+                        await douyinVideoService.DeleteById(exitVideo.Id);
+                    }
                 }
+
                 var uper = await douyinFollowService.GetByUperId(item.AuthorUserId.ToString(), cookie.MyUserId);
                 if (uper != null && uper.FullSync)
                 {
@@ -1055,7 +1078,6 @@ namespace dy.net.job
         /// </summary>
         /// <param name="cookie">用户Cookie</param>
         /// <param name="item">视频信息（包含图片集）</param>
-        /// <param name="data">视频信息对象</param>
         /// <param name="config">应用配置</param>
         /// <param name="followed">应用配置</param>
         /// <param name="cate"></param>
@@ -1432,6 +1454,7 @@ namespace dy.net.job
                 // 生成NFO文件,动态视频 合成后重新生成，不在这里生成nfo
                 NfoFileGenerator.GenerateVideoNfoFile(video);
             }
+
             return video;
         }
 

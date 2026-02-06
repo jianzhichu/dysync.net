@@ -69,5 +69,8 @@ namespace dy.net.model.entity
         /// 标记为非关注的用户-手动增加的
         /// </summary>
         public bool IsNoFollowed { get; set; }
+
+        [SugarColumn(IsNullable = true, Length = 100)]
+        public string DouyinNo { get; set; }
     }
 }

@@ -95,8 +95,8 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 | 镜像标签          | 架构           |
 | ----------------- | -------------- |
-| `beta_2.1.0`      | x86_64 (amd64) |
-| `arm_2.1.0`       | ARM64          |
+| `beta_2.1.1`      | x86_64 (amd64) |
+| `arm_2.1.1`       | ARM64          |
 
 
 ### 构建命令示例
@@ -113,7 +113,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.1.0
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.1.1
     container_name: dysync2026  # 容器名称
     restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:

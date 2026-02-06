@@ -3,6 +3,7 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
+using System.Threading.Tasks;
 
 namespace dy.net.job
 {
@@ -34,33 +35,44 @@ namespace dy.net.job
             return await douyinHttpClientService.SyncCollectVideos(cursor, count, cookie.Cookies);
         }
 
-       
+
 
 
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
-            string authorFolder;
-            if (string.IsNullOrWhiteSpace(item.Author?.Nickname) && string.IsNullOrWhiteSpace(item.Author?.Uid))
+            // 1. 简化获取博主自定义保存路径（合并空值判断）
+            string saveFolder = !string.IsNullOrWhiteSpace(item?.Author?.Uid)
+                ? base.douyinCommonService.GetDouyinUpSavePath(item.Author.Uid)
+                : string.Empty;
+
+            // 2. 简化博主文件夹命名逻辑
+            string authorFolder = !string.IsNullOrWhiteSpace(saveFolder)
+                ? saveFolder
+                : (item?.Author == null || (string.IsNullOrWhiteSpace(item.Author.Nickname) && string.IsNullOrWhiteSpace(item.Author.Uid)))
+                    ? "未知博主"
+                    : DouyinFileNameHelper.SanitizeLinuxFileName(item.Author.Nickname, item.Author.Uid, true);
+
+            if (string.IsNullOrWhiteSpace(saveFolder)&&!string.IsNullOrEmpty(authorFolder))
             {
-                authorFolder = "未知博主";
+                base.douyinCommonService.SaveDouyinUpSavePath(item.Author.Uid, authorFolder);
+            }
+
+            // 3. 提取重复的视频文件夹名（避免重复调用方法）
+            string videoFolderName = DouyinFileNameHelper.SanitizeLinuxFileName(item?.Desc, item?.AwemeId, true);
+
+            // 4. 简化文件夹路径拼接+存在判断（核心逻辑不变）
+            string folder = Path.Combine(cookie.SavePath, authorFolder, videoFolderName);
+            if (Directory.Exists(folder))
+            {
+                // 文件夹存在则拼接AwemeId（保留你的原逻辑）
+                folder = Path.Combine(cookie.SavePath, authorFolder, $"{videoFolderName}_{item.AwemeId}");
             }
             else
-            {
-                authorFolder = $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Author?.Nickname, item.Author?.Uid, true)}";
-            }
-            var folder = Path.Combine(cookie.SavePath, authorFolder, $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}");
-            if (!Directory.Exists(folder))
             {
                 Directory.CreateDirectory(folder);
             }
-            else
-            {
-                //说明文件夹存在，检查里面有没有文件，如果已经有视频文件了，说明视频标题相同，那么应该重新创建文件夹,+id
 
-                folder = Path.Combine(cookie.SavePath, authorFolder , $"{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)}"+"_" + item.AwemeId);
-            }
             return folder;
-
         }
     }
 }

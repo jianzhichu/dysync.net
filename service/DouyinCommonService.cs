@@ -34,8 +34,8 @@ namespace dy.net.service
                 }
                 conf.IsFirstRunning = true;//标记为程序刚启动第一次运行
                 conf.AutoDistinct = true;
-                if(!conf.VideoEncoder.HasValue)
-                conf.VideoEncoder = 264;
+                if (!conf.VideoEncoder.HasValue)
+                    conf.VideoEncoder = 264;
                 sqlSugarClient.Updateable(conf).ExecuteCommand();
                 //兼容旧版本
                 return conf;
@@ -158,37 +158,39 @@ namespace dy.net.service
         }
 
 
-        ///// <summary>
-        ///// 获取已经下载过视频的作者的保存路径
-        ///// </summary>
-        ///// <param name="uperId"></param>
-        ///// <returns></returns>
-        //public async Task<string> GetDouyinUpSavePath(string uperId)
-        //{
-        //    return await sqlSugarClient.Queryable<DouyinVideoUp>().Where(x => x.UperId == uperId).Select(x => x.SavePath).FirstAsync();
-        //}
-        ///// <summary>
-        ///// 保存下载过视频的作者的保存路径
-        ///// </summary>
-        ///// <param name="uperId"></param>
-        ///// <param name="SavePath"></param>
-        ///// <returns></returns>
-        //public async Task<bool> SaveDouyinUpSavePath(string uperId, string SavePath)
-        //{
+        /// <summary>
+        /// 获取已经下载过视频的作者的保存路径
+        /// </summary>
+        /// <param name="uperId"></param>
+        /// <returns></returns>
+        public string GetDouyinUpSavePath(string uperId)
+        {
+            return  sqlSugarClient.Queryable<DouyinVideoUp>().Where(x => x.UperId == uperId).Select(x => x.SavePath).First();
+        }
 
-        //    var upSavePath = await GetDouyinUpSavePath(uperId);
-        //    if (string.IsNullOrWhiteSpace(upSavePath))
-        //    {
-        //       await sqlSugarClient.Insertable(new DouyinVideoUp
-        //        {
-        //            Id = IdGener.GetLong().ToString(),
-        //            SavePath = SavePath,
-        //            UperId = uperId
-        //        }).ExecuteCommandAsync();
-        //    }
-        //    return true;
+        /// <summary>
+        /// 保存下载过视频的作者的保存路径
+        /// </summary>
+        /// <param name="uperId"></param>
+        /// <param name="SavePath"></param>
+        /// <returns></returns>
+        public  bool SaveDouyinUpSavePath(string uperId, string SavePath)
+        {
+            if (string.IsNullOrEmpty(uperId))
+                return false;
+            var upSavePath =  GetDouyinUpSavePath(uperId);
+            if (string.IsNullOrWhiteSpace(upSavePath))
+            {
+                 sqlSugarClient.Insertable(new DouyinVideoUp
+                {
+                    Id = IdGener.GetLong().ToString(),
+                    SavePath = SavePath,
+                    UperId = uperId
+                }).ExecuteCommand();
+            }
+            return true;
 
-        //}
+        }
 
         /// <summary>
         /// 将所有关注博主的保存路径统一刷成博主姓名，防止博主名字改变后出现多个文件夹
@@ -196,11 +198,11 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task UpdateFollowedSavePathAsync()
         {
-            var existNoSavePath =await sqlSugarClient.Queryable<DouyinFollowed>().Where(x => string.IsNullOrWhiteSpace(x.SavePath)).AnyAsync();
+            var existNoSavePath = await sqlSugarClient.Queryable<DouyinFollowed>().Where(x => string.IsNullOrWhiteSpace(x.SavePath)).AnyAsync();
             if (existNoSavePath)
             {
                 var list = await sqlSugarClient.Queryable<DouyinFollowed>().ToListAsync();
-                var noSavePathList = list.Where(x => string.IsNullOrWhiteSpace(x.SavePath));
+                var noSavePathList = list.Where(x => string.IsNullOrWhiteSpace(x.SavePath))?.ToList();
                 foreach (var item in noSavePathList)
                 {
                     var path = DouyinFileNameHelper.SanitizeLinuxFileName(item.UperName, "抖音号" + item.UperId, true);
@@ -215,7 +217,10 @@ namespace dy.net.service
                         item.SavePath = path;
                     }
                 }
-                await sqlSugarClient.Updateable(list).UpdateColumns(x => new { x.SavePath }).ExecuteCommandAsync();
+                if (noSavePathList != null)
+                {
+                    await sqlSugarClient.Updateable(noSavePathList).UpdateColumns(x => new { x.SavePath }).ExecuteCommandAsync();
+                }
             }
         }
         #region 测试创建数据库

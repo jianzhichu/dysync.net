@@ -203,8 +203,8 @@ namespace dy.net.service
                 IsCollectEnabled = cookies.Any(x => x.DownCollect && !x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath)),
                 IsFavoriteEnabled = cookies.Any(x => x.DownFavorite && !string.IsNullOrWhiteSpace(x.FavSavePath)),
                 IsFollowedEnabled = cookies.Any(x => x.DownFollowd && !string.IsNullOrWhiteSpace(x.UpSavePath)),
-                IsMixEnabled = cookies.Any(x => x.DownMix && !string.IsNullOrWhiteSpace(x.MixPath) && !string.IsNullOrWhiteSpace(x.SavePath)),
-                IsSeriesEnabled = cookies.Any(x => x.DownSeries && !string.IsNullOrWhiteSpace(x.SeriesPath) && !string.IsNullOrWhiteSpace(x.SavePath)),
+                IsMixEnabled = cookies.Any(x => x.DownMix && !string.IsNullOrWhiteSpace(x.MixPath)),
+                IsSeriesEnabled = cookies.Any(x => x.DownSeries && !string.IsNullOrWhiteSpace(x.SeriesPath)),
                 IsCustomCollectEnabled = cookies.Any(x => x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath))
             };
         }

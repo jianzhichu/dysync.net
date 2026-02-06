@@ -42,7 +42,7 @@ namespace dy.net.repository
         {
             var where = this.Db.Queryable<DouyinFollowed>()
                 .Where(x => x.mySelfId == dto.MySelfId)
-                .WhereIF(!string.IsNullOrWhiteSpace(dto.FollowUserName), x => x.UperName.Contains(dto.FollowUserName));
+                .WhereIF(!string.IsNullOrWhiteSpace(dto.FollowUserName), x => x.UperName.Contains(dto.FollowUserName) || x.DouyinNo.Contains(dto.FollowUserName));
             var totalCount = await where.CountAsync();
             var list = await where.OrderByDescending(x => x.OpenSync).OrderByDescending(x => x.LastSyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
             return (list, totalCount);
@@ -141,8 +141,9 @@ namespace dy.net.repository
                     bool signatureChanged = !string.Equals(existFollow.Signature, newFollow.Signature, StringComparison.Ordinal);
                     bool enterpriseChanged = !string.Equals(existFollow.Enterprise, newFollow.EnterpriseVerifyReason, StringComparison.Ordinal);
                     bool uperAvatarChanged = !string.Equals(existFollow.UperAvatar, newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "", StringComparison.Ordinal);
+                    bool dyNoChanged = !string.Equals(existFollow.DouyinNo, newFollow.ShortId ?? "", StringComparison.Ordinal);
 
-                    if (nameChanged || signatureChanged || uperAvatarChanged || enterpriseChanged)
+                    if (nameChanged || signatureChanged || uperAvatarChanged || enterpriseChanged|| dyNoChanged)
                     {
                         var updateFoll = new DouyinFollowed
                         {
@@ -153,7 +154,8 @@ namespace dy.net.repository
                             Signature = newFollow.Signature,
                             Enterprise = newFollow.EnterpriseVerifyReason,
                             UperAvatar = newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "",
-                            LastSyncTime = DateTime.UtcNow // 更新同步时间
+                            LastSyncTime = DateTime.UtcNow,// 更新同步时间
+                            DouyinNo = newFollow.ShortId
                         };
                         if (string.IsNullOrWhiteSpace(existFollow.SavePath))
                         {
@@ -178,7 +180,8 @@ namespace dy.net.repository
                         UperName = follow.NickName,
                         Signature = follow.Signature,
                         UperId = follow.UperId,
-                        SavePath= DouyinFileNameHelper.SanitizeLinuxFileName(follow.NickName, follow.UperId, true)
+                        SavePath = DouyinFileNameHelper.SanitizeLinuxFileName(follow.NickName, follow.UperId, true),
+                        DouyinNo = follow.ShortId
                     };
 
                     bool batchAddSuccess = await BatchProcessAsync(toAddFollows, 200,
@@ -198,7 +201,7 @@ namespace dy.net.repository
                         async batch =>
                         {
                             int affectedRows = await Db.Updateable(batch)
-                                .UpdateColumns(x => new { x.UperName, x.Signature, x.LastSyncTime, x.Enterprise, x.UperAvatar,x.SavePath })
+                                .UpdateColumns(x => new { x.UperName, x.Signature, x.LastSyncTime, x.Enterprise, x.UperAvatar,x.SavePath,x.DouyinNo })
                                 .WhereColumns(x => x.Id) // 按主键匹配
                                 .ExecuteCommandAsync();
 

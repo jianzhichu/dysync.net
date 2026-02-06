@@ -38,6 +38,7 @@
         public string FollowUserName { get; set; }
 
         public string MySelfId { get; set; }
+
     }
 
     public class FollowUpdateDto

@@ -109,11 +109,11 @@ namespace dy.net.model.response
         [JsonProperty("sec_uid")]
         public string SecUid { get; set; }
 
-        ///// <summary>
-        ///// 
-        ///// </summary>
-        //[JsonProperty("short_id")]
-        //public string ShortId { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonProperty("short_id")]
+        public string ShortId { get; set; }
 
         /// <summary>
         /// 签名
@@ -1361,10 +1361,10 @@ namespace dy.net.model.response
     //    ///// 
     //    ///// </summary>
     //    //public string shop_micro_app { get; set; }
-    //    ///// <summary>
-    //    ///// 
-    //    ///// </summary>
-    //    //public string short_id { get; set; }
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        //public string short_id { get; set; }
     //    ///// <summary>
     //    ///// 
     //    ///// </summary>

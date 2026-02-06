@@ -62,6 +62,34 @@
                 <span class="subitem-meta">图文视频 <span class="subitem-count">({{ graphicVideoCount }})</span></span>
                 <span class="subitem-size">{{ graphicVideoSize }}G</span>
               </div>
+
+              <!-- 新增：合集视频统计项 -->
+              <div class="subitem" :title="`合集视频数: ${mixCount || 0} (占用: ${videoMixSize}G)`">
+                <div class="subitem-icon mix-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                  </svg>
+                </div>
+                <span class="subitem-meta">合集视频 <span class="subitem-count">({{ mixCount || 0 }})</span></span>
+                <span class="subitem-size">{{ videoMixSize }}G</span>
+              </div>
+              <!-- 新增：短剧视频统计项 -->
+              <div class="subitem" :title="`短剧视频数: ${seriesCount || 0} (占用: ${videoSeriesSize}G)`">
+                <div class="subitem-icon series-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                    <line x1="7" y1="2" x2="7" y2="22"></line>
+                    <line x1="17" y1="2" x2="17" y2="22"></line>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <line x1="2" y1="7" x2="7" y2="7"></line>
+                    <line x1="2" y1="17" x2="7" y2="17"></line>
+                    <line x1="17" y1="17" x2="22" y2="17"></line>
+                    <line x1="17" y1="7" x2="22" y2="7"></line>
+                  </svg>
+                </div>
+                <span class="subitem-meta">短剧视频 <span class="subitem-count">({{ seriesCount || 0 }})</span></span>
+                <span class="subitem-size">{{ videoSeriesSize }}G</span>
+              </div>
             </div>
           </div>
 
@@ -126,15 +154,17 @@
     <div v-if="activeTab === 'follow'" class="tab-content follow-tab">
       <!-- 搜索+操作栏：移动端单行布局，适配小屏 -->
       <div class="follow-header">
+        <!-- <a-select v-model:value="filterStatus" class="follow-filter-select" placeholder="筛选同步状态" @change="handleFilterChange">
+          <a-option value="all">全部</a-option>
+          <a-option value="openSync">已开启同步</a-option>
+          <a-option value="fullSync">全量同步</a-option>
+          <a-option value="closeSync">未开启同步</a-option>
+        </a-select> -->
         <div class="search-wrapper">
-          <a-input v-model:value="quaryData.followUserName" placeholder="搜索博主名称" allow-clear @pressEnter="handleSearch" class="follow-search-input" @input="searchInputVisible = quaryData.followUserName && quaryData.followUserName.trim() !== ''" />
+          <a-input v-model:value="quaryData.followUserName" placeholder="搜索博主名称或抖音号" allow-clear @pressEnter="handleSearch" @search="handleSearch" class="follow-search-input" />
         </div>
         <div class="follow-actions">
-          <!-- 新增搜索按钮，和同步按钮同排 -->
-          <a-button type="default" class="follow-btn search-btn" @click="handleSearch" :disabled="!quaryData.followUserName || quaryData.followUserName.trim() === ''">
-            <SearchOutlined />
-          </a-button>
-          <!-- 原有同步按钮 -->
+
           <a-button type="primary" class="follow-btn sync-btn" @click="handleSyncAll" :disabled="isSyncDisabled">
             <SyncOutlined />
           </a-button>
@@ -165,8 +195,9 @@
               </div>
               <div class="name-actions">
                 <div class="name-wrapper">
-                  <h3 class="uper-name">{{ truncateText(item.uperName, 10) || '未知博主' }}</h3> <!-- 增加空值处理 -->
+                  <h3 class="uper-name">{{ truncateText(item.uperName, 10) || '未知博主' }}<span style="font-size:12px;margin-left:5px;">{{item.douyinNo?`(${item.douyinNo})`:''}}</span></h3> <!-- 增加空值处理 -->
                   <span v-if="item.isNoFollowed" class="no-followed-badge">非关注</span>
+
                 </div>
                 <div class="top-actions">
                   <!-- 删除按钮：仅非关注显示 -->
@@ -387,6 +418,7 @@ interface FollowItem {
   isEditing: boolean;
   isSaving?: boolean;
   uperId?: string;
+  douyinNo?: string;
   isNoFollowed: boolean;
 }
 interface QuaryParam {
@@ -402,10 +434,14 @@ const favoriteCount = ref<number>(0);
 const collectCount = ref<number>(0);
 const followCount = ref<number>(0);
 const graphicVideoCount = ref<number>(0);
+const mixCount = ref<number>(0);
+const seriesCount = ref<number>(0);
 const favoriteSize = ref<string>('0.00');
 const collectSize = ref<string>('0.00');
 const followSize = ref<string>('0.00');
 const graphicVideoSize = ref<string>('0.00');
+const videoMixSize = ref<string>('0.00');
+const videoSeriesSize = ref<string>('0.00');
 const activeTab = ref<string>('dashboard');
 const logFilter = ref<string>('all');
 const logs = ref<LogItem[]>([]);
@@ -432,7 +468,6 @@ const followData = ref<FollowItem[]>([]);
 const loading = ref(false);
 const noMoreData = ref(false);
 const hasMore = ref(true);
-const searchInputVisible = ref(false);
 const isSyncDisabled = ref(false);
 const isAddDisabled = ref(false);
 
@@ -489,22 +524,27 @@ watch(
   }
 );
 
-// ========== 原有仪表盘方法 ==========
 const loadDashboardData = async () => {
   try {
     const res = await useApiStore().VideoStatics();
     totalVideos.value = res.data.videoCount;
     fileSizeTotal.value = res.data.videoSizeTotal || '0.00';
+
     favoriteCount.value = res.data.favoriteCount;
     collectCount.value = res.data.collectCount;
     followCount.value = res.data.followCount || 0;
     graphicVideoCount.value = res.data.graphicVideoCount || 0;
+    mixCount.value = res.data.mixCount || 0;
+    seriesCount.value = res.data.seriesCount || 0;
+
     favoriteSize.value = res.data.videoFavoriteSize || '0.00';
     collectSize.value = res.data.videoCollectSize || '0.00';
     followSize.value = res.data.videoFollowSize || '0.00';
     graphicVideoSize.value = res.data.graphicVideoSize || '0.00';
+    videoMixSize.value = res.data.videoMixSize || '0.00';
+    videoSeriesSize.value = res.data.videoSeriesSize || '0.00';
   } catch (err) {
-    console.error('加载移动端仪表盘数据失败：', err);
+    console.error('加载仪表盘数据失败：', err);
   }
 };
 const loadLogData = async () => {
@@ -893,7 +933,6 @@ const handleDeleteItem = (item: FollowItem) => {
 };
 </script>
 
-<!-- 全局样式 -->
 <style>
 html,
 body {
@@ -919,6 +958,25 @@ body {
 }
 .ant-card-body {
   padding: 0 !important;
+}
+
+/* ========== 移动端隐藏所有滚动条 - 核心代码 ========== */
+/* 针对webkit内核浏览器（iOS/安卓Chrome/Edge等） */
+*::-webkit-scrollbar {
+  width: 0px !important; /* 垂直滚动条宽度 */
+  height: 0px !important; /* 水平滚动条高度 */
+  display: none !important; /* 直接隐藏滚动条元素 */
+}
+/* 滚动条轨道/滑块也隐藏，防止残留 */
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-thumb {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+/* 火狐浏览器适配（可选，移动端火狐占比极低） */
+* {
+  scrollbar-width: none !important; /* 火狐隐藏滚动条 */
+  -ms-overflow-style: none !important; /* IE/Edge 隐藏滚动条 */
 }
 </style>
 
@@ -1634,12 +1692,6 @@ body {
   font-size: 14px !important;
   width: 100% !important;
 }
-/* 搜索图标定位 */
-.search-wrapper :deep(.ant-input-suffix) {
-  right: 12px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-}
 .follow-actions {
   display: flex;
   gap: 8px;
@@ -1654,11 +1706,6 @@ body {
   align-items: center !important;
   justify-content: center !important;
 }
-.add-btn {
-  background-color: #4caf50 !important;
-  border-color: #4caf50 !important;
-}
-
 /* Tab导航：横向滚动 */
 .follow-tab-wrapper {
   width: 100%;
@@ -2193,5 +2240,49 @@ html.dark-mode .avatar-placeholder {
   .full-sync-label {
     font-size: 12px !important;
   }
+}
+
+/* 筛选下拉选择器：和搜索框、同步按钮统一风格，移动端适配 */
+.follow-filter-select {
+  width: 120px !important;
+  height: 40px !important;
+  flex-shrink: 0;
+}
+/* 覆盖antd select默认样式，和布局匹配 */
+:deep(.follow-filter-select .ant-select-selector) {
+  height: 100% !important;
+  border-radius: 20px !important; /* 和搜索框同圆角，视觉统一 */
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+}
+/* 隐藏select默认边框高亮（可选，更简洁） */
+:deep(.follow-filter-select .ant-select-focused .ant-select-selector) {
+  box-shadow: none !important;
+  border-color: #d9d9d9 !important;
+}
+/* 下拉选项弹窗：适配移动端，调大宽度 */
+:deep(.follow-filter-select .ant-select-dropdown) {
+  min-width: 120px !important;
+  font-size: 13px !important;
+}
+
+/* 黑暗模式适配：筛选选择器样式统一 */
+html.dark-mode :deep(.follow-filter-select .ant-select-selector) {
+  background-color: #1f4068 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e0e0e0 !important;
+}
+html.dark-mode :deep(.follow-filter-select .ant-select-dropdown) {
+  background-color: #1e1e3f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html.dark-mode :deep(.follow-filter-select .ant-select-item) {
+  color: #e0e0e0 !important;
+}
+html.dark-mode :deep(.follow-filter-select .ant-select-item-selected) {
+  background-color: #4caf50 !important;
+  color: #fff !important;
 }
 </style>

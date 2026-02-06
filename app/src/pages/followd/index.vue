@@ -15,7 +15,7 @@
         </a-button>
         <transition name="search-input-fade">
           <div v-if="searchInputVisible" class="search-input-wrapper">
-            <a-input v-model:value="quaryData.followUserName" placeholder="输入关注的用户名，按回车" allow-clear @pressEnter="handleSearch" class="search-input" ref="searchInputRef" />
+            <a-input v-model:value="quaryData.followUserName" placeholder="输入博主用户名或抖音号，按回车" allow-clear @pressEnter="handleSearch" class="search-input" ref="searchInputRef" />
           </div>
         </transition>
         <a-button type="primary" class="sync-btn" @click="handleAdd" :disabled="isAddDisabled">
@@ -51,7 +51,7 @@
             </div>
             <div class="card-content">
               <div class="card-name">
-                {{ item.uperName }}
+                {{ item.uperName }} <span style="font-size:12px;">{{item.douyinNo?`(${item.douyinNo})`:''}}</span>
                 <!-- 非关注小标记 -->
                 <span v-if="item.isNoFollowed" class="no-followed-badge">非关注</span>
                 <!-- 删除按钮（仅非关注项显示，放在名字+非关注后面）v-if="item.isNoFollowed"  -->
@@ -183,6 +183,7 @@ interface FollowItem {
   isEditing: boolean;
   isSaving?: boolean;
   uperId?: string; // 原userId改为uperId
+  douyinNo?: string;
   isNoFollowed: boolean; // 新增：是否为非关注博主
 }
 
@@ -201,6 +202,7 @@ interface AddForm {
   fullSync: boolean;
   mySelfId: string;
   uperId: string;
+  douyinNo: string;
 }
 
 // Tab列表数据
@@ -233,6 +235,7 @@ const addForm = ref<AddForm>({
   fullSync: false,
   mySelfId: '',
   uperId: '',
+  douyinNo: '',
 });
 
 // 表单校验规则
@@ -543,6 +546,7 @@ const handleAdd = () => {
     fullSync: false,
     secUid: '',
     mySelfId: activeTabKey.value,
+    douyinNo: '',
   };
   // 清空错误信息
   Object.keys(addFormErrors.value).forEach((key) => {

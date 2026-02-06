@@ -97,7 +97,7 @@
             </span>
           </div>
         </a-form-item> -->
-        <a-form-item v-if="formState.DownImageVideo" has-feedback label="保留音频" name="DownMp3" :wrapper-col="{ span: 20 }">
+        <a-form-item has-feedback label="保留音频" name="DownMp3" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownMp3" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -105,7 +105,7 @@
           </div>
         </a-form-item>
 
-        <a-form-item v-if="formState.DownImageVideo" has-feedback label="保留图片" name="DownImage" :wrapper-col="{ span: 20 }">
+        <a-form-item has-feedback label="保留图片" name="DownImage" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.DownImage" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
