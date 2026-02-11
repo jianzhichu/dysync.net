@@ -254,7 +254,7 @@ namespace dy.net.service
             {
                 if (await scheduler.CheckExists(jobKey))
                 {
-                    Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
+                    //Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
                     await scheduler.DeleteJob(jobKey);
                 }
             }
@@ -402,7 +402,7 @@ namespace dy.net.service
         {
             if (await scheduler.CheckExists(jobKey))
             {
-                Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
+                //Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
                 await scheduler.DeleteJob(jobKey);
             }
         }

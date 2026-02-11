@@ -137,7 +137,7 @@ namespace dy.net.job
             var cookies = await GetSyncCookies();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug($"[{VideoType.GetDesc()}]-Cookie无效或已关闭同步...");
+                Log.Debug($"[{VideoType.GetDesc()}]-Cookie无效或同步开关未开启或对应类型的存储路径未设置，请检查...");
                 return;
             }
             Log.Debug($"[{VideoType.GetDesc()}]共发现{cookies.Count}个有效Cookie，同步开始...");

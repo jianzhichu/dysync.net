@@ -341,7 +341,7 @@ const drawerDataList = ref<DrawerItem[]>([]);
 // 抽屉分页配置
 const drawerPagination = reactive({
   current: 1,
-  pageSize: 20,
+  pageSize: 10,
   total: 0,
   loading: false,
   hasMore: true, // 是否还有更多数据
@@ -431,6 +431,8 @@ const loadDrawerData = () => {
     .CatePageList({
       cookieId: cookieId.value,
       cateType: cateType.value,
+      pageIndex: drawerPagination.current,
+      pageSize: drawerPagination.pageSize,
     })
     .then((res) => {
       if (res.code === 0) {
@@ -1110,5 +1112,65 @@ html.dark-mode .drawer-card-container.grid-container .drawer-card-grid .ant-inpu
 }
 .ant-alert-warning .ant-alert-icon {
   color: #faad14;
+}
+
+// 抽屉滚动容器样式（核心修复）
+.drawer-scroll-container {
+  width: 100%;
+  height: calc(100vh - 120px); // 关键：固定高度，确保能滚动
+  overflow-y: auto; // 开启垂直滚动
+  overflow-x: hidden; // 隐藏水平滚动
+  padding: 0 8px;
+  box-sizing: border-box;
+
+  // 滚动条样式优化（可选）
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+
+  // 黑暗模式滚动条
+  html.dark-mode &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+// 加载中样式
+.drawer-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  width: 100%;
+}
+
+.loading-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 0;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+
+  html.dark-mode & {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.no-more-data {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+
+  html.dark-mode & {
+    color: rgba(255, 255, 255, 0.45);
+  }
 }
 </style>

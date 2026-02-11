@@ -14,10 +14,10 @@
         </a-form-item>
 
         <a-form-item has-feedback label="单次最多" name="BatchCount" :wrapper-col="{ span: 20 }">
-          <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大30)" :min="10" :max="30" />
+          <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大40)" :min="10" :max="40" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>每次任务最多下载数量：10-30，拉取视频数据超出该值将会等待下次任务执行。</span>
+            <span>每次任务最多下载数量：10-40，拉取视频数据超出该值将会等待下次任务执行。</span>
           </div>
         </a-form-item>
 

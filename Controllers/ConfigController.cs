@@ -8,6 +8,8 @@ using dy.sync.lib;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using System.Net;
+using System.Text.RegularExpressions;
 
 namespace dy.net.Controllers
 {
@@ -160,9 +162,11 @@ namespace dy.net.Controllers
             dyUserCookies.Id = IdGener.GetLong().ToString();
 
             // 2. 路径权限校验
-            var pathValidationResult = ValidatePaths(dyUserCookies);
-            if (!pathValidationResult.Success)
-                return ApiResult.Fail(pathValidationResult.Message);
+            var (Success, Message) = ValidatePaths(dyUserCookies);
+            if (!Success)
+                return ApiResult.Fail(Message);
+
+            RemoveCookieLineString(dyUserCookies);
 
             // 3. Cookie 有效性校验
             var cookieValid = await httpClientService.CheckCookie(dyUserCookies);
@@ -226,6 +230,8 @@ namespace dy.net.Controllers
         [HttpPost("update")]
         public async Task<IActionResult> AddOrUpdateAsync([FromBody] DouyinCookie dyUserCookies)
         {
+            RemoveCookieLineString(dyUserCookies);
+
             var checkCk = await httpClientService.CheckCookie(dyUserCookies);
             if (!checkCk)
             {
@@ -255,6 +261,16 @@ namespace dy.net.Controllers
                 return ApiResult.Fail("更新失败");
             }
 
+        }
+
+        private static void RemoveCookieLineString(DouyinCookie dyUserCookies)
+        {
+            if (dyUserCookies != null && !string.IsNullOrWhiteSpace(dyUserCookies.Cookies))
+            {
+                var s = dyUserCookies.Cookies.Replace("\\r\\n", "\r\n");
+                var ss = s.Trim(new char[] { '\r', '\n' });
+                dyUserCookies.Cookies = ss;
+            }
         }
 
         /// <summary>
