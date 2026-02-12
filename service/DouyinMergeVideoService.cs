@@ -36,7 +36,7 @@ namespace dy.net.service
         /// <param name="ck"></param>
         /// <returns></returns>
         public async Task<(string mp4Path, string mp3Path)> MergeMultipleVideosAsync(
-          List<DouyinDynamicVideoDto> videoFilePaths,
+          List<DouyinMergeVideoDto> videoFilePaths,
            string audioPath,
            string savePath,
            string ck)
@@ -45,11 +45,11 @@ namespace dy.net.service
             string mergMusicPath = GetRandomMergeMusic();
             if (!string.IsNullOrWhiteSpace(audioPath))
             {
-                var (SuccessPaths, _) = await DownloadMediaAsync(new List<string> { audioPath }, Path.GetDirectoryName(savePath), "audio_", "mp3", ck);
-                if (SuccessPaths != null && SuccessPaths.Length > 0)
+                var (SuccessPaths, _) = await DownloadMediaAsync(new List<DouyinMergeVideoDto> { new DouyinMergeVideoDto { Path= audioPath } }, Path.GetDirectoryName(savePath), "audio_", "mp3", ck);
+                if (SuccessPaths != null && SuccessPaths.Count > 0)
                 {
-                    mergMusicPath = SuccessPaths[0];
-                    mp3Path = SuccessPaths[0];
+                    mergMusicPath = SuccessPaths.FirstOrDefault()?.Path;
+                    mp3Path = SuccessPaths.FirstOrDefault()?.Path;
                 }
             }
             var ffmpeg = new FFmpegHelper();
@@ -126,7 +126,7 @@ namespace dy.net.service
                 // 1. 下载图片
                 var (rawImages, imageError) = await DownloadMediaAsync(
                     request.ImageUrls, Path.Combine(tempDir, "raw-images"), "image_", "webp", cookie);
-                if (!string.IsNullOrEmpty(imageError) || rawImages == null || rawImages.Length == 0)
+                if (!string.IsNullOrEmpty(imageError) || rawImages == null || rawImages.Count == 0)
                 {
                     Log.Error($"图片下载失败：{imageError ?? "未下载到任何图片"}");
                     return false;
@@ -138,12 +138,12 @@ namespace dy.net.service
                 }
 
                 // 2. 下载音频
-                string[] rawAudios = Array.Empty<string>();
+                List<DouyinMergeVideoDto> rawAudios =new List<DouyinMergeVideoDto>();
                 if (mergeImg2Viedo && request.AudioUrls != null && request.AudioUrls.Count > 0)
                 {
                     var (audios, audioError) = await DownloadMediaAsync(
-                        request.AudioUrls, Path.Combine(tempDir, "raw-audios"), "audio_", "mp3", cookie);
-                    if (!string.IsNullOrEmpty(audioError) || audios == null || audios.Length == 0)
+                        request.AudioUrls.Select(x => new DouyinMergeVideoDto { Path = x })?.ToList(), Path.Combine(tempDir, "raw-audios"), "audio_", "mp3", cookie);
+                    if (!string.IsNullOrEmpty(audioError) || audios == null || audios.Count == 0)
                     {
                         Log.Error($"音频下载失败：{audioError ?? "未下载到任何音频"}");
                         return false;
@@ -152,7 +152,7 @@ namespace dy.net.service
                     // 保存下载的音频（如果需要）
                     if (downMp3)
                     {
-                        var ext = Path.GetExtension(rawAudios[0]);
+                        var ext = Path.GetExtension(rawAudios.FirstOrDefault()?.Path);
                         await SaveDownloadedFilesAsync(rawAudios, fileNamefolder, ext, Path.GetFileNameWithoutExtension(outputVideoPath));
                     }
                 }
@@ -192,16 +192,16 @@ namespace dy.net.service
                         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300));
                         // 执行合成（确保每个图片都参与）
 
-                        if (rawAudios.Length == 0)
+                        if (rawAudios.Count == 0)
                         {
                             var musicPath = GetRandomMergeMusic();
-                            rawAudios = new string[] { musicPath };
+                            rawAudios = new List<DouyinMergeVideoDto> { new DouyinMergeVideoDto { Path= musicPath } };
                             Log.Debug("版权原因无法下载音频，使用默认无声音频文件");
                         }
 
                         string resultPath = await ffmpegHelper.CreateVideoFromImagesAndAudioAsync(
                             rawImages,          // 所有下载的图片（确保无遗漏）
-                            rawAudios[0],       // 取第一个音频（可根据需求调整）
+                            rawAudios.FirstOrDefault()?.Path,       // 取第一个音频（可根据需求调整）
                             outputVideoPath,
                             ffmpegHelper.VideoWidth,
                             ffmpegHelper.VideoHeight,
@@ -235,23 +235,23 @@ namespace dy.net.service
         /// <summary>
         /// 保存下载的文件（图片/音频）到目标目录
         /// </summary>
-        private static async Task SaveDownloadedFilesAsync(string[] sourcePaths, string targetFolder, string defaultExt, string videoFileName)
+        private static async Task SaveDownloadedFilesAsync(List<DouyinMergeVideoDto> sourcePaths, string targetFolder, string defaultExt, string videoFileName)
         {
-            if (sourcePaths == null || sourcePaths.Length == 0) return;
+            if (sourcePaths == null || sourcePaths.Count == 0) return;
             Directory.CreateDirectory(targetFolder); // 确保目标目录存在
 
             // 异步保存（不阻塞主线程）
             await Task.WhenAll(sourcePaths.Select(async (sourcePath, index) =>
             {
-                if (!File.Exists(sourcePath)) return;
-                string extension = Path.GetExtension(sourcePath) ?? $".{defaultExt}";
+                if (!File.Exists(sourcePath.Path)) return;
+                string extension = Path.GetExtension(sourcePath.Path) ?? $".{defaultExt}";
                 string destFileName = $"{videoFileName}{index + 1:D3}{extension}";
                 string destPath = Path.Combine(targetFolder, destFileName);
 
                 // 文件不存在时才复制，避免覆盖
                 if (!File.Exists(destPath))
                 {
-                    await Task.Run(() => File.Copy(sourcePath, destPath, overwrite: false));
+                    await Task.Run(() => File.Copy(sourcePath.Path, destPath, overwrite: false));
                     Log.Debug($"已保存文件：{destPath}");
                 }
             }));
@@ -326,23 +326,29 @@ namespace dy.net.service
 
 
         /// <summary>通用媒体下载方法</summary>
-        private async Task<(string[] SuccessPaths, string ErrorMsg)> DownloadMediaAsync(
-            List<string> urls, string saveDir, string prefix, string ext, string cookie)
+        private async Task<(List<DouyinMergeVideoDto> SuccessPaths, string ErrorMsg)> DownloadMediaAsync(
+            List<DouyinMergeVideoDto> urls, string saveDir, string prefix, string ext, string cookie)
         {
-            var successPaths = new List<string>();
+            var successPaths = new List<DouyinMergeVideoDto>();
             for (var i = 0; i < urls.Count; i++)
             {
                 var url = urls[i];
-                var fileExt = ext ?? Path.GetExtension(url).TrimStart('.') ?? "png";
+                var fileExt = ext ?? Path.GetExtension(url.Path).TrimStart('.') ?? "png";
                 var fileName = $"{prefix}{i + 1}.{fileExt}";
                 var savePath = Path.Combine(saveDir, fileName);
 
                 try
                 {
-                    var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(url, savePath, cookie);
+                    var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(url.Path, savePath, cookie);
                     if (Success)
                     {
-                        successPaths.Add(ActualSavePath);
+                        successPaths.Add(new DouyinMergeVideoDto
+                        {
+                            Path = ActualSavePath,
+                            Height = url.Height,
+                            Width =
+                            url.Width
+                        });
                     }
                     else
                     {
@@ -354,10 +360,10 @@ namespace dy.net.service
                 {
                     var error = $"下载失败：{url}，错误：{ex.Message}";
                     Serilog.Log.Error(error);
-                    return (Array.Empty<string>(), error);
+                    return (new List<DouyinMergeVideoDto>(), error);
                 }
             }
-            return (successPaths.ToArray(), null);
+            return (successPaths, null);
         }
 
     }

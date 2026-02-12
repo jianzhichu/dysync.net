@@ -6,6 +6,7 @@ using dy.net.service;
 using dy.net.utils;
 using Newtonsoft.Json;
 using Quartz;
+using Quartz.Util;
 using Serilog;
 using System.Net;
 
@@ -513,6 +514,7 @@ namespace dy.net.job
         /// <summary>
         /// 遍历视频列表，分别处理每个视频和图片集
         /// </summary>
+        /// <param name="syncCount1"></param>
         /// <param name="cookie">用户Cookie</param>
         /// <param name="data">视频信息对象</param>
         /// <param name="config">应用配置</param>
@@ -525,7 +527,7 @@ namespace dy.net.job
             var videos = new List<DouyinVideo>();
             foreach (var item in data.AwemeList)
             {
-                //if (item.AwemeId != "7565895895016295726")
+                //if (item.AwemeId != "7321309610927770930")
                 //{
                 //    continue;
                 //}
@@ -602,7 +604,7 @@ namespace dy.net.job
                 else
                 {
                     //处理多个视频-组合的图文视频--类似动图。
-                    List<DouyinDynamicVideoDto> dynamicVideoUrls = new List<DouyinDynamicVideoDto>();
+                    List<DouyinMergeVideoDto> dynamicVideoUrls = new List<DouyinMergeVideoDto>();
                     // 当需要下载动态视频时，获取其他URL
                     if (config.DownDynamicVideo && item.Images != null && item.Images.Count > 0)
                     {
@@ -617,7 +619,7 @@ namespace dy.net.job
                                     {
                                         var height = btv.PlayAddr?.Height ?? 1920;
                                         var width = btv.PlayAddr?.Width ?? 1080;
-                                        DouyinDynamicVideoDto info = new DouyinDynamicVideoDto
+                                        DouyinMergeVideoDto info = new DouyinMergeVideoDto
                                         {
                                             Path = targetUrl,
                                             Height = height,
@@ -639,7 +641,7 @@ namespace dy.net.job
                         {
                             if (!string.IsNullOrEmpty(dynamicVideo.DynamicVideos))
                             {
-                                var dynamicVideos = JsonConvert.DeserializeObject<List<DouyinDynamicVideoDto>>(dynamicVideo.DynamicVideos);
+                                var dynamicVideos = JsonConvert.DeserializeObject<List<DouyinMergeVideoDto>>(dynamicVideo.DynamicVideos);
                                 Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideos?.Count}个视频...");
                                 if (dynamicVideos != null && dynamicVideos.Count > 0)
                                 {
@@ -953,7 +955,7 @@ namespace dy.net.job
         /// <param name="followed"></param>
         /// <param name="cate"></param>
         /// <returns></returns>
-        protected async Task<DouyinVideo> ProcessDynamicVideo(List<DouyinDynamicVideoDto> dynamicUrls, DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
+        protected async Task<DouyinVideo> ProcessDynamicVideo(List<DouyinMergeVideoDto> dynamicUrls, DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
         {
             // 创建保存文件夹
             var saveFolder = CreateSaveFolder(cookie, item, config, followed, cate);
@@ -968,12 +970,12 @@ namespace dy.net.job
             // 随机延迟
             int i = 1;
 
-            List<DouyinDynamicVideoDto> dynamicSavePaths = new List<DouyinDynamicVideoDto>();
+            List<DouyinMergeVideoDto> dynamicSavePaths = new List<DouyinMergeVideoDto>();
             foreach (var dynamicUrl in dynamicUrls)
             {
                 // 下载动态视频
                 var dynamicSavePath = savePath.Replace(".mp4", $"_00{i}.mp4");
-                DouyinDynamicVideoDto v = new DouyinDynamicVideoDto() { Height = dynamicUrl.Height, Width = dynamicUrl.Width, Path = dynamicSavePath };
+                DouyinMergeVideoDto v = new DouyinMergeVideoDto() { Height = dynamicUrl.Height, Width = dynamicUrl.Width, Path = dynamicSavePath };
 
                 i++;
                 // 如果文件已存在，跳过
@@ -1087,10 +1089,10 @@ namespace dy.net.job
             try
             {
                 // 提取图片URL列表
-                List<string> imageUrls = item.Images?
+                List<DouyinMergeVideoDto> imageUrls = item.Images?
                 .Where(img => img.UrlList != null && img.UrlList.Any())
-                .Select(img => img.UrlList.FirstOrDefault())
-                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .Select(img => new DouyinMergeVideoDto { Path = img.UrlList.FirstOrDefault(),Height=img.Height,Width=img.Width })
+                .Where(img => !string.IsNullOrWhiteSpace(img.Path))
                 .ToList();
 
                 // 如果没有图片，返回null
@@ -1169,8 +1171,8 @@ namespace dy.net.job
                 }
 
                 var coverUrl = cate is not null && cate.CateType != VideoTypeEnum.dy_custom_collect
-              ? (item.MixInfo?.CoverUrl?.UrlList?.FirstOrDefault() ?? imageUrls.FirstOrDefault() ?? item.Music?.CoverHd?.UrlList?.FirstOrDefault())
-              : imageUrls.FirstOrDefault();
+              ? (item.MixInfo?.CoverUrl?.UrlList?.FirstOrDefault() ?? imageUrls.FirstOrDefault()?.Path ?? item.Music?.CoverHd?.UrlList?.FirstOrDefault())
+              : imageUrls.FirstOrDefault()?.Path;
                
                 // 下载作者头像
                 var avatarSavePath = await DownAuthorAvatar(cookie, item);
@@ -1408,7 +1410,7 @@ namespace dy.net.job
         /// <param name="cate">短剧、合集、自定义收藏夹</param>
         /// <returns>创建的视频实体对象</returns>
         private async Task<DouyinVideo> CreateVideoEntity(AppConfig config,
-            DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string coverSavePath, string avatorPath, List<DouyinDynamicVideoDto> dynamicVideos = null, DouyinCollectCate cate = null)
+            DouyinCookie cookie, Aweme item, VideoBitRate bitRate, string savePath, string coverSavePath, string avatorPath, List<DouyinMergeVideoDto> dynamicVideos = null, DouyinCollectCate cate = null)
         {
             // 获取视频标签
             var (tag1, tag2, tag3) = GetVideoTags(item);

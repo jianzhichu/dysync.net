@@ -1,6 +1,6 @@
 ﻿namespace dy.net.model.dto
 {
-    public class DouyinDynamicVideoDto
+    public class DouyinMergeVideoDto
     {
         public string Path { get; set; }
 

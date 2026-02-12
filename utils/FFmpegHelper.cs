@@ -51,14 +51,186 @@ namespace dy.net.utils
         /// <summary>
         /// 将多张图片和一个音频文件合成为视频（最终终极版）。
         /// </summary>
+        //public async Task<string> CreateVideoFromImagesAndAudioAsync(
+        //    IEnumerable<DouyinMergeVideoDto> imageFilePaths,
+        //    string audioFilePath,
+        //    string outputVideoPath,
+        //    int VideoWidth = 1080,
+        //    int Height = 1920,
+        //    IProgress<double> progress = null,
+        //    CancellationToken cancellationToken = default)
+        //{
+        //    // 输入验证
+        //    if (imageFilePaths == null || !imageFilePaths.Any())
+        //        throw new ArgumentException("图片路径列表不能为空。", nameof(imageFilePaths));
+
+        //    if (string.IsNullOrEmpty(audioFilePath) || !File.Exists(audioFilePath))
+        //        throw new FileNotFoundException("音频文件未找到。", audioFilePath);
+
+        //    if (string.IsNullOrEmpty(outputVideoPath))
+        //        throw new ArgumentNullException(nameof(outputVideoPath));
+
+        //    foreach (var imagePath in imageFilePaths)
+        //    {
+        //        if (!File.Exists(imagePath.Path))
+        //            throw new FileNotFoundException("图片文件未找到。", imagePath.Path);
+        //    }
+
+        //    var outputDirectory = Path.GetDirectoryName(outputVideoPath);
+        //    if (!string.IsNullOrEmpty(outputDirectory) && !Directory.Exists(outputDirectory))
+        //    {
+        //        Directory.CreateDirectory(outputDirectory);
+        //    }
+
+        //    // 关键步骤 1: 创建临时目录并生成有序图片序列
+        //    string tempImageDir = Path.Combine(AppContext.BaseDirectory, "temp", Guid.NewGuid().ToString());
+        //    Directory.CreateDirectory(tempImageDir);
+
+        //    var imageList = imageFilePaths.ToList();
+        //    try
+        //    {
+        //        for (int i = 0; i < imageList.Count; i++)
+        //        {
+        //            string sourcePath = imageList[i].Path;
+        //            string extension = Path.GetExtension(sourcePath);
+        //            string destFileName = $"temp_{i + 1:D3}{extension}";
+        //            string destPath = Path.Combine(tempImageDir, destFileName);
+        //            File.Copy(sourcePath, destPath);
+        //        }
+
+        //        string imageSequencePattern = Path.Combine(tempImageDir, "temp_%03d" + Path.GetExtension(imageList.FirstOrDefault().Path));
+        //        double imageFps = Math.Round(1.0 / ImageDisplayDurationSeconds, 2);
+
+        //        // --- 修正点 1: 整合音频时长获取逻辑 ---
+        //        // 我们不再需要 GetAudioFilterAsync，而是直接获取时长用于计算视频循环
+        //        double audioDurationSeconds = imageList.Count * ImageDisplayDurationSeconds; // 默认值为图片总时长
+        //        try
+        //        {
+        //            // 使用 ffprobe 获取音频时长
+        //            var startInfo = new ProcessStartInfo
+        //            {
+        //                FileName = _ffprobeExecutablePath,
+        //                Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{audioFilePath}\"",
+        //                RedirectStandardOutput = true,
+        //                RedirectStandardError = true,
+        //                UseShellExecute = false,
+        //                CreateNoWindow = true
+        //            };
+
+        //            using (var process = new Process { StartInfo = startInfo })
+        //            {
+        //                process.Start();
+        //                string output = await process.StandardOutput.ReadToEndAsync();
+        //                await process.WaitForExitAsync();
+
+        //                if (double.TryParse(output, out double duration))
+        //                {
+        //                    audioDurationSeconds = duration;
+        //                    //Console.WriteLine($"成功获取音频时长: {audioDurationSeconds:F2}s");
+        //                }
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Serilog.Log.Error($"获取音频时长失败，将使用图片总时长 ({audioDurationSeconds:F2}s) 作为视频时长: {ex.Message}");
+        //        }
+
+        //        // 计算图片序列需要循环的次数
+        //        int loopCount = 1;
+        //        int imageCount = imageList.Count; // 要循环的图片总数（对应loop的size参数）
+        //        double singleLoopDuration = imageCount * ImageDisplayDurationSeconds;
+
+        //        if (audioDurationSeconds > singleLoopDuration)
+        //        {
+        //            loopCount = (int)Math.Ceiling(audioDurationSeconds / singleLoopDuration);
+        //            //Console.WriteLine($"图片序列将循环 {loopCount} 次以匹配音频时长");
+        //        }
+        //        // H264编码要求宽高必须为偶数 20260103
+        //        if (VideoWidth % 2 != 0)
+        //        {
+        //            VideoWidth++;
+        //        }
+        //        if (VideoHeight % 2 != 0)
+        //        {
+        //            VideoHeight++;
+        //        }
+
+        //        var arguments = new List<string>
+        //                {
+        //                    "-y", // 覆盖输出文件
+
+        //                    // 图片序列输入：保留原有逻辑，修复帧率含义（-r 是输出帧率，输入用-framerate更准确）
+        //                    "-f", "image2",
+        //                    "-framerate", imageFps.ToString(CultureInfo.InvariantCulture), // 输入帧率（图片播放速度）
+        //                    "-start_number", "0", // 序列起始编号
+        //                    "-i", imageSequencePattern, // 图片序列模板（无需引号，后续用ProcessStartInfo传参更安全）
+
+        //                    // 音频输入
+        //                    "-i", audioFilePath,
+
+        //                    // 滤镜修复：补充size参数（核心！解决Number of frames to loop is not set报错）
+        //                    // loop=循环次数:size=要循环的帧数；loop=-1表示无限循环（配合-shortest更简洁）
+        //                    "-filter_complex", $"[0:v]loop=loop={loopCount - 1}:size={imageCount}[v]",
+
+        //                    // 流映射
+        //                    "-map", "[v]",
+        //                    "-map", "1:a",
+
+        //                    // 视频编码：保留你的变量，确保兼容性
+        //                    "-c:v", VideoCodec,
+        //                    "-preset", VideoPreset,
+        //                    "-crf", $"{VideoCrf}",
+        //                    "-s", $"{VideoWidth}x{VideoHeight}",
+        //                    "-pix_fmt", "yuv420p", // 兼容所有播放器
+        //                    "-profile:v", "main",
+
+        //                    // 音频编码：标准化参数，避免无效值
+        //                    "-c:a", AudioCodec,
+        //                    "-b:a", $"{AudioBitrate}",
+        //                    "-ac", "2", // 立体声
+        //                    "-ar", "44100", // 标准采样率
+
+        //                    // 封装优化
+        //                    "-f", "mp4",
+        //                    "-movflags", "+faststart",
+
+        //                    // 同步参数：确保视频时长匹配音频
+        //                    "-shortest",
+
+        //                    // 输出路径
+        //                    outputVideoPath
+        //                };
+
+        //        // 执行命令
+        //        await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
+        //        if (File.Exists(outputVideoPath))
+        //        {
+        //            return outputVideoPath;
+        //        }
+        //        else
+        //        {
+        //            throw new InvalidOperationException("视频合成失败，未生成输出文件。");
+        //        }
+        //    }
+        //    finally
+        //    {
+        //        // 清理临时目录
+        //        if (Directory.Exists(tempImageDir))
+        //        {
+        //            Directory.Delete(tempImageDir, recursive: true);
+        //        }
+        //    }
+        //}
+
+
         public async Task<string> CreateVideoFromImagesAndAudioAsync(
-            IEnumerable<string> imageFilePaths,
-            string audioFilePath,
-            string outputVideoPath,
-            int VideoWidth = 1080,
-            int Height = 1920,
-            IProgress<double> progress = null,
-            CancellationToken cancellationToken = default)
+       IEnumerable<DouyinMergeVideoDto> imageFilePaths,
+       string audioFilePath,
+       string outputVideoPath,
+       int VideoWidth = 1080,
+       int VideoHeight = 1920,
+       IProgress<double> progress = null,
+       CancellationToken cancellationToken = default)
         {
             // 输入验证
             if (imageFilePaths == null || !imageFilePaths.Any())
@@ -72,8 +244,11 @@ namespace dy.net.utils
 
             foreach (var imagePath in imageFilePaths)
             {
-                if (!File.Exists(imagePath))
-                    throw new FileNotFoundException("图片文件未找到。", imagePath);
+                if (!File.Exists(imagePath.Path))
+                    throw new FileNotFoundException("图片文件未找到。", imagePath.Path);
+                // 验证图片宽高字段有效性
+                if (imagePath.Width <= 0 || imagePath.Height <= 0)
+                    throw new ArgumentException($"图片 {imagePath.Path} 的宽高必须大于0", nameof(imageFilePaths));
             }
 
             var outputDirectory = Path.GetDirectoryName(outputVideoPath);
@@ -91,22 +266,20 @@ namespace dy.net.utils
             {
                 for (int i = 0; i < imageList.Count; i++)
                 {
-                    string sourcePath = imageList[i];
+                    string sourcePath = imageList[i].Path;
                     string extension = Path.GetExtension(sourcePath);
                     string destFileName = $"temp_{i + 1:D3}{extension}";
                     string destPath = Path.Combine(tempImageDir, destFileName);
-                    File.Copy(sourcePath, destPath);
+                    File.Copy(sourcePath, destPath, true);
                 }
 
-                string imageSequencePattern = Path.Combine(tempImageDir, "temp_%03d" + Path.GetExtension(imageList[0]));
+                string imageSequencePattern = Path.Combine(tempImageDir, "temp_%03d" + Path.GetExtension(imageList.FirstOrDefault().Path));
                 double imageFps = Math.Round(1.0 / ImageDisplayDurationSeconds, 2);
 
-                // --- 修正点 1: 整合音频时长获取逻辑 ---
-                // 我们不再需要 GetAudioFilterAsync，而是直接获取时长用于计算视频循环
-                double audioDurationSeconds = imageList.Count * ImageDisplayDurationSeconds; // 默认值为图片总时长
+                // 获取音频时长
+                double audioDurationSeconds = imageList.Count * ImageDisplayDurationSeconds;
                 try
                 {
-                    // 使用 ffprobe 获取音频时长
                     var startInfo = new ProcessStartInfo
                     {
                         FileName = _ffprobeExecutablePath,
@@ -126,101 +299,110 @@ namespace dy.net.utils
                         if (double.TryParse(output, out double duration))
                         {
                             audioDurationSeconds = duration;
-                            //Console.WriteLine($"成功获取音频时长: {audioDurationSeconds:F2}s");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Serilog.Log.Error($"获取音频时长失败，将使用图片总时长 ({audioDurationSeconds:F2}s) 作为视频时长: {ex.Message}");
+                    Log.Error($"获取音频时长失败，将使用图片总时长 ({audioDurationSeconds:F2}s) 作为视频时长: {ex.Message}");
                 }
 
-                // 计算图片序列需要循环的次数
+                // 计算图片序列循环次数
                 int loopCount = 1;
-                int imageCount = imageList.Count; // 要循环的图片总数（对应loop的size参数）
+                int imageCount = imageList.Count;
                 double singleLoopDuration = imageCount * ImageDisplayDurationSeconds;
 
                 if (audioDurationSeconds > singleLoopDuration)
                 {
                     loopCount = (int)Math.Ceiling(audioDurationSeconds / singleLoopDuration);
-                    //Console.WriteLine($"图片序列将循环 {loopCount} 次以匹配音频时长");
                 }
-                // H264编码要求宽高必须为偶数 20260103
-                if (VideoWidth % 2 != 0)
-                {
-                    VideoWidth++;
-                }
-                if (VideoHeight % 2 != 0)
-                {
-                    VideoHeight++;
-                }
+
+                // H264编码要求宽高为偶数
+                if (VideoWidth % 2 != 0) VideoWidth++;
+                if (VideoHeight % 2 != 0) VideoHeight++;
+
+                // ========== 核心优化：图片适配滤镜 ==========
+                // scale=iw*min({VideoWidth}/iw\,{VideoHeight}/ih):ih*min({VideoWidth}/iw\,{VideoHeight}/ih) 等比例缩放
+                // pad={VideoWidth}:{VideoHeight}:(ow-iw)/2:(oh-ih)/2:black 居中填充黑色背景
+                string fitFilter = $"scale=iw*min({VideoWidth}/iw\\,{VideoHeight}/ih):ih*min({VideoWidth}/iw\\,{VideoHeight}/ih),pad={VideoWidth}:{VideoHeight}:(ow-iw)/2:(oh-ih)/2:black";
+
+                // 组合最终滤镜：先适配尺寸，再循环
+                string filterComplex = $"[0:v]{fitFilter},loop=loop={loopCount - 1}:size={imageCount}[v]";
 
                 var arguments = new List<string>
-                        {
-                            "-y", // 覆盖输出文件
+            {
+                "-y", // 覆盖输出文件
 
-                            // 图片序列输入：保留原有逻辑，修复帧率含义（-r 是输出帧率，输入用-framerate更准确）
-                            "-f", "image2",
-                            "-framerate", imageFps.ToString(CultureInfo.InvariantCulture), // 输入帧率（图片播放速度）
-                            "-start_number", "0", // 序列起始编号
-                            "-i", imageSequencePattern, // 图片序列模板（无需引号，后续用ProcessStartInfo传参更安全）
+                // 图片序列输入
+                "-f", "image2",
+                "-framerate", imageFps.ToString(CultureInfo.InvariantCulture),
+                "-start_number", "1", // 修正：临时文件是 temp_001、temp_002... 所以起始编号为1
+                "-i", imageSequencePattern,
 
-                            // 音频输入
-                            "-i", audioFilePath,
+                // 音频输入
+                "-i", audioFilePath,
 
-                            // 滤镜修复：补充size参数（核心！解决Number of frames to loop is not set报错）
-                            // loop=循环次数:size=要循环的帧数；loop=-1表示无限循环（配合-shortest更简洁）
-                            "-filter_complex", $"[0:v]loop=loop={loopCount - 1}:size={imageCount}[v]",
+                // 滤镜：尺寸适配 + 循环
+                "-filter_complex", filterComplex,
 
-                            // 流映射
-                            "-map", "[v]",
-                            "-map", "1:a",
+                // 流映射
+                "-map", "[v]",
+                "-map", "1:a",
 
-                            // 视频编码：保留你的变量，确保兼容性
-                            "-c:v", VideoCodec,
-                            "-preset", VideoPreset,
-                            "-crf", $"{VideoCrf}",
-                            "-s", $"{VideoWidth}x{VideoHeight}",
-                            "-pix_fmt", "yuv420p", // 兼容所有播放器
-                            "-profile:v", "main",
+                // 视频编码参数
+                "-c:v", VideoCodec,
+                "-preset", VideoPreset,
+                "-crf", $"{VideoCrf}",
+                "-s", $"{VideoWidth}x{VideoHeight}",
+                "-pix_fmt", "yuv420p",
+                "-profile:v", "main",
 
-                            // 音频编码：标准化参数，避免无效值
-                            "-c:a", AudioCodec,
-                            "-b:a", $"{AudioBitrate}",
-                            "-ac", "2", // 立体声
-                            "-ar", "44100", // 标准采样率
+                // 音频编码参数
+                "-c:a", AudioCodec,
+                "-b:a", $"{AudioBitrate}",
+                "-ac", "2",
+                "-ar", "44100",
 
-                            // 封装优化
-                            "-f", "mp4",
-                            "-movflags", "+faststart",
+                // 封装优化
+                "-f", "mp4",
+                "-movflags", "+faststart",
 
-                            // 同步参数：确保视频时长匹配音频
-                            "-shortest",
+                // 同步参数
+                "-shortest",
 
-                            // 输出路径
-                            outputVideoPath
-                        };
+                // 输出路径
+                outputVideoPath
+            };
 
-                // 执行命令
+                // 执行FFmpeg命令
                 await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
-                if (File.Exists(outputVideoPath))
-                {
-                    return outputVideoPath;
-                }
-                else
+
+                if (!File.Exists(outputVideoPath))
                 {
                     throw new InvalidOperationException("视频合成失败，未生成输出文件。");
                 }
+
+                return outputVideoPath;
             }
             finally
             {
-                // 清理临时目录
+                // 清理临时目录（增加异常捕获，避免删除失败导致程序崩溃）
                 if (Directory.Exists(tempImageDir))
                 {
-                    Directory.Delete(tempImageDir, recursive: true);
+                    try
+                    {
+                        Directory.Delete(tempImageDir, recursive: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning($"清理临时目录失败: {ex.Message}");
+                    }
                 }
             }
         }
+
+
+
 
 
         /// <summary>
@@ -232,7 +414,7 @@ namespace dy.net.utils
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>统一参数后的临时视频路径</returns>
         private async Task<string> CreateUnifiedTempVideoAsync(
-            DouyinDynamicVideoDto videoDto,
+            DouyinMergeVideoDto videoDto,
             int targetWidth, // 外部传入的动态目标宽（已取所有视频的最大值，偶数）
             int targetHeight, // 外部传入的动态目标高（已取所有视频的最大值，偶数）
             CancellationToken cancellationToken)
@@ -325,13 +507,13 @@ namespace dy.net.utils
         /// <returns>输出视频路径</returns>
         // 移除了 width = 1080 和 height = 1920 两个传入参数
         public async Task<string> MergeMultipleVideosAsync(
-            List<DouyinDynamicVideoDto> videoFilePaths,
+            List<DouyinMergeVideoDto> videoFilePaths,
             string audioPath,
             string savePath,
             IProgress<double> progress = null,
             CancellationToken cancellationToken = default)
         {
-            List<DouyinDynamicVideoDto> validVideoList = new List<DouyinDynamicVideoDto>();
+            List<DouyinMergeVideoDto> validVideoList = new List<DouyinMergeVideoDto>();
             List<string> tempUnifiedVideoPaths = new List<string>();
 
             // 输入验证

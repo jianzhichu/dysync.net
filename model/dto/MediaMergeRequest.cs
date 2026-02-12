@@ -3,7 +3,7 @@
     public class MediaMergeRequest
     {
         /// <summary>网络图片地址数组（必填）</summary>
-        public List<string> ImageUrls { get; set; }
+        public List<DouyinMergeVideoDto> ImageUrls { get; set; }
 
         /// <summary>网络MP3地址数组（必填）</summary>
         public List<string> AudioUrls { get; set; }
