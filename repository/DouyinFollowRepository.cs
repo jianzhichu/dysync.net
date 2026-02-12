@@ -20,6 +20,7 @@ namespace dy.net.repository
         {
             var data = this.Db.Queryable<DouyinFollowed>()
                         .LeftJoin<DouyinCookie>((f, u) => f.mySelfId == u.MyUserId)
+                        .Where((f,u)=>!string.IsNullOrEmpty(u.MyUserId)&&!string.IsNullOrEmpty(f.mySelfId))
                         //.Where((f, u) => u.Status == 1) // 注意：LeftJoin+u.Status==1 等价于 InnerJoin（u必须存在）
                         .GroupBy((f, u) => f.mySelfId) // 按 mySelfId 分组
                         .Select((f, u) => new DouyinFollowGroupDto

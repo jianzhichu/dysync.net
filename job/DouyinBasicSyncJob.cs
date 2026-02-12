@@ -240,7 +240,15 @@ namespace dy.net.job
             {
                 if ((VideoType == VideoTypeEnum.dy_series || VideoType == VideoTypeEnum.dy_mix) && item.MixInfo?.Statis?.CurrentEpisode != null)
                 {
-                    return $"{item.MixInfo.Statis.CurrentEpisode}.mp4";
+                    // 第一步：将 CurrentEpisode 转换为整数（兼容字符串/数字类型）
+                    if (int.TryParse(item.MixInfo.Statis.CurrentEpisode.ToString(), out int episodeNum))
+                    {
+                        // 第二步：格式化数字，确保 1-9 补 0，10+ 保持原样
+                        string episodeStr = episodeNum.ToString("D2");
+                        return $"S01E{episodeStr}.mp4";
+                    }
+                    // 容错：如果转换失败，使用原始值（避免程序报错）
+                    return $"S01E{item.MixInfo.Statis.CurrentEpisode}.mp4";
                 }
                 return $"{item.AwemeId}.mp4";
             }

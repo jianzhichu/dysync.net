@@ -77,6 +77,11 @@ namespace dy.net.utils
                     nfoFullPath = Path.Combine(directory, "tvshow.nfo");
                     if (!File.Exists(nfoFullPath))
                         GenerateNfoFile(nfoInfo, nfoFullPath, "tvshow");
+
+                    var nfoFullPathMix = Path.Combine(directory, Path.GetFileNameWithoutExtension(video.VideoSavePath) + ".nfo");
+                    if (!File.Exists(nfoFullPathMix))
+                        GenerateNfoFile(nfoInfo, nfoFullPathMix, "episodedetails");
+
                 }
                 else
                 {
@@ -158,6 +163,13 @@ namespace dy.net.utils
                     root.Add(new XElement("fanart",
                         new XElement("thumb", CleanInvalidXmlChars(videoInfo.Poster))
                     ));
+
+                if (xmlRoot == "episodedetails")
+                {
+                    root.Add(new XElement("episode", Path.GetFileNameWithoutExtension(filePath).Replace("S01E0","").Replace("S01E","")));
+                    root.Add(new XElement("season", "1"));
+
+                }
 
                 // 创建XDocument并保存
                 XDocument doc = new XDocument(
