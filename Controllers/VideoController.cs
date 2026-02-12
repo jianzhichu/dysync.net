@@ -451,45 +451,45 @@ namespace dy.net.Controllers
             return Ok(data);
         }
 
-        /// <summary>
-        /// 所有视频重新生成nfo文件
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("renfo")]
-        public async Task<IActionResult> ReCreateNfo()
-        {
-            var videos = await douyinVideoService.GetAllAsync();
-            if (videos == null || videos.Count == 0)
-            {
-                return ApiResult.Success("暂无视频数据需要生成NFO文件");
-            }
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var totalCount = videos.Count;
-                    foreach (var video in videos)
-                    {
-                        try
-                        {
-                            NfoFileGenerator.GenerateVideoNfoFile(video);
-                            Serilog.Log.Debug($"刮削视频（Path：{video.VideoSavePath}）生成NFO成功!");
-                            await Task.Delay(50);
-                        }
-                        catch (Exception singleEx)
-                        {
-                            Serilog.Log.Error($"刮削视频（Path：{video.VideoSavePath}）生成NFO失败：{singleEx.Message}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Error($"NFO文件生成任务执行异常：{ex.Message}\n{ex.StackTrace}");
-                }
-            });
+        ///// <summary>
+        ///// 所有视频重新生成nfo文件
+        ///// </summary>
+        ///// <returns></returns>
+        //[HttpGet("renfo")]
+        //public async Task<IActionResult> ReCreateNfo()
+        //{
+        //    var videos = await douyinVideoService.GetAllAsync();
+        //    if (videos == null || videos.Count == 0)
+        //    {
+        //        return ApiResult.Success("暂无视频数据需要生成NFO文件");
+        //    }
+        //    _ = Task.Run(async () =>
+        //    {
+        //        try
+        //        {
+        //            var totalCount = videos.Count;
+        //            foreach (var video in videos)
+        //            {
+        //                try
+        //                {
+        //                    NfoFileGenerator.GenerateVideoNfoFile(video);
+        //                    Serilog.Log.Debug($"刮削视频（Path：{video.VideoSavePath}）生成NFO成功!");
+        //                    await Task.Delay(50);
+        //                }
+        //                catch (Exception singleEx)
+        //                {
+        //                    Serilog.Log.Error($"刮削视频（Path：{video.VideoSavePath}）生成NFO失败：{singleEx.Message}");
+        //                }
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Serilog.Log.Error($"NFO文件生成任务执行异常：{ex.Message}\n{ex.StackTrace}");
+        //        }
+        //    });
 
-            return ApiResult.Success();
-        }
+        //    return ApiResult.Success();
+        //}
 
 
 

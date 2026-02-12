@@ -17,8 +17,9 @@ namespace dy.net.utils
         /// NFO文件包含视频的元数据信息，如标题、作者、封面等
         /// </summary>
         /// <param name="video">视频信息</param>
+        /// <param name="tvShowTitle"></param>
         /// <returns>一个表示异步操作的任务</returns>
-        public static void GenerateVideoNfoFile(DouyinVideo video)
+        public static void GenerateVideoNfoFile(DouyinVideo video, string tvShowTitle = "")
         {
             try
             {
@@ -76,11 +77,11 @@ namespace dy.net.utils
                     string directory = Path.GetDirectoryName(nfoFullPath);
                     nfoFullPath = Path.Combine(directory, "tvshow.nfo");
                     if (!File.Exists(nfoFullPath))
-                        GenerateNfoFile(nfoInfo, nfoFullPath, "tvshow");
+                        GenerateNfoFile(nfoInfo, nfoFullPath, tvShowTitle, "tvshow");
 
                     var nfoFullPathMix = Path.Combine(directory, Path.GetFileNameWithoutExtension(video.VideoSavePath) + ".nfo");
                     if (!File.Exists(nfoFullPathMix))
-                        GenerateNfoFile(nfoInfo, nfoFullPathMix, "episodedetails");
+                        GenerateNfoFile(nfoInfo, nfoFullPathMix,"", "episodedetails");
 
                 }
                 else
@@ -95,7 +96,7 @@ namespace dy.net.utils
             }
         }
 
-        private static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath, string xmlRoot = "movie")
+        private static void GenerateNfoFile(DouyinVideoNfo videoInfo, string filePath,string tvShowTitle="", string xmlRoot = "movie")
         {
             try
             {
@@ -113,8 +114,19 @@ namespace dy.net.utils
                 //root.Add(new XElement("plot", $"<![CDATA[{videoInfo.Title}]]>"));
 
                 // 添加视频信息（先清理无效字符）
-                if (!string.IsNullOrWhiteSpace(videoInfo.Title))
-                    root.Add(new XElement("title", CleanInvalidXmlChars(videoInfo.Title)));
+                if(xmlRoot== "tvshow")
+                {
+                    if(!string.IsNullOrEmpty(tvShowTitle))
+                        root.Add(new XElement("title", CleanInvalidXmlChars(tvShowTitle)));
+                     else if (!string.IsNullOrWhiteSpace(videoInfo.Title))
+                        root.Add(new XElement("title", CleanInvalidXmlChars(videoInfo.Title)));
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(videoInfo.Title))
+                        root.Add(new XElement("title", CleanInvalidXmlChars(videoInfo.Title)));
+                }
+              
 
                 //if (!string.IsNullOrWhiteSpace(videoInfo.Author))
                 //    root.Add(new XElement("author", CleanInvalidXmlChars(videoInfo.Author)));

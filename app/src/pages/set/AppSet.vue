@@ -243,7 +243,7 @@
 
     <input ref="importFileInput" type="file" accept=".json" class="import-file-input" @change="handleImportFile">
   </div>
-  <div class="top-right-float-btn-container">
+  <div class="top-right-float-btn-container" v-if="false">
     <a-tooltip title="重置所有刮削" placement="bottom">
       <a-button class="top-right-float-btn" type="primary" shape="circle" @click="renfo">
         <bulb-outlined />

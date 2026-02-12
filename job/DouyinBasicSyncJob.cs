@@ -483,7 +483,7 @@ namespace dy.net.job
         {
             if (cate != null && cate.CateType != VideoTypeEnum.dy_custom_collect)
             {
-                if (syncCount >= 15)
+                if (syncCount >= 30)
                 {
                     Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]:本次同步数量{syncCount}，等下次任务继续同步");
                     return true;
@@ -684,7 +684,14 @@ namespace dy.net.job
                                 }
                             }
                             //动态视频生成nfo
-                            NfoFileGenerator.GenerateVideoNfoFile(dynamicVideo);
+                            if (cate != null && (VideoType == VideoTypeEnum.dy_mix || VideoType == VideoTypeEnum.dy_series))
+                            {
+                                NfoFileGenerator.GenerateVideoNfoFile(dynamicVideo, cate.Name);
+                            }
+                            else
+                            {
+                                NfoFileGenerator.GenerateVideoNfoFile(dynamicVideo);
+                            }
                             videos.Add(dynamicVideo);
                             syncCount++;
                             if (syncCount + syncCount1 >= config.BatchCount)
@@ -1461,6 +1468,10 @@ namespace dy.net.job
             }
             else
             {
+                if (cate != null&&(VideoType == VideoTypeEnum.dy_mix || VideoType == VideoTypeEnum.dy_series))
+                {
+                    NfoFileGenerator.GenerateVideoNfoFile(video,cate.Name);
+                }
                 // 生成NFO文件,动态视频 合成后重新生成，不在这里生成nfo
                 NfoFileGenerator.GenerateVideoNfoFile(video);
             }
