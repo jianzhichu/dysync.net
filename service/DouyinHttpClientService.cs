@@ -307,7 +307,7 @@ namespace dy.net.service
         /// <param name="cursor"></param>
         /// <param name="count"></param>
         /// <param name="cookie"></param>
-        /// <param name="mix"></param>
+        /// <param name="mixId"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
         public async Task<DouyinVideoInfoResponse> SyncMixViedosByMixId(string cursor, string count, string cookie, string mixId)

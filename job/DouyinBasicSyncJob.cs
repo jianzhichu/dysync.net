@@ -403,7 +403,7 @@ namespace dy.net.job
                     string cursor = "0";
                     bool hasMore = true;
                     (syncCount, cursor, hasMore) = await GetAndSaveViedos(cookie, config, syncCount, cursor, hasMore, null, cate);
-                    await HandleSyncCompletion(cookie, syncCount, null);
+                    await HandleSyncCompletion(cookie, syncCount, null, cate);
 
                 }
             }
@@ -422,7 +422,7 @@ namespace dy.net.job
                 var data = await FetchVideoData(cookie, cursor, followed, cate);
                 if (data == null || data.AwemeList == null || !data.AwemeList.Any())
                 {
-                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}] 没有新的视频");
+                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{cate?.Name}] 没有新的视频");
                     break;
                 }
 
