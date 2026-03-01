@@ -63,7 +63,7 @@ namespace dy.net.service
         private static string GetRandomMergeMusic()
         {
             var allowedExtensions = new HashSet<string> { ".mp3", ".wav" };
-            string mergMusic = Path.Combine(AppContext.BaseDirectory, "mp3", "silent_10.mp3");//默认音频
+            string mergMusic = Path.Combine(AppContext.BaseDirectory, "mp3_0", "silent_10.mp3");//默认音频
 
             var mp3folder = Path.Combine(AppContext.BaseDirectory, "mp3");
             if (!string.IsNullOrWhiteSpace(ServiceExtension.FnDataFolder))
@@ -78,7 +78,7 @@ namespace dy.net.service
 
             if (customMusics != null && customMusics.Any())
             {
-                if (customMusics.Count() == 1)
+                if (customMusics.Count == 1)
                     return customMusics.FirstOrDefault();
 
                 // 使用加密级别的随机数生成器（RNGCryptoServiceProvider）获取高随机性的索引

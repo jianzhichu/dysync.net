@@ -49,7 +49,11 @@ namespace dy.net.job
 
         protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
         {
-            return Path.Combine(cookie.SavePath, "author");
+            if (string.IsNullOrEmpty(cookie.SeriesPath))
+
+                return Path.Combine(cookie.SavePath, "author");
+            else
+                return Path.Combine(cookie.SeriesPath, "author");
         }
     }
 }
