@@ -3,8 +3,10 @@
     <!-- 优化查询区域：调整布局，时间、博主名称、标题放一行，宽度自适应 -->
     <div class="query-container">
       <a-form layout="inline" :model="quaryData" class="query-form">
+
         <!-- 第一行：时间选择器组 + 博主名称 + 标题（合并为一行，自适应宽度） -->
         <div class="form-row form-main-row">
+
           <a-form-item label="同步日期" class="form-item form-item-date">
             <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" class="range-picker" />
           </a-form-item>
@@ -13,7 +15,7 @@
             <a-range-picker v-model:value="value2" :ranges="ranges2" :locale="locale" @change="datePicked2" class="range-picker" />
           </a-form-item>
 
-          <a-form-item label="博主名称" ref="author" name="author" class="form-item form-item-input">
+          <a-form-item label="博主" ref="author" name="author" class="form-item form-item-input">
             <a-input v-model:value="quaryData.author" class="query-input" placeholder="请输入博主名称" />
           </a-form-item>
           <a-form-item label="标题" ref="title" name="title" class="form-item form-item-input">
@@ -23,6 +25,9 @@
 
         <!-- 第二行：单选组 + 按钮组 -->
         <div class="form-row form-actions-row">
+          <a-form-item class="form-item">
+            <a-select ref="select" v-model:value="quaryData.cookieId" style="width: 120px" :options="cookies"></a-select>
+          </a-form-item>
           <a-form-item label="视频类型" class="form-item radio-group-item">
             <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged" class="video-type-radio">
               <a-radio-button value="*">全部</a-radio-button>
@@ -40,22 +45,22 @@
             <SearchOutlined />查询
           </a-button>
           <a-form-item class="form-item batch-operation-item" style="margin-left:20px;">
-            <a-switch v-model:checked="isBatchMode" checked-children="批量操作" un-checked-children="批量操作" class="batch-switch" />
+            <a-switch v-model:checked="isBatchMode" checked-children="批量" un-checked-children="批量" class="batch-switch" />
           </a-form-item>
 
           <a-form-item class="form-item button-group-item">
             <a-space size="middle" class="button-group">
-              <a-button success @click="handleBatchShare" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
+              <!-- <a-button success @click="handleBatchShare" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
                 <ShareAltOutlined />
                 批量分享
-              </a-button>
+              </a-button> -->
               <a-button danger @click="handleBatchSync" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
                 <SyncOutlined />
                 重新下载
               </a-button>
               <a-button danger @click="handleBatchDelete" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
                 <close-outlined />
-                批量删除
+                永久删除
               </a-button>
             </a-space>
           </a-form-item>
@@ -226,6 +231,7 @@ interface QuaryParam {
   authorId: string;
   sortField?: string; // 📌 新增：排序字段
   sortOrder?: string; // 📌 新增：排序方向（asc/desc）
+  cookieId?: string;
 }
 
 // 引入dayjs中文包
@@ -412,6 +418,7 @@ const quaryData: UnwrapRef<QuaryParam> = reactive({
   fileHash: '',
   sortField: 'createTime', // 📌 默认排序字段
   sortOrder: 'desc', // 📌 默认降序
+  cookieId: '',
 });
 
 // 分页配置
@@ -568,6 +575,29 @@ const handleTableChange = (paginationObj: any, filters: any, sorter: any) => {
 
   // 重新查询数据（携带正确的排序参数）
   GetRecords();
+};
+
+const cookies = ref([]);
+const getCookies = () => {
+  useApiStore()
+    .CookiePageList({})
+    .then((res) => {
+      if (res.data.data.length > 0) {
+        cookies.value = res.data.data.map((item) => {
+          return {
+            value: item['id'] ?? '',
+            label: item['userName'] ?? '',
+          };
+        });
+        cookies.value.unshift({
+          value: '', // 全部对应的 value 为空字符串
+          label: '全部', // 显示的文本，可根据需求修改
+        });
+
+        quaryData.cookieId = cookies.value[0].value;
+        GetRecords();
+      }
+    });
 };
 
 /** 立即同步 */
@@ -1008,7 +1038,7 @@ const copyVideoPath = (path?: string) => {
 // -------------------------- 页面初始化 --------------------------
 onMounted(() => {
   // getConfig();
-  GetRecords();
+  getCookies();
 });
 </script>
 

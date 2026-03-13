@@ -9,13 +9,14 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Spi;
 using Serilog;
+using Serilog.Configuration;
+using Serilog.Core;
 using Serilog.Events;
 using Serilog.Filters;
 using Serilog.Formatting.Compact;
 //using Serilog.Formatting.Compact;
 using SqlSugar;
 using System.Collections.Concurrent;
-
 //using Swashbuckle.AspNetCore.SwaggerGen;
 //using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IO.Compression;
@@ -271,13 +272,13 @@ namespace dy.net.extension
         public static void AddQuartzService(this IServiceCollection services, string dbPath)
         {
             // 注册Job（原有逻辑，保留Scoped生命周期，符合Quartz特性）
-            services.AddTransient<DouyinCollectSyncJob>();
-            services.AddTransient<DouyinFavoritSyncJob>();
-            services.AddTransient<DouyinFollowedSyncJob>();
-            services.AddTransient<DouyinFollowsAndCollnectsSyncJob>();
-            services.AddTransient<DouyinCollectCustomSyncJob>();
-            services.AddTransient<DouyinMixSyncJob>();
-            services.AddTransient<DouyinSeriesSyncJob>();
+            services.AddScoped<DouyinCollectSyncJob>();
+            services.AddScoped<DouyinFavoritSyncJob>();
+            services.AddScoped<DouyinFollowedSyncJob>();
+            services.AddScoped<DouyinFollowsAndCollnectsSyncJob>();
+            services.AddScoped<DouyinCollectCustomSyncJob>();
+            services.AddScoped<DouyinMixSyncJob>();
+            services.AddScoped<DouyinSeriesSyncJob>();
 
             // 提前创建Quartz的SQLite连接字符串，避免重复调用
             string quartzConn = CreateSqliteDBConn(dbPath);
@@ -307,7 +308,7 @@ namespace dy.net.extension
                 q.AwaitApplicationStarted = true;
             });
 
-            services.AddTransient<DouyinQuartzJobService>();
+            services.AddScoped<DouyinQuartzJobService>();
         }
 
         /// <summary>
@@ -658,4 +659,25 @@ namespace dy.net.extension
     //        }
     //    }
     //}
+
+
+    // 第一步：定义空Sink（核心，接收日志但不处理）
+    public class NullSink : ILogEventSink
+    {
+        // 空实现：接收到日志事件后直接丢弃
+        public void Emit(LogEvent logEvent)
+        {
+            // 什么都不做，日志直接被丢弃
+        }
+    }
+
+    // 第二步：扩展方法（方便调用）
+    public static class NullSinkExtensions
+    {
+        public static LoggerConfiguration NullSink(this LoggerSinkConfiguration sinkConfiguration)
+        {
+            return sinkConfiguration.Sink(new NullSink());
+        }
+    }
+
 }

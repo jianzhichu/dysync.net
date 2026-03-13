@@ -73,54 +73,6 @@ namespace dy.net.Controllers
             }
         }
 
-        //private IActionResult PlayViedo(DouyinVideo viedo)
-        //{
-
-        //    // 1. 拼接完整物理路径（配置路径 + 文件名）
-        //    string videoFullPath = viedo.VideoSavePath;
-
-        //    // 2. 验证文件是否存在
-        //    if (!System.IO.File.Exists(videoFullPath))
-        //    {
-        //        return ApiResult.Fail($"视频文件不存在：{videoFullPath}");
-        //    }
-
-        //    // 3. 获取文件信息（大小、类型）
-        //    var fileInfo = new FileInfo(videoFullPath);
-        //    long fileSize = fileInfo.Length;
-        //    string contentType = GetContentType(videoFullPath);  // 自动识别视频 MIME 类型
-
-        //    // 4. 处理分片请求（前端视频标签自动发起，支持断点续传）
-        //    if (Request.Headers.ContainsKey("Range") && long.TryParse(Request.Headers.Range.ToString().Split('=')[1].Split('-')[0], out long start))
-        //    {
-        //        // 分片起始位置（前端请求的起始字节）
-        //        long end = Math.Min(start + 1024 * 1024 * 2, fileSize - 1);  // 每片 2MB（可调整）
-        //        long chunkSize = end - start + 1;
-
-        //        // 5. 设置分片响应头
-        //        Response.StatusCode = StatusCodes.Status206PartialContent;
-        //        Response.Headers.Add("Content-Range", $"bytes {start}-{end}/{fileSize}");
-        //        Response.Headers.Add("Accept-Ranges", "bytes");
-        //        Response.Headers.Add("Content-Length", chunkSize.ToString());
-
-        //        // 6. 读取分片并返回流
-        //        var stream = new FileStream(
-        //        videoFullPath,
-        //        FileMode.Open,
-        //        FileAccess.Read,
-        //        FileShare.Read,
-        //        bufferSize: 4096,
-        //        useAsync: true);
-
-        //        stream.Seek(start, SeekOrigin.Begin);
-        //        return new FileStreamResult(stream, contentType);
-        //    }
-        //    else
-        //    {
-        //        // 完整文件请求（兼容旧浏览器）
-        //        return PhysicalFile(videoFullPath, contentType, enableRangeProcessing: true);
-        //    }
-        //}
 
         /// <summary>
         /// 抖音视频播放接口（优化版）

@@ -223,6 +223,25 @@ namespace dy.net.service
                 }
             }
         }
+
+        public async Task<bool> UpdateImageVideoSavePath()
+        {
+            var exist = await sqlSugarClient.Queryable<DouyinVideo>().Where(x => x.IsMergeVideo == 1 && x.VideoSavePath.EndsWith("-poster.jpg")).AnyAsync();
+            if (exist)
+            {
+                // 执行更新操作
+                var updateCount = sqlSugarClient.Updateable<DouyinVideo>()
+                    .SetColumns(it => new DouyinVideo
+                    {
+                        VideoSavePath = SqlFunc.Replace(it.VideoSavePath, "-poster.jpg", ".mp4")
+                    })
+                    .Where(it => it.IsMergeVideo == 1 && it.VideoSavePath.EndsWith("-poster.jpg"))
+                    .ExecuteCommand();
+                if (updateCount > 0)
+                    Serilog.Log.Debug($"更新了{updateCount}条图文视频存储路径,修复图文视频无法在页面播放的问题");
+            }
+            return true;
+        }
         #region 测试创建数据库
 
         ///// <summary>

@@ -219,6 +219,7 @@ namespace dy.net
                 //commonService.UpdateAllCookieSyncedToZero();
 
                 await commonService.UpdateFollowedSavePathAsync();
+                await commonService.UpdateImageVideoSavePath();
 
                 // 初始化Cookie
                 var cookieService = services.GetRequiredService<DouyinCookieService>();

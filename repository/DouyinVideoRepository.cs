@@ -49,6 +49,7 @@ namespace dy.net.repository
                 .WhereIF(start2.HasValue, x => x.CreateTime >= start2.Value)
                 .WhereIF(end2.HasValue, x => x.CreateTime <= end2.Value)
                 .WhereIF(enumviedoType.HasValue, x => x.ViedoType == enumviedoType)
+                .WhereIF(!string.IsNullOrWhiteSpace(dto.CookieId),x=>x.CookieId==dto.CookieId)
                 .WhereIF(dto.ViedoType == "4", x => x.IsMergeVideo == 1);
 
 

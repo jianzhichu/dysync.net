@@ -23,7 +23,7 @@ namespace dy.net.utils
         {
             try
             {
-
+                if (video.OnlyImgOrOnlyMp3) return;//图片，音频不刮削
                 string videoDirectory = Path.GetDirectoryName(video.VideoSavePath); // 视频所在目录
                 string videoFileNameWithoutExt = Path.GetFileNameWithoutExtension(video.VideoSavePath); // 无扩展名的文件名
                 var coverFileName = Path.GetFileName(video.VideoCoverSavePath);

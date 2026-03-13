@@ -19,7 +19,7 @@ namespace dy.net.job
             var now = DateTime.Now;
             if (now.Hour == 1 && now.Minute < 30)
             {
-                LogFileCleaner.CleanOldLogFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"), 1);
+                LogFileCleaner.CleanOldLogFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"), 10);
                 await Task.Delay(200);
             }
         }

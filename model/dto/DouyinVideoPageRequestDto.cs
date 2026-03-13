@@ -21,6 +21,9 @@
 
         public string? SortOrder { get; set; }
 
+        public string? CookieId { get; set; }
+
+
     }
 
 
