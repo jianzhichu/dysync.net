@@ -16,11 +16,14 @@ namespace dy.net.utils
         /// 生成NFO文件
         /// NFO文件包含视频的元数据信息，如标题、作者、封面等
         /// </summary>
+        /// <param name="closeNfo">是否关闭刮削生成nfo</param>
         /// <param name="video">视频信息</param>
         /// <param name="tvShowTitle"></param>
         /// <returns>一个表示异步操作的任务</returns>
-        public static void GenerateVideoNfoFile(DouyinVideo video, string tvShowTitle = "")
+        public static void GenerateVideoNfoFile(bool closeNfo,DouyinVideo video, string tvShowTitle = "")
         {
+            if (closeNfo) return;
+
             try
             {
                 if (video.OnlyImgOrOnlyMp3) return;//图片，音频不刮削

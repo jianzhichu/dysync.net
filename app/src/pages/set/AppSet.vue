@@ -200,6 +200,10 @@
             <a-radio-button :value="265">H265</a-radio-button>
           </a-radio-group>
         </a-form-item>
+        <a-form-item label="关闭刮削" name="CloseNfo">
+              <a-switch v-model:checked="formState.CloseNfo" />
+
+        </a-form-item>
       </div>
 
       <!-- 操作按钮 -->
@@ -321,6 +325,7 @@ interface FormState {
   KeepDynamicVideo: boolean; // 补充原有缺失字段
   OnlySyncNew: boolean;
   VideoEncoder: number;
+  CloseNfo:boolean;
 }
 
 // 表单初始数据
@@ -345,6 +350,7 @@ const formState: UnwrapRef<FormState> = reactive({
   KeepDynamicVideo: false, // 初始化缺失字段
   OnlySyncNew: false,
   VideoEncoder: 264,
+  CloseNfo:false
 });
 
 // 实时计算完整模板
@@ -419,6 +425,7 @@ const getConfig = () => {
           KeepDynamicVideo: res.data.keepDynamicVideo || false, // 补充赋值
           OnlySyncNew: res.data.onlySyncNew,
           VideoEncoder: res.data.videoEncoder,
+          CloseNfo:res.data.closeNfo
         });
 
         tagData.value = JSON.parse(res.data.priorityLevel || '[]');

@@ -13,7 +13,7 @@ namespace dy.net
         private static readonly string DefaultListenUrl = "http://*:10101";
         private const string SpaRootPath = "app/dist";
         private const string SpaSourcePath = "app/";
-        private const string SwaggerDocTitle = "dy.net WebApi Docs";
+        private const string SwaggerDocTitle = "dysync.net WebApi Docs";
 
         /// <summary>
         /// 

@@ -687,11 +687,11 @@ namespace dy.net.job
                             //动态视频生成nfo
                             if (cate != null && (VideoType == VideoTypeEnum.dy_mix || VideoType == VideoTypeEnum.dy_series))
                             {
-                                NfoFileGenerator.GenerateVideoNfoFile(dynamicVideo, cate.Name);
+                                NfoFileGenerator.GenerateVideoNfoFile(config.CloseNfo,dynamicVideo, cate.Name);
                             }
                             else
                             {
-                                NfoFileGenerator.GenerateVideoNfoFile(dynamicVideo);
+                                NfoFileGenerator.GenerateVideoNfoFile(config.CloseNfo, dynamicVideo);
                             }
                             videos.Add(dynamicVideo);
                             syncCount++;
@@ -1471,10 +1471,12 @@ namespace dy.net.job
             {
                 if (cate != null && (VideoType == VideoTypeEnum.dy_mix || VideoType == VideoTypeEnum.dy_series))
                 {
-                    NfoFileGenerator.GenerateVideoNfoFile(video, cate.Name);
+                    NfoFileGenerator.GenerateVideoNfoFile(config.CloseNfo, video, cate.Name);
                 }
-                // 生成NFO文件,动态视频 合成后重新生成，不在这里生成nfo
-                NfoFileGenerator.GenerateVideoNfoFile(video);
+                else
+                {
+                    NfoFileGenerator.GenerateVideoNfoFile(config.CloseNfo, video);
+                }
             }
 
             return video;

@@ -114,7 +114,12 @@ namespace dy.net.model.entity
         /// 264 265 0-默认0=264
         /// </summary>
         [SugarColumn(IsNullable = true)]
-        public int? VideoEncoder { get; set; } 
+        public int? VideoEncoder { get; set; }
+        /// <summary>
+        /// 是否不启用刮削
+        /// </summary>
+        [SugarColumn(IsNullable = true)]
+        public bool CloseNfo { get; set; }
     }
 
 }
