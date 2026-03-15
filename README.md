@@ -137,7 +137,8 @@ services:
 
     network_mode: bridge
     dns:
-      - 14.114.114.114  # 修正DNS格式（YAML列表规范）
+      - 223.5.5.5  # 阿里云DNS（备用）
+      - 114.114.114.114  # 国内114 DNS（提升国内访问稳定性）
     deploy:
       resources: 
         limits:  
