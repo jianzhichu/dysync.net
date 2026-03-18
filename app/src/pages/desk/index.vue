@@ -18,12 +18,12 @@ type ConfigItem = {
   userName: string; // 改为非可选，强制初始化
   cookies: string;
   savePath: string;
-  favSavePath: string;
+  // favSavePath: string;
   secUserId: string;
   status: number;
-  upSavePath: string;
+  // upSavePath: string;
   // imgSavePath: string;
-  useSinglePath: boolean; // 非可选
+  // useSinglePath: boolean; // 非可选
 };
 
 // 强制初始化所有字段为非undefined值
@@ -33,12 +33,12 @@ const newConfig = (config?: ConfigItem): ConfigItem => {
     userName: '', // 强制空字符串
     cookies: '',
     savePath: '',
-    favSavePath: '',
+    // favSavePath: '',
     secUserId: '',
     status: 0,
-    upSavePath: '',
+    // upSavePath: '',
     // imgSavePath: '',
-    useSinglePath: false,
+    // useSinglePath: false,
   };
 };
 
@@ -55,22 +55,22 @@ const resetConfig = () => {
 };
 
 // 监听统一路径（改用 ref 的取值方式）
-watch(
-  [() => form.value.savePath, () => form.value.useSinglePath],
-  ([newSavePath, useSinglePath]) => {
-    if (useSinglePath && newSavePath) {
-      form.value.favSavePath = newSavePath;
-      form.value.upSavePath = newSavePath;
-      // form.value.imgSavePath = newSavePath;
-    }
-  },
-  { immediate: true }
-);
+// watch(
+//   [() => form.value.savePath, () => form.value.useSinglePath],
+//   ([newSavePath, useSinglePath]) => {
+//     if (useSinglePath && newSavePath) {
+//       form.value.favSavePath = newSavePath;
+//       form.value.upSavePath = newSavePath;
+//       // form.value.imgSavePath = newSavePath;
+//     }
+//   },
+//   { immediate: true }
+// );
 
 // 校验规则：明确trigger + 不依赖组件自动触发
 const formRules = reactive({
   userName: [{ required: true, message: '请输入Cookie名称', trigger: 'change' }],
-  savePath: [{ required: true, message: '请输入收藏存储路径', trigger: 'change' }],
+  savePath: [{ required: true, message: '请输入视频存储路径并设置读写权限', trigger: 'change' }],
   secUserId: [{ required: false, message: '请输入我的secUserId', trigger: 'change' }],
 });
 
@@ -138,9 +138,9 @@ const manualCheckForm = (): { pass: boolean; msg: string } => {
   if (!form.value.userName.trim()) {
     return { pass: false, msg: '请输入Cookie名称' };
   }
-  if (!form.value.savePath.trim()) {
-    return { pass: false, msg: '请输入收藏存储路径' };
-  }
+  // if (!form.value.savePath.trim()) {
+  //   return { pass: false, msg: '请输入收藏存储路径' };
+  // }
   return { pass: true, msg: '' };
 };
 </script>
@@ -188,9 +188,9 @@ const manualCheckForm = (): { pass: boolean; msg: string } => {
         </a-form-item>
 
         <!-- 收藏路径 -->
-        <a-form-item label="收藏存储路径" name="savePath">
+        <a-form-item label="视频存储路径" name="savePath">
           <div class="input-with-tip">
-            <a-input v-model:value="form.savePath" placeholder="/app/collect" @input="() => {}" />
+            <a-input v-model:value="form.savePath" placeholder="/app/data" @input="() => {}" />
             <a-tooltip title="必填">
               <ExclamationCircleOutlined style="color: #faad14;font-size: 16px; margin-left: 8px; " />
             </a-tooltip>
@@ -198,7 +198,7 @@ const manualCheckForm = (): { pass: boolean; msg: string } => {
         </a-form-item>
 
         <!-- 统一路径开关 -->
-        <a-form-item label="统一存储路径" name="useSinglePath">
+        <!-- <a-form-item label="统一存储路径" name="useSinglePath">
           <div class="switch-with-desc">
             <a-switch v-model:checked="form.useSinglePath" class="custom-large-switch" @change="() => {}" />
             <div class="switch-desc">
@@ -206,15 +206,15 @@ const manualCheckForm = (): { pass: boolean; msg: string } => {
               <span class="sub-desc">{{ form.useSinglePath ? '所有类型视频(收藏的、喜欢的、关注博主的)共用一个路径' : '各类型视频(收藏的、喜欢的、关注博主的)文件路径独立配置' }}</span>
             </div>
           </div>
-        </a-form-item>
+        </a-form-item> -->
         <!-- 其他路径 -->
-        <a-form-item v-if="!form.useSinglePath" label="喜欢存储路径" name="favSavePath">
+        <!-- <a-form-item v-if="!form.useSinglePath" label="喜欢存储路径" name="favSavePath">
           <a-input v-model:value="form.favSavePath" placeholder="喜欢视频存储路径，不想同步就空着，后续可以在“抖音授权”修改" @input="() => {}" />
-        </a-form-item>
+        </a-form-item> -->
 
-        <a-form-item v-if="!form.useSinglePath" label="关注存储路径" name="upSavePath">
+        <!-- <a-form-item v-if="!form.useSinglePath" label="关注存储路径" name="upSavePath">
           <a-input v-model:value="form.upSavePath" placeholder="关注视频存储路径，不想同步就空着，后续可以在“抖音授权”修改" @input="() => {}" />
-        </a-form-item>
+        </a-form-item> -->
 
         <!-- <a-form-item v-if="!form.useSinglePath" label="图文存储路径" name="imgSavePath">
           <a-input v-model:value="form.imgSavePath" placeholder="图文视频存储路径，不想同步就空着，后续可以在“抖音授权”修改" @input="() => {}" />

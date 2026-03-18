@@ -63,7 +63,8 @@ namespace dy.net.service
                     DownDynamicVideo = false,
                     KeepDynamicVideo = false,
                     MegDynamicVideo = true,
-                    VideoEncoder = 264
+                    VideoEncoder = 264,
+                    SavePath = "/app/data"
                 };
                 sqlSugarClient.Insertable(config).ExecuteCommand();
                 return config;
@@ -165,7 +166,7 @@ namespace dy.net.service
         /// <returns></returns>
         public string GetDouyinUpSavePath(string uperId)
         {
-            return  sqlSugarClient.Queryable<DouyinVideoUp>().Where(x => x.UperId == uperId).Select(x => x.SavePath).First();
+            return sqlSugarClient.Queryable<DouyinVideoUp>().Where(x => x.UperId == uperId).Select(x => x.SavePath).First();
         }
 
         /// <summary>
@@ -174,14 +175,14 @@ namespace dy.net.service
         /// <param name="uperId"></param>
         /// <param name="SavePath"></param>
         /// <returns></returns>
-        public  bool SaveDouyinUpSavePath(string uperId, string SavePath)
+        public bool SaveDouyinUpSavePath(string uperId, string SavePath)
         {
             if (string.IsNullOrEmpty(uperId))
                 return false;
-            var upSavePath =  GetDouyinUpSavePath(uperId);
+            var upSavePath = GetDouyinUpSavePath(uperId);
             if (string.IsNullOrWhiteSpace(upSavePath))
             {
-                 sqlSugarClient.Insertable(new DouyinVideoUp
+                sqlSugarClient.Insertable(new DouyinVideoUp
                 {
                     Id = IdGener.GetLong().ToString(),
                     SavePath = SavePath,
@@ -196,52 +197,52 @@ namespace dy.net.service
         /// 将所有关注博主的保存路径统一刷成博主姓名，防止博主名字改变后出现多个文件夹
         /// </summary>
         /// <returns></returns>
-        public async Task UpdateFollowedSavePathAsync()
-        {
-            var existNoSavePath = await sqlSugarClient.Queryable<DouyinFollowed>().Where(x => string.IsNullOrWhiteSpace(x.SavePath)).AnyAsync();
-            if (existNoSavePath)
-            {
-                var list = await sqlSugarClient.Queryable<DouyinFollowed>().ToListAsync();
-                var noSavePathList = list.Where(x => string.IsNullOrWhiteSpace(x.SavePath))?.ToList();
-                foreach (var item in noSavePathList)
-                {
-                    var path = DouyinFileNameHelper.SanitizeLinuxFileName(item.UperName, "抖音号" + item.UperId, true);
-                    path = DouyinFileNameHelper.LimitUnifiedCount(path, 20);
-                    var existFollow = list.Where(x => x.UperId != item.UperId && x.SavePath == path).Any();
-                    if (existFollow)
-                    {
-                        item.SavePath = path + "_" + item.UperId;
-                    }
-                    else
-                    {
-                        item.SavePath = path;
-                    }
-                }
-                if (noSavePathList != null)
-                {
-                    await sqlSugarClient.Updateable(noSavePathList).UpdateColumns(x => new { x.SavePath }).ExecuteCommandAsync();
-                }
-            }
-        }
+        //public async Task UpdateFollowedSavePathAsync()
+        //{
+        //    var existNoSavePath = await sqlSugarClient.Queryable<DouyinFollowed>().Where(x => string.IsNullOrWhiteSpace(x.SavePath)).AnyAsync();
+        //    if (existNoSavePath)
+        //    {
+        //        var list = await sqlSugarClient.Queryable<DouyinFollowed>().ToListAsync();
+        //        var noSavePathList = list.Where(x => string.IsNullOrWhiteSpace(x.SavePath))?.ToList();
+        //        foreach (var item in noSavePathList)
+        //        {
+        //            var path = DouyinFileNameHelper.SanitizeLinuxFileName(item.UperName, "抖音号" + item.UperId, true);
+        //            path = DouyinFileNameHelper.LimitUnifiedCount(path, 20);
+        //            var existFollow = list.Where(x => x.UperId != item.UperId && x.SavePath == path).Any();
+        //            if (existFollow)
+        //            {
+        //                item.SavePath = path + "_" + item.UperId;
+        //            }
+        //            else
+        //            {
+        //                item.SavePath = path;
+        //            }
+        //        }
+        //        if (noSavePathList != null)
+        //        {
+        //            await sqlSugarClient.Updateable(noSavePathList).UpdateColumns(x => new { x.SavePath }).ExecuteCommandAsync();
+        //        }
+        //    }
+        //}
 
-        public async Task<bool> UpdateImageVideoSavePath()
-        {
-            var exist = await sqlSugarClient.Queryable<DouyinVideo>().Where(x => x.IsMergeVideo == 1 && x.VideoSavePath.EndsWith("-poster.jpg")).AnyAsync();
-            if (exist)
-            {
-                // 执行更新操作
-                var updateCount = sqlSugarClient.Updateable<DouyinVideo>()
-                    .SetColumns(it => new DouyinVideo
-                    {
-                        VideoSavePath = SqlFunc.Replace(it.VideoSavePath, "-poster.jpg", ".mp4")
-                    })
-                    .Where(it => it.IsMergeVideo == 1 && it.VideoSavePath.EndsWith("-poster.jpg"))
-                    .ExecuteCommand();
-                if (updateCount > 0)
-                    Serilog.Log.Debug($"更新了{updateCount}条图文视频存储路径,修复图文视频无法在页面播放的问题");
-            }
-            return true;
-        }
+        //public async Task<bool> UpdateImageVideoSavePath()
+        //{
+        //    var exist = await sqlSugarClient.Queryable<DouyinVideo>().Where(x => x.IsMergeVideo == 1 && x.VideoSavePath.EndsWith("-poster.jpg")).AnyAsync();
+        //    if (exist)
+        //    {
+        //        // 执行更新操作
+        //        var updateCount = sqlSugarClient.Updateable<DouyinVideo>()
+        //            .SetColumns(it => new DouyinVideo
+        //            {
+        //                VideoSavePath = SqlFunc.Replace(it.VideoSavePath, "-poster.jpg", ".mp4")
+        //            })
+        //            .Where(it => it.IsMergeVideo == 1 && it.VideoSavePath.EndsWith("-poster.jpg"))
+        //            .ExecuteCommand();
+        //        if (updateCount > 0)
+        //            Serilog.Log.Debug($"更新了{updateCount}条图文视频存储路径,修复图文视频无法在页面播放的问题");
+        //    }
+        //    return true;
+        //}
         #region 测试创建数据库
 
         ///// <summary>

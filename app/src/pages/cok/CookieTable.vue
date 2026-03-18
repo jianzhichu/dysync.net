@@ -26,9 +26,9 @@ columns.value = [
     width: 180,
   },
   { title: 'Cookie状态', dataIndex: 'statusMsg' },
-  { title: '收藏路径', dataIndex: 'savePath' },
-  { title: '喜欢路径', dataIndex: 'favSavePath' },
-  { title: '博主路径', dataIndex: 'upSavePath' },
+  // { title: '收藏路径', dataIndex: 'savePath' },
+  // { title: '喜欢路径', dataIndex: 'favSavePath' },
+  // { title: '博主路径', dataIndex: 'upSavePath' },
   // { title: '图文视频', dataIndex: 'imgSavePath' },
   // { title: 'Cookie', dataIndex: 'cookies' },
   { title: '状态', dataIndex: 'status', width: 180 },
@@ -46,21 +46,21 @@ type DataItem = {
   id?: string;
   userName?: string;
   cookies?: string;
-  savePath?: string;
-  favSavePath?: string;
+  // savePath?: string;
+  // favSavePath?: string;
   secUserId?: string;
   status?: number;
   _isNew?: boolean;
   upSecUserIdsJson?: UpSecUserIdItem[];
   upSecUserIds?: string;
-  upSavePath?: string;
+  // upSavePath?: string;
   // imgSavePath?: string;
   // useSinglePath?: boolean; // 新增：是否全部用一个地址
   useCollectFolder?: boolean;
   downMix?: boolean;
   downSeries?: boolean;
-  mixPath?: string;
-  seriesPath?: string;
+  // mixPath?: string;
+  // seriesPath?: string;
   downCollect?: boolean;
   downFavorite?: boolean;
   downFollowd?: boolean;
@@ -115,20 +115,20 @@ const newCookie = (cookie?: DataItem) => {
   }
   cookie.userName = undefined;
   cookie.cookies = undefined;
-  cookie.savePath = undefined;
-  cookie.favSavePath = undefined;
+  // cookie.savePath = undefined;
+  // cookie.favSavePath = undefined;
   cookie.secUserId = undefined;
   cookie.status = 0; // 0=关闭，1=开启
   cookie.id = '0';
   cookie.upSecUserIdsJson = undefined;
-  cookie.upSavePath = undefined;
+  // cookie.upSavePath = undefined;
   // cookie.imgSavePath = undefined;
   // cookie.useSinglePath = false; // 新增：默认不使用单一路径
   cookie.useCollectFolder = false; //是否按收藏夹来下载。
   cookie.downMix = false; //是否下载收藏夹的合集
   cookie.downSeries = false; //是否下载短剧
-  cookie.mixPath = undefined; //合集存储路径
-  cookie.seriesPath = undefined; //短剧存储路径
+  // cookie.mixPath = undefined; //合集存储路径
+  // cookie.seriesPath = undefined; //短剧存储路径
   cookie.downCollect = false;
   cookie.downFavorite = false;
   cookie.downFollowd = false;
@@ -506,7 +506,11 @@ const saveDrawerData = () => {
 };
 
 const switchdownCollect = (e: any) => {
-  if (!e) form.useCollectFolder = e;
+  form.useCollectFolder = !e;
+};
+
+const switchdownUserCollect = (e: any) => {
+  form.downCollect = !e;
 };
 </script>
 
@@ -538,29 +542,29 @@ const switchdownCollect = (e: any) => {
           <div class="form-item-div">
             <a-switch v-model:checked="form.downCollect" @change="switchdownCollect" :checked-value="true" :un-checked-value="false" size="default" />
             <!-- 非收集字段用a-form-item-rest包裹 -->
-            <a-form-item-rest v-if="form.downCollect">
+            <!-- <a-form-item-rest v-if="form.downCollect">
               <a-form-item name="savePath" noStyle>
                 <a-input v-model:value="form.savePath" placeholder='请输入容器路径' class="form-item-div-input" />
               </a-form-item>
-            </a-form-item-rest>
+            </a-form-item-rest> -->
           </div>
-          <a-alert message="开启后自动下载默认收藏夹视频，记得填写映射路径（容器内部路径）" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
+          <!-- <a-alert v-if="form.downCollect" message="下载默认收藏夹视频" type="info" size="small" style="flex: 1; margin-bottom: 0;" /> -->
         </div>
       </a-form-item>
 
       <!-- 修复：自定义收藏夹 - 拆分Form.Item -->
-      <a-form-item v-if="form.savePath && form.savePath.length>0" label="自定义收藏夹" name="useCollectFolder">
+      <a-form-item label="自定义收藏夹" name="useCollectFolder">
         <div style="display: flex; align-items: center; gap: 12px;">
           <div class="form-item-div">
-            <a-switch v-model:checked="form.useCollectFolder" :checked-value="true" :un-checked-value="false" size="default" />
+            <a-switch v-model:checked="form.useCollectFolder" @change="switchdownUserCollect" :checked-value="true" :un-checked-value="false" size="default" />
             <a-form-item-rest v-if="form.useCollectFolder">
-              <a-input v-model:value="form.savePath" :disabled="form.useCollectFolder&&form.downCollect" placeholder="" class="form-item-div-input" />
+              <!-- <a-input v-model:value="form.savePath" :disabled="form.useCollectFolder&&form.downCollect" placeholder="" class="form-item-div-input" /> -->
               <a-button @click="openCollectFolderSetModal" shape="circle" type="dashed" style="margin-left:5px;" v-if="form.useCollectFolder">
                 <star-outlined />
               </a-button>
             </a-form-item-rest>
           </div>
-          <a-alert message="开启后自动下载自定义分类后的收藏夹，开启后不在下载默认收藏夹视频，存储路径与默认收藏夹存储路径一致" :type="form.useCollectFolder?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert v-if="form.useCollectFolder" message="点击小图标设置你要下载的自定义收藏夹" :type="form.useCollectFolder?'info':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -570,15 +574,15 @@ const switchdownCollect = (e: any) => {
           <div class="form-item-div">
             <a-switch v-model:checked="form.downFavorite" :checked-value="true" :un-checked-value="false" size="default" />
             <a-form-item-rest v-if="form.downFavorite">
-              <a-form-item name="favSavePath" noStyle>
+              <!-- <a-form-item name="favSavePath" noStyle>
                 <a-input v-model:value="form.favSavePath" placeholder='请输入容器路径' class="form-item-div-input" />
-              </a-form-item>
+              </a-form-item> -->
               <a-button shape="circle" @click="()=>{message.success('别点了，这只是为了好看的😄')}" type="dashed" style="margin-left:5px;">
                 <like-outlined />
               </a-button>
             </a-form-item-rest>
           </div>
-          <a-alert message="开启后自动下载喜欢（点赞）的视频，记得填写映射路径（容器内部路径）" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert v-if="form.downFavorite" message="其实就是点赞的视频" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -588,15 +592,15 @@ const switchdownCollect = (e: any) => {
           <div class="form-item-div">
             <a-switch v-model:checked="form.downFollowd" :checked-value="true" :un-checked-value="false" size="default" />
             <a-form-item-rest v-if="form.downFollowd">
-              <a-form-item name="upSavePath" noStyle>
+              <!-- <a-form-item name="upSavePath" noStyle>
                 <a-input v-model:value="form.upSavePath" placeholder='请输入容器路径' class="form-item-div-input" />
-              </a-form-item>
+              </a-form-item> -->
               <a-button shape="circle" @click="()=>{message.success('别点了，这只是为了好看的😄')}" type="dashed" style="margin-left:5px;">
                 <heart-outlined />
               </a-button>
             </a-form-item-rest>
           </div>
-          <a-alert message="开启后自动下载关注的博主视频，记得填写映射路径（容器内部路径）" type="info" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert v-if="form.downFollowd" message="需要到菜单【关注列表】开启需要同步的关注博主" type="error" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -606,15 +610,15 @@ const switchdownCollect = (e: any) => {
           <div class="form-item-div">
             <a-switch v-model:checked="form.downMix" :checked-value="true" :un-checked-value="false" size="default" />
             <a-form-item-rest v-if="form.downMix">
-              <a-form-item name="mixPath" noStyle>
+              <!-- <a-form-item name="mixPath" noStyle>
                 <a-input v-model:value="form.mixPath" class="form-item-div-input" placeholder='默认使用收藏夹路径' />
-              </a-form-item>
+              </a-form-item> -->
               <a-button @click="openMixDownSetModal" shape="circle" type="dashed" style="margin-left:5px;">
                 <gift-outlined />
               </a-button>
             </a-form-item-rest>
           </div>
-          <a-alert message="开启后自动下载收藏的合集视频（还需要开启合集同步开关，不填目录径默认存储到收藏目录，设置后记得docker里面加映射，注意：付费视频下载后无法播放）" :type="form.downMix?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert v-if="form.downMix" message="点击小图标设置你要下载的合集" :type="form.downMix?'info':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -624,16 +628,15 @@ const switchdownCollect = (e: any) => {
           <div class="form-item-div">
             <a-switch v-model:checked="form.downSeries" :checked-value="true" :un-checked-value="false" size="default" />
             <a-form-item-rest v-if="form.downSeries">
-              <a-form-item name="seriesPath" noStyle>
+              <!-- <a-form-item name="seriesPath" noStyle>
                 <a-input v-model:value="form.seriesPath" placeholder='默认使用收藏夹路径' class="form-item-div-input" />
-              </a-form-item>
+              </a-form-item> -->
               <a-button @click="openSeriesDownSetModal" shape="circle" type="dashed" style="margin-left:5px;">
                 <fire-outlined />
               </a-button>
             </a-form-item-rest>
           </div>
-          <a-alert message="开启后自动下载收藏的短剧视频（还需要开启短剧同步开关，不填目录径默认存储到收藏目录，设置后记得docker里面加映射，注意：付费视频下载后无法播放）
-" :type="form.downSeries?'error':'info'" size="small" style="flex: 1; margin-bottom: 0;" />
+          <a-alert v-if="form.downSeries" message="点击小图标设置你要下载的短剧" :type="form.downSeries?'info':'error'" size="small" style="flex: 1; margin-bottom: 0;" />
         </div>
       </a-form-item>
 
@@ -815,7 +818,7 @@ const switchdownCollect = (e: any) => {
   background: transparent;
 }
 .form-item-div {
-  width: 300px;
+  width: 100px;
 }
 .form-item-div-input {
   width: 180px;

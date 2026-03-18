@@ -174,7 +174,7 @@ namespace dy.net.job
                 }
                 else
                 {
-                    Log.Debug($"[{cookie.UserName}][{logTag}]：无有效数据");
+                    Log.Debug($"[{cookie.UserName}][{logTag}]：没有发现新的数据");
                 }
             }
             catch (Exception ex)

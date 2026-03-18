@@ -167,7 +167,7 @@ namespace dy.net.job
         /// <returns>有效的Cookie列表</returns>
         protected virtual async Task<List<DouyinCookie>> GetSyncCookies()
         {
-            return await douyinCookieService.GetOpendCookiesAsync(x => !string.IsNullOrWhiteSpace(x.SavePath));
+            return await douyinCookieService.GetOpendCookiesAsync();
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace dy.net.job
         protected virtual string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
             var subFolder = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
-            var folder = Path.Combine(cookie.SavePath, subFolder);
+            var folder = Path.Combine(config.SavePath,cookie.UserName,VideoType.GetDesc(), subFolder);
             if (!Directory.Exists(folder))
             {
                 Directory.CreateDirectory(folder);
@@ -213,8 +213,7 @@ namespace dy.net.job
             else
             {
                 //说明文件夹存在，检查里面有没有文件，如果已经有视频文件了，说明视频标题相同，那么应该重新创建文件夹,+id
-
-                folder = Path.Combine(cookie.SavePath, subFolder + "_" + item.AwemeId);
+                folder = Path.Combine(config.SavePath, cookie.UserName,VideoType.GetDesc(), subFolder + "_" + item.AwemeId);
             }
             return folder;
 
@@ -258,8 +257,12 @@ namespace dy.net.job
         /// 子类必须实现此方法，指定头像的存储位置
         /// </summary>
         /// <param name="cookie">用户Cookie</param>
+        /// <param name="config">系统配置</param>
         /// <returns>作者头像保存的基础路径</returns>
-        protected abstract string GetAuthorAvatarBasePath(DouyinCookie cookie);
+        protected virtual string GetAuthorAvatarBasePath(DouyinCookie cookie,AppConfig config)
+        {
+            return Path.Combine(config.SavePath, cookie.UserName, VideoType.GetDesc(), "author");
+        }
 
         /// <summary>
         /// 处理同步完成后的操作
@@ -430,7 +433,8 @@ namespace dy.net.job
                 var data = await FetchVideoData(cookie, cursor, followed, cate);
                 if (data == null || data.AwemeList == null || !data.AwemeList.Any())
                 {
-                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{cate?.Name}] 没有新的视频");
+                    var cateStr = string.IsNullOrWhiteSpace(cate?.Name) ? "" : $"[{cate.Name}]";
+                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]{cateStr} 没有发现新的视频");
                     break;
                 }
 
@@ -1292,6 +1296,7 @@ namespace dy.net.job
         /// </summary>
         /// <param name="cookie">用户Cookie</param>
         /// <param name="item">视频信息</param>
+        /// <param name="config"></param>
         /// <returns>一个元组，包含头像保存路径和头像URL</returns>
         protected async Task<string> DownAuthorAvatar(DouyinCookie cookie, Aweme item,AppConfig config)
         {
@@ -1302,7 +1307,7 @@ namespace dy.net.job
             if (string.IsNullOrWhiteSpace(avatarUrl)) return string.Empty;
 
             // 拼接头像保存路径
-            var avatarSavePath = Path.Combine(GetAuthorAvatarBasePath(cookie), $"{item.Author.Uid}.jpg");
+            var avatarSavePath = Path.Combine(GetAuthorAvatarBasePath(cookie,config), $"{item.Author.Uid}.jpg");
             var avatarDir = Path.GetDirectoryName(avatarSavePath);
             // 创建头像保存文件夹
             if (!Directory.Exists(avatarDir)) Directory.CreateDirectory(avatarDir);

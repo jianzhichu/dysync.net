@@ -60,9 +60,9 @@ namespace dy.net.service
                 SecUserId = "",
                 Id = IdGener.GetLong().ToString(),
                 Status = 0,
-                SavePath = "/app/collect",
-                FavSavePath = "/app/favorite",
-                UpSavePath = "/app/uper",
+                //SavePath = "/app/collect",
+                //FavSavePath = "/app/favorite",
+                //UpSavePath = "/app/uper",
                 //ImgSavePath="/app/images",
                 //CollHasSyncd = 0,
                 //FavHasSyncd = 0,
@@ -78,15 +78,15 @@ namespace dy.net.service
         /// <returns></returns>
         public async Task<bool> UpdateCookieToSupportOldVersionAsync()
         {
-            var cookies = _cookieRepository.GetAll();
+            //var cookies = _cookieRepository.GetAll();
 
-            foreach (var item in cookies)
-            {
-                item.DownCollect = !string.IsNullOrWhiteSpace(item.SavePath) && !item.UseCollectFolder;
-                item.DownFavorite = !string.IsNullOrWhiteSpace(item.FavSavePath);
-                item.DownFollowd = !string.IsNullOrWhiteSpace(item.UpSavePath);
-            }
-            await _cookieRepository.UpdateRangeAsync(cookies);
+            //foreach (var item in cookies)
+            //{
+            //    item.DownCollect = !string.IsNullOrWhiteSpace(item.SavePath) && !item.UseCollectFolder;
+            //    item.DownFavorite = !string.IsNullOrWhiteSpace(item.FavSavePath);
+            //    item.DownFollowd = !string.IsNullOrWhiteSpace(item.UpSavePath);
+            //}
+            //await _cookieRepository.UpdateRangeAsync(cookies);
             return true;
         }
 

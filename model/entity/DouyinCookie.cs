@@ -26,7 +26,8 @@ namespace dy.net.model.entity
         /// <summary>
         /// 存储路径（收藏视频的存储路径）
         /// </summary>
-        [SugarColumn(Length = 255, IsNullable = true)]
+        //[SugarColumn(Length = 255, IsNullable = true)]
+        [SugarColumn(IsIgnore =true)]
         public string SavePath { get; set; }
 
         /// <summary>
@@ -66,11 +67,11 @@ namespace dy.net.model.entity
         [SugarColumn(Length = 500, IsNullable = true)]
         public string SecUserId { get; set; }
 
-        /// <summary>
-        /// 喜欢的视频存储路径
-        /// </summary>
-        [SugarColumn(Length = 500, IsNullable = true)]
-        public string FavSavePath { get; set; }
+        ///// <summary>
+        ///// 喜欢的视频存储路径
+        ///// </summary>
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string FavSavePath { get; set; }
 
         ///// <summary>
         ///// 最新收藏夹的分页页码
@@ -103,11 +104,11 @@ namespace dy.net.model.entity
         //public string UpSecUserIds { get; set; }
 
 
-        /// <summary>
-        /// Up主发布的视频存储路径
-        /// </summary>
-        [SugarColumn(Length = 500, IsNullable = true)]
-        public string UpSavePath { get; set; }
+        ///// <summary>
+        ///// Up主发布的视频存储路径
+        ///// </summary>
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string UpSavePath { get; set; }
 
 
         /// <summary>
@@ -128,22 +129,22 @@ namespace dy.net.model.entity
         [SugarColumn(Length = 100, IsNullable = true)]
         public string StatusMsg { get; set; }
 
-        /// <summary>
-        /// 是否统一一个路径(savepath)
-        /// </summary>
-        [SugarColumn(Length = 100, IsNullable = true, ColumnName = "useSinglePath")]
-        public bool UseSinglePath { get; set; } = true;//默认true
+        ///// <summary>
+        ///// 是否统一一个路径(savepath)
+        ///// </summary>
+        //[SugarColumn(Length = 100, IsNullable = true, ColumnName = "useSinglePath")]
+        //public bool UseSinglePath { get; set; } = true;//默认true
 
-        /// <summary>
-        /// 合集存储路径
-        /// </summary>
-        [SugarColumn(Length = 500, IsNullable = true)]
-        public string MixPath { get; set; }
+        ///// <summary>
+        ///// 合集存储路径
+        ///// </summary>
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string MixPath { get; set; }
 
-        /// <summary>
-        /// 短剧存储路径
-        /// </summary>
-        [SugarColumn(Length = 500, IsNullable = true)]
-        public string SeriesPath { get; set; }
+        ///// <summary>
+        ///// 短剧存储路径
+        ///// </summary>
+        //[SugarColumn(Length = 500, IsNullable = true)]
+        //public string SeriesPath { get; set; }
     }
 }

@@ -20,26 +20,13 @@ namespace dy.net.job
             return await douyinHttpClientService.SyncSeriesViedosByMSeriesId(cursor, count, cookie.Cookies, cate.XId);
         }
 
-        protected override Task<List<DouyinCookie>> GetSyncCookies()
-        {
-            return douyinCookieService.GetOpendCookiesAsync(x => !string.IsNullOrWhiteSpace(x.SeriesPath));
-        }
         protected override string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
             if (cate != null)
             {
-                if (string.IsNullOrWhiteSpace(cookie.SeriesPath))
-                {
-                    var folder = Path.Combine(cookie.SavePath, VideoType.GetDesc(), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                    return folder;
-                }
-                else
-                {
-                    var folder = Path.Combine(cookie.SeriesPath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                    return folder;
-                }
+                var folder = Path.Combine(config.SavePath,cookie.UserName, VideoType.GetDesc(), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                return folder;
             }
             else
             {
@@ -47,13 +34,5 @@ namespace dy.net.job
             }
         }
 
-        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
-        {
-            if (string.IsNullOrEmpty(cookie.SeriesPath))
-
-                return Path.Combine(cookie.SavePath, "author");
-            else
-                return Path.Combine(cookie.SeriesPath, "author");
-        }
     }
 }

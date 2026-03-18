@@ -177,6 +177,9 @@ namespace dy.net.Controllers
             dyUserCookies.StatusMsg = "正常";
             // 4. 保存到数据库
             var saved = await dyCookieService.Add(dyUserCookies);
+            var config = commonService.GetConfig();
+            config.SavePath = dyUserCookies.SavePath;
+            await UpdateConfig(config);
             return saved ? ApiResult.Success() : ApiResult.Fail("添加失败");
         }
 
@@ -184,9 +187,9 @@ namespace dy.net.Controllers
         {
             var pathsToCheck = new Dictionary<string, string>
     {
-        { "收藏存储路径", cookie.SavePath },
-        { "喜欢视频存储路径", cookie.FavSavePath },
-        { "上传视频存储路径", cookie.UpSavePath },
+        { "视频存储路径", cookie.SavePath },
+        //{ "喜欢视频存储路径", cookie.FavSavePath },
+        //{ "上传视频存储路径", cookie.UpSavePath },
         // { "图片存储路径", cookie.ImgSavePath } // 可随时启用
     };
 
@@ -201,10 +204,10 @@ namespace dy.net.Controllers
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(cookie.SavePath))
-            {
-                return (false, "收藏存储路径不能为空");
-            }
+            //if (string.IsNullOrWhiteSpace(cookie.SavePath))
+            //{
+            //    return (false, "收藏存储路径不能为空");
+            //}
 
             return (true, string.Empty);
         }
@@ -230,15 +233,15 @@ namespace dy.net.Controllers
         [HttpPost("update")]
         public async Task<IActionResult> AddOrUpdateAsync([FromBody] DouyinCookie dyUserCookies)
         {
-            RemoveCookieLineString(dyUserCookies);
+            //RemoveCookieLineString(dyUserCookies);
 
-            var checkCk = await httpClientService.CheckCookie(dyUserCookies);
-            if (!checkCk)
-            {
-                return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
-            }
+            //var checkCk = await httpClientService.CheckCookie(dyUserCookies);
+            //if (!checkCk)
+            //{
+            //    return ApiResult.Fail("Cookie无效，请按照文档提示重新获取有效Cookie，不要使用插件获取cookie");
+            //}
             dyUserCookies.StatusCode = 0;
-            dyUserCookies.StatusMsg = "正常";
+            dyUserCookies.StatusMsg = "";
             if (dyUserCookies.Id == "0")
             {
                 dyUserCookies.Id = IdGener.GetLong().ToString();

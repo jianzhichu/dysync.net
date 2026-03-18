@@ -3,6 +3,7 @@ using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
 using dy.net.utils;
+using SqlSugar;
 using System.Threading.Tasks;
 
 namespace dy.net.job
@@ -22,12 +23,6 @@ namespace dy.net.job
                 LogFileCleaner.CleanOldLogFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"), 10);
                 await Task.Delay(200);
             }
-        }
-
-
-        protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
-        {
-            return Path.Combine(cookie.SavePath, "author");
         }
 
         protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
@@ -61,11 +56,11 @@ namespace dy.net.job
             string videoFolderName = DouyinFileNameHelper.SanitizeLinuxFileName(item?.Desc, item?.AwemeId, true);
 
             // 4. 简化文件夹路径拼接+存在判断（核心逻辑不变）
-            string folder = Path.Combine(cookie.SavePath, authorFolder, videoFolderName);
+            string folder = Path.Combine(config.SavePath,cookie.UserName,VideoType.GetDesc(), authorFolder, videoFolderName);
             if (Directory.Exists(folder))
             {
                 // 文件夹存在则拼接AwemeId（保留你的原逻辑）
-                folder = Path.Combine(cookie.SavePath, authorFolder, $"{videoFolderName}_{item.AwemeId}");
+                folder = Path.Combine(config.SavePath, cookie.UserName, VideoType.GetDesc(), authorFolder, $"{videoFolderName}_{item.AwemeId}");
             }
             else
             {

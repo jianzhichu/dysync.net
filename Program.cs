@@ -218,8 +218,8 @@ namespace dy.net
                 // 重置博主作品同步状态为未同步
                 //commonService.UpdateAllCookieSyncedToZero();
 
-                await commonService.UpdateFollowedSavePathAsync();
-                await commonService.UpdateImageVideoSavePath();
+                //await commonService.UpdateFollowedSavePathAsync();
+                //await commonService.UpdateImageVideoSavePath();
 
                 // 初始化Cookie
                 var cookieService = services.GetRequiredService<DouyinCookieService>();

@@ -520,12 +520,12 @@ namespace dy.net.service
             {
                 if (!string.IsNullOrWhiteSpace(douyinCookie.SecUserId))
                 {
-                    var res = await SyncMyFollows("1", "10", douyinCookie.SecUserId, douyinCookie.Cookies);
+                    var res = await SyncMyFollows("20", "0", douyinCookie.SecUserId, douyinCookie.Cookies);
                     return res != null && res.StatusCode == 0;
                 }
                 else
                 {
-                    var res = await SyncCollectVideos("0", "10", douyinCookie.Cookies);
+                    var res = await SyncCollectVideos("0", "18", douyinCookie.Cookies);
                     return res != null && res.StatusCode == 0;
                 }
             }

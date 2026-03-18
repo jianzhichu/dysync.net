@@ -200,12 +200,12 @@ namespace dy.net.service
         {
             return new TaskEnableConditions
             {
-                IsCollectEnabled = cookies.Any(x => x.DownCollect && !x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath)),
-                IsFavoriteEnabled = cookies.Any(x => x.DownFavorite && !string.IsNullOrWhiteSpace(x.FavSavePath)),
-                IsFollowedEnabled = cookies.Any(x => x.DownFollowd && !string.IsNullOrWhiteSpace(x.UpSavePath)),
-                IsMixEnabled = cookies.Any(x => x.DownMix && !string.IsNullOrWhiteSpace(x.MixPath)),
-                IsSeriesEnabled = cookies.Any(x => x.DownSeries && !string.IsNullOrWhiteSpace(x.SeriesPath)),
-                IsCustomCollectEnabled = cookies.Any(x => x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath))
+                IsCollectEnabled = cookies.Any(x => x.DownCollect && !x.UseCollectFolder),
+                IsFavoriteEnabled = cookies.Any(x => x.DownFavorite),
+                IsFollowedEnabled = cookies.Any(x => x.DownFollowd ),
+                IsMixEnabled = cookies.Any(x => x.DownMix),
+                IsSeriesEnabled = cookies.Any(x => x.DownSeries),
+                IsCustomCollectEnabled = cookies.Any(x => x.UseCollectFolder)
             };
         }
 

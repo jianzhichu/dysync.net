@@ -120,6 +120,12 @@ namespace dy.net.model.entity
         /// </summary>
         [SugarColumn(IsNullable = true)]
         public bool CloseNfo { get; set; }
+
+        /// <summary>
+        /// 视频存储根目录，用于映射
+        /// </summary>
+        [SugarColumn(IsNullable = false)]
+        public string SavePath { get; set; }
     }
 
 }

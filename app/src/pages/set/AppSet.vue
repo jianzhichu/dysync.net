@@ -5,6 +5,13 @@
       <div class="form-section">
         <h3 class="section-title">任务调度</h3>
 
+        <!-- <a-form-item has-feedback label="存储路径" name="SavePath" :wrapper-col="{ span: 7 }">
+          <a-input v-model:value="formState.SavePath" placeholder="" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>如果是docker部署，需要在docker-compose中加入映射</span>
+          </div>
+        </a-form-item> -->
         <a-form-item has-feedback label="同步周期" name="Cron" :wrapper-col="{ span: 20 }">
           <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="15" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
@@ -201,7 +208,7 @@
           </a-radio-group>
         </a-form-item>
         <a-form-item label="关闭刮削" name="CloseNfo">
-              <a-switch v-model:checked="formState.CloseNfo" />
+          <a-switch v-model:checked="formState.CloseNfo" />
 
         </a-form-item>
       </div>
@@ -305,6 +312,7 @@ const downImageVideoHandler = () => {
 };
 // 表单数据结构（包含 FullFollowedTitleTemplate 字段）
 interface FormState {
+  SavePath: string;
   Cron: number;
   Id: string;
   BatchCount: number;
@@ -325,11 +333,12 @@ interface FormState {
   KeepDynamicVideo: boolean; // 补充原有缺失字段
   OnlySyncNew: boolean;
   VideoEncoder: number;
-  CloseNfo:boolean;
+  CloseNfo: boolean;
 }
 
 // 表单初始数据
 const formState: UnwrapRef<FormState> = reactive({
+  SavePath: 'douyin',
   Cron: 30,
   Id: '0',
   BatchCount: 10,
@@ -350,7 +359,7 @@ const formState: UnwrapRef<FormState> = reactive({
   KeepDynamicVideo: false, // 初始化缺失字段
   OnlySyncNew: false,
   VideoEncoder: 264,
-  CloseNfo:false
+  CloseNfo: false,
 });
 
 // 实时计算完整模板
@@ -425,7 +434,8 @@ const getConfig = () => {
           KeepDynamicVideo: res.data.keepDynamicVideo || false, // 补充赋值
           OnlySyncNew: res.data.onlySyncNew,
           VideoEncoder: res.data.videoEncoder,
-          CloseNfo:res.data.closeNfo
+          CloseNfo: res.data.closeNfo,
+          SavePath: res.data.savePath,
         });
 
         tagData.value = JSON.parse(res.data.priorityLevel || '[]');
