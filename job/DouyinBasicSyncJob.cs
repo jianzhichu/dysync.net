@@ -930,9 +930,9 @@ namespace dy.net.job
                 Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载完成.");
             }
             // 下载视频封面
-            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate);
+            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate,config);
             // 下载作者头像
-            var avatarSavePath = await DownAuthorAvatar(cookie, item);
+            var avatarSavePath = await DownAuthorAvatar(cookie, item,config);
 
             // 创建视频实体
             return await CreateVideoEntity(config, cookie, item, v, savePath, coverSavePath, avatarSavePath, null, cate);
@@ -1016,9 +1016,9 @@ namespace dy.net.job
 
 
             // 下载视频封面
-            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate);
+            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate,config);
             // 下载作者头像
-            var avatarSavePath = await DownAuthorAvatar(cookie, item);
+            var avatarSavePath = await DownAuthorAvatar(cookie, item, config);
 
             // 创建视频实体
             var virtualBitRate = new VideoBitRate
@@ -1191,7 +1191,7 @@ namespace dy.net.job
               : imageUrls.FirstOrDefault()?.Path;
 
                 // 下载作者头像
-                var avatarSavePath = await DownAuthorAvatar(cookie, item);
+                var avatarSavePath = await DownAuthorAvatar(cookie, item, config);
 
                 // 为合成的视频创建一个“虚拟”的BitRate对象，以便复用CreateVideoEntity方法
                 var virtualBitRate = new VideoBitRate
@@ -1204,7 +1204,7 @@ namespace dy.net.job
                     }
                 };
                 // 下载视频封面（使用第一张图片作为封面）
-                string coverSavePath = await DownVideoCover(coverUrl, savePath, cookie);
+                string coverSavePath = await DownVideoCover(coverUrl, savePath, cookie, config);
 
                 // 创建视频实体
                 var videoEntity = await CreateVideoEntity(config,
@@ -1259,8 +1259,9 @@ namespace dy.net.job
         /// <param name="cookie">用户Cookie</param>
         /// <param name="cate"></param>
         /// <returns>一个表示异步操作的任务</returns>
-        protected async Task<string> DownVideoCover(Aweme item, string savePath, DouyinCookie cookie, DouyinCollectCate cate)
+        protected async Task<string> DownVideoCover(Aweme item, string savePath, DouyinCookie cookie, DouyinCollectCate cate,AppConfig config)
         {
+            if (config.CloseNfo) return string.Empty;
             // 定义封面URL变量
             string coverUrl;
 
@@ -1282,7 +1283,7 @@ namespace dy.net.job
                 }
             }
             // 调用下载封面的方法
-            return await DownVideoCover(coverUrl, savePath, cookie);
+            return await DownVideoCover(coverUrl, savePath, cookie, config);
         }
 
         /// <summary>
@@ -1292,8 +1293,9 @@ namespace dy.net.job
         /// <param name="cookie">用户Cookie</param>
         /// <param name="item">视频信息</param>
         /// <returns>一个元组，包含头像保存路径和头像URL</returns>
-        protected async Task<string> DownAuthorAvatar(DouyinCookie cookie, Aweme item)
+        protected async Task<string> DownAuthorAvatar(DouyinCookie cookie, Aweme item,AppConfig config)
         {
+            if (config.CloseNfo) return string.Empty;
             if (item.Author == null) return string.Empty;
             // 优先获取高清头像
             var avatarUrl = item.Author.AvatarLarger?.UrlList?.FirstOrDefault() ?? item.Author.AvatarThumb?.UrlList?.FirstOrDefault();
@@ -1387,8 +1389,9 @@ namespace dy.net.job
         /// <param name="savePath">封面保存文件夹</param>
         /// <param name="cookie">用户Cookie</param>
         /// <returns>一个表示异步操作的任务</returns>
-        private async Task<string> DownVideoCover(string coverUrl, string savePath, DouyinCookie cookie)
+        private async Task<string> DownVideoCover(string coverUrl, string savePath, DouyinCookie cookie,AppConfig config)
         {
+            if (config.CloseNfo) return string.Empty;
             if (string.IsNullOrWhiteSpace(coverUrl)) return string.Empty;
             if (string.IsNullOrWhiteSpace(savePath)) return string.Empty;
 
