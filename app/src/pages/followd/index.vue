@@ -8,6 +8,9 @@
         </a-tabs>
       </div>
       <div class="search-area">
+
+        同步<a-switch v-model:checked="quaryData.openSync" @change="onSyncFilterChange" size="small" />
+        全同步<a-switch v-model:checked="quaryData.fullSync" @change="onSyncFilterChange" size="small" />
         <!-- 搜索按钮 -->
         <a-button type="default" class="search-btn" @click="toggleSearchInput">
           <CloseOutlined v-if="searchInputVisible" />
@@ -192,6 +195,8 @@ interface QuaryParam {
   pageSize: number;
   followUserName: string | null;
   mySelfId?: string;
+  openSync: boolean;
+  fullSync: boolean;
 }
 
 interface AddForm {
@@ -263,6 +268,8 @@ const quaryData: UnwrapRef<QuaryParam> = reactive({
   pageSize: 20,
   followUserName: null,
   mySelfId: '',
+  openSync: false,
+  fullSync: false,
 });
 
 // 生命周期 - 挂载时初始化
@@ -271,6 +278,10 @@ onMounted(() => {
   initData();
 });
 
+const onSyncFilterChange = () => {
+  quaryData.pageIndex = 0;
+  initData();
+};
 // 生命周期 - 卸载时移除滚动监听
 onUnmounted(() => {
   const cardContainer = document.querySelector('.dept-user-card-container .card-list-container');
