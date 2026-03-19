@@ -42,6 +42,10 @@
 
         public string MySelfId { get; set; }
 
+        public bool OpenSync { get; set; }
+
+        public bool FullSync { get; set; }
+
     }
 
     public class FollowUpdateDto

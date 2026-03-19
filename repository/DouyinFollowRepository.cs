@@ -43,7 +43,9 @@ namespace dy.net.repository
         {
             var where = this.Db.Queryable<DouyinFollowed>()
                 .Where(x => x.mySelfId == dto.MySelfId)
-                .WhereIF(!string.IsNullOrWhiteSpace(dto.FollowUserName), x => x.UperName.Contains(dto.FollowUserName) || x.DouyinNo.Contains(dto.FollowUserName));
+                .WhereIF(!string.IsNullOrWhiteSpace(dto.FollowUserName), x => x.UperName.Contains(dto.FollowUserName) || x.DouyinNo.Contains(dto.FollowUserName))
+                .WhereIF(dto.OpenSync,x=>x.OpenSync)
+                .WhereIF(dto.FullSync,x=>x.FullSync &&x.OpenSync);
             var totalCount = await where.CountAsync();
             var list = await where.OrderByDescending(x => x.OpenSync).OrderByDescending(x => x.LastSyncTime).Skip((dto.PageIndex - 1) * dto.PageSize).Take(dto.PageSize).ToListAsync();
             return (list, totalCount);
