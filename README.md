@@ -146,6 +146,45 @@ services:
 
 ```
 
+  另一个版本去掉了所有视频存储路径设置项，docker只需要映射3个路径就可以,但是！！！
+  不兼容老的版本，如果觉得这种方式好一些可以重新部署。其他没什么变化。
+  所有路径都变成 根目录/cookie名字/视频类型/(如果是合集或者短剧这里还有一层)/合集或短剧/名称/视频文件
+
+```
+services:
+  dysync:
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:latest
+    container_name: dysync_latest  # 容器自定义名称
+    restart: unless-stopped     # 容器非手动停止则自动重启
+    ports:
+      - "10110:10101"           # 端口映射
+    environment:
+      # 限制GC堆最大内存为100MB（100*1024*1024=104857600，可根据需求调整）
+      - COMPlus_GCHeapHardLimit=154857600
+      # 禁用服务器GC，改用工作站GC（轻量应用更友好）
+      - COMPlus_GCServer=0
+      # 可选：强制GC回收后释放内存给操作系统（Linux专属）
+      - COMPlus_GCConserveMemory=1
+      # 可选：显示GC日志（排查内存问题时用）
+      # - COMPlus_GCLogFile=/app/gc.log
+    
+    volumes:
+      # 基础路径映射 - 主账号（账号1）
+      - /vol2/1000/media/dy001/db:/app/db          # 数据库目录（持久化配置和同步记录）
+      - /vol2/1000/media/dy001/mp3:/app/mp3        # 备用音频目录（版权音频无法下载时使用）
+      - /vol2/1000/media/dy001/:/app/data  # 视频存储目录
+    
+
+    network_mode: bridge
+    dns:
+      - 223.5.5.5  # 阿里云DNS（备用）
+      - 114.114.114.114  # 国内114 DNS（提升国内访问稳定性）
+    deploy:
+      resources: 
+        limits:  
+          memory: 211m  # 限制内存占用≤250MB（图文视频下载场景不建议设置）
+```
+
 ## 🚀 5. 软件截图
 
 ![输入图片说明](docs/homepage.png)
