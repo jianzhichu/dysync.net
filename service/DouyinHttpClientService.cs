@@ -213,7 +213,7 @@ namespace dy.net.service
                 var refererValue = "https://www.douyin.com/user/self?";
 
                 var requestParameters = DouyinRequestParamManager.DouyinMixListParams;
-                requestParameters["count"] = "100";
+                requestParameters["count"] = "10";
                 requestParameters["cursor"] = cursor;
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
