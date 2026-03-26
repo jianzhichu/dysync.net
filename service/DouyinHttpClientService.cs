@@ -125,7 +125,7 @@ namespace dy.net.service
                 var refererValue = "https://www.douyin.com/user/self?from_tab_name=main&showSubTab=favorite_folder&showTab=favorite_collection";
 
                 var requestParameters = DouyinRequestParamManager.DouyinCollectListParams;
-                requestParameters["count"] = "100";
+                requestParameters["count"] = "10";
                 requestParameters["cursor"] = cursor;
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);

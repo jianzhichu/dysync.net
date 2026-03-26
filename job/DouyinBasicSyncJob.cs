@@ -1446,7 +1446,7 @@ namespace dy.net.job
                 //VideoTitleSimplify = VideoType == VideoTypeEnum.dy_follows? GetVideoSimplifyTitle(item):string.Empty,
                 Id = IdGener.GetLong().ToString(),
                 Resolution = $"{bitRate.PlayAddr.Width}×{bitRate.PlayAddr.Height}",
-                FileSize = bitRate.PlayAddr.DataSize,
+                FileSize = bitRate.PlayAddr.DataSize ?? 0,
                 FileHash = bitRate.PlayAddr.FileHash,
                 Tag1 = tag1,
                 Tag2 = tag2,
