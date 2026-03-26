@@ -1231,7 +1231,7 @@ namespace dy.net.model.response
     public class PlayAddr
     {
         [JsonProperty("data_size")]
-        public long DataSize { get; set; }
+        public long? DataSize { get; set; }
 
         //[JsonProperty("file_cs")]
         //public string FileCs { get; set; }
