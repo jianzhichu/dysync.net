@@ -377,54 +377,75 @@ const openSeriesDownSetModal = () => {
   cateType.value = 7;
   openCommonDrawer();
 };
-
-// ========== 公用抽屉打开逻辑 ==========
+// ========== 公用抽屉打开逻辑（替换原来的） ==========
 const openCommonDrawer = () => {
   // 重置抽屉状态
   drawerDataList.value = [];
   drawerPagination.current = 1;
   drawerPagination.total = 0;
   drawerPagination.hasMore = true;
-  // 显示抽屉
   showDrawer.value = true;
-  // 加载第一页数据
-  loadDrawerData();
-  // 监听滚动触底（延迟绑定，确保DOM已渲染）
-  nextTick(() => {
-    bindDrawerScrollEvent();
-  });
-};
 
-// ========== 绑定抽屉滚动触底事件 ==========
+  // 确保DOM渲染后再加载 + 绑定事件
+  nextTick()
+    .then(() => {
+      loadDrawerData();
+      bindDrawerScrollEvent();
+    })
+    .catch(() => {});
+};
+// ========== 绑定抽屉滚动触底事件（替换原来的） ==========
 const bindDrawerScrollEvent = () => {
   const scrollContainer = drawerScrollRef.value;
-  if (!scrollContainer) return;
+  if (!scrollContainer) {
+    // 延迟重试绑定，确保DOM渲染完成
+    setTimeout(() => {
+      bindDrawerScrollEvent();
+    }, 100);
+    return;
+  }
 
-  // 先移除原有事件，避免重复绑定
+  // 先清除所有旧事件
   scrollContainer.removeEventListener('scroll', handleDrawerScroll);
-  // 添加滚动事件
+  // 重新绑定
   scrollContainer.addEventListener('scroll', handleDrawerScroll);
+
+  // 额外：首次加载如果内容不足一屏，自动加载下一页
+  setTimeout(() => {
+    handleDrawerScroll();
+  }, 200);
+};
+// 防抖函数（防止滚动触发太频繁）
+const debounce = (func: Function, delay = 100) => {
+  let timeoutId: any;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
 };
 
-// ========== 滚动触底处理逻辑 ==========
-const handleDrawerScroll = () => {
+// ========== 滚动触底处理逻辑（替换原来的） ==========
+const handleDrawerScroll = debounce(() => {
   const scrollContainer = drawerScrollRef.value;
-  if (!scrollContainer || drawerPagination.loading || !drawerPagination.hasMore) return;
+  if (!scrollContainer) return;
+  if (drawerPagination.loading || !drawerPagination.hasMore) return;
 
-  // 计算滚动位置（触底阈值20px，避免精准触底才触发）
-  const { scrollTop, clientHeight, scrollHeight } = scrollContainer;
-  const isBottom = scrollTop + clientHeight >= scrollHeight - 20;
+  const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+  // 兼容所有设备的触底判断（距离底部 50px 就触发）
+  const isBottom = scrollTop + clientHeight + 50 >= scrollHeight;
 
   if (isBottom) {
-    // 加载下一页
+    console.log('✅ 触底加载触发');
     drawerPagination.current += 1;
     loadDrawerData();
   }
-};
-
+}, 100); // 100ms 防抖
 // ========== 加载抽屉数据（
 const loadDrawerData = () => {
-  if (drawerPagination.loading || !drawerPagination.hasMore) return;
+  if (drawerPagination.loading || !drawerPagination.hasMore) {
+    console.log('🚫 阻止重复加载');
+    return;
+  }
 
   drawerPagination.loading = true;
   useApiStore()
@@ -436,16 +457,23 @@ const loadDrawerData = () => {
     })
     .then((res) => {
       if (res.code === 0) {
-        drawerDataList.value = [...drawerDataList.value, ...res.data.data];
-        drawerPagination.loading = false;
-        // 更新分页状态
-        drawerPagination.total = res.data.total;
-        drawerPagination.loading = false;
-        // 判断是否还有更多数据
+        const newData = res.data.data || [];
+        drawerDataList.value = [...drawerDataList.value, ...newData];
+
+        drawerPagination.total = res.data.total || 0;
+        // 判断是否还有更多
         drawerPagination.hasMore = drawerDataList.value.length < drawerPagination.total;
+
+        // 加载完成后立刻检查是否需要继续加载（适配大屏）
+        setTimeout(() => {
+          handleDrawerScroll();
+        }, 100);
       } else {
-        message.error(res.message);
+        message.error(res.message || '加载失败');
       }
+    })
+    .catch(() => {
+      message.error('网络异常，加载失败');
     })
     .finally(() => {
       drawerPagination.loading = false;
@@ -1116,17 +1144,20 @@ html.dark-mode .drawer-card-container.grid-container .drawer-card-grid .ant-inpu
 .ant-alert-warning .ant-alert-icon {
   color: #faad14;
 }
-
-// 抽屉滚动容器样式（核心修复）
+// 替换你原来的 .drawer-scroll-container 样式
 .drawer-scroll-container {
   width: 100%;
-  height: calc(100vh - 120px); // 关键：固定高度，确保能滚动
-  overflow-y: auto; // 开启垂直滚动
-  overflow-x: hidden; // 隐藏水平滚动
+  /* 固定抽屉内部高度，强制出现滚动区域 */
+  height: calc(100vh - 130px) !important;
+  min-height: 300px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   padding: 0 8px;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 
-  // 滚动条样式优化（可选）
+  /* 优化滚动条 */
   &::-webkit-scrollbar {
     width: 6px;
   }
@@ -1134,16 +1165,13 @@ html.dark-mode .drawer-card-container.grid-container .drawer-card-grid .ant-inpu
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.15);
     border-radius: 3px;
   }
-
-  // 黑暗模式滚动条
   html.dark-mode &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.2);
   }
 }
-
 // 加载中样式
 .drawer-loading {
   display: flex;
