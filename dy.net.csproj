@@ -84,6 +84,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="build-all.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Dockerfile">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -110,6 +113,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="appsettings-arm.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings-arm.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -131,6 +140,16 @@
 		</ItemGroup>
 	</Target>
 
+
+	<!-- 发布完成后，在发布目录内执行 Docker 构建脚本 -->
+	<Target Name="RunDockerBuildAfterPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+		<Message Text="===== 发布完成，开始执行 Docker 构建推送脚本 =====" Importance="high" />
+		<Message Text="执行目录：$(PublishDir)" Importance="high" />
+
+		<Exec WorkingDirectory="$(PublishDir)" Command="powershell.exe -ExecutionPolicy Bypass -NoProfile -File &quot;$(PublishDir)build-all.ps1&quot;" ContinueOnError="false" EchoOff="false" />
+
+		<Message Text="===== Docker 构建推送脚本执行完成 =====" Importance="high" />
+	</Target>
 	<!-- 核心配置：仅用核心版本号2.2.0，自动拼接前缀 -->
 	<!--<Target Name="DockerBuildAndPushAfterPublish" AfterTargets="Publish">
 		<Exec Command="docker build -t jianzhichu/dysync.net:beta_$(DockerCoreVersion) . &amp;&amp; docker tag jianzhichu/dysync.net:beta_$(DockerCoreVersion) ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion) &amp;&amp; docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_$(DockerCoreVersion)"

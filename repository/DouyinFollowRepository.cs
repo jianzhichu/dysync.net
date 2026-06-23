@@ -154,12 +154,12 @@ namespace dy.net.repository
 
                     // 检查字段是否变更（精确匹配）
                     bool nameChanged = !string.Equals(existFollow.UperName, newFollow.NickName, StringComparison.Ordinal);
-                    bool signatureChanged = !string.Equals(existFollow.Signature, newFollow.Signature, StringComparison.Ordinal);
+                    //bool signatureChanged = !string.Equals(existFollow.Signature, newFollow.Signature, StringComparison.Ordinal);
                     bool enterpriseChanged = !string.Equals(existFollow.Enterprise, newFollow.EnterpriseVerifyReason, StringComparison.Ordinal);
                     bool uperAvatarChanged = !string.Equals(existFollow.UperAvatar, newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "", StringComparison.Ordinal);
                     bool dyNoChanged = !string.Equals(existFollow.DouyinNo, newFollow.ShortId ?? "", StringComparison.Ordinal);
 
-                    if (nameChanged || signatureChanged || uperAvatarChanged || enterpriseChanged|| dyNoChanged)
+                    if (nameChanged || uperAvatarChanged || enterpriseChanged|| dyNoChanged)
                     {
                         var updateFoll = new DouyinFollowed
                         {
@@ -167,7 +167,7 @@ namespace dy.net.repository
                             mySelfId = ck.MyUserId,
                             SecUid = existFollow.SecUid,
                             UperName = newFollow.NickName,
-                            Signature = newFollow.Signature,
+                            Signature = "",//newFollow.Signature,
                             Enterprise = newFollow.EnterpriseVerifyReason,
                             UperAvatar = newFollow.Avatar?.UrlList?.FirstOrDefault() ?? "",
                             LastSyncTime = DateTime.UtcNow,// 更新同步时间
