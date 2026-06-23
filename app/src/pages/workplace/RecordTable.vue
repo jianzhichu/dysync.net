@@ -188,6 +188,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import locale from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import { message, Modal } from 'ant-design-vue';
 import CryptoJS from 'crypto-js';
+import { useRoute } from 'vue-router';
 import {
   SearchOutlined,
   SyncOutlined,
@@ -197,6 +198,7 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons-vue';
 
+const route = useRoute();
 // 类型定义
 type RangeValue = [Dayjs, Dayjs];
 interface DataItem {
@@ -1039,6 +1041,15 @@ const copyVideoPath = (path?: string) => {
 onMounted(() => {
   // getConfig();
   getCookies();
+  // 新增：读取路由参数，自动填充博主并查询
+  const authorParam = route.query.author as string;
+  if (authorParam) {
+    quaryData.author = authorParam;
+    // 等Cookie加载完再执行查询，保证cookieId有默认值
+    nextTick(() => {
+      GetRecords();
+    });
+  }
 });
 </script>
 

@@ -55,7 +55,11 @@
             </div>
             <div class="card-content">
               <div class="card-name">
-                {{ item.uperName }} <span style="font-size:12px;">{{item.douyinNo?`(${item.douyinNo})`:''}}</span>
+                <!-- 博主姓名增加点击跳转 -->
+                <span class="author-name-link" @click="goToRecordPage(item)" :title="'查看该博主的全部记录'">
+                  {{ item.uperName }}
+                </span>
+                <span style="font-size:12px;">{{item.douyinNo?`(${item.douyinNo})`:''}}</span>
                 <!-- 非关注小标记 -->
                 <span v-if="item.isNoFollowed" class="no-followed-badge">非关注</span>
                 <!-- 删除按钮（仅非关注项显示，放在名字+非关注后面）v-if="item.isNoFollowed"  -->
@@ -157,6 +161,8 @@
 import { ref, computed, onMounted, onUnmounted, UnwrapRef, reactive, nextTick, Ref } from 'vue';
 import { message, Spin, Empty, Tooltip, Modal, Form, FormInstance, Popconfirm } from 'ant-design-vue';
 import { useApiStore } from '@/store';
+// 顶部新增导入
+import { useRouter } from 'vue-router';
 import {
   CloseOutlined,
   SearchOutlined,
@@ -256,6 +262,16 @@ const addFormRules = ref({
   savePath: [{ max: 20, message: '文件夹名称长度不能超过20个字符', trigger: 'blur' }],
 });
 
+const router = useRouter();
+// 新增：跳转记录页并携带博主名称
+const goToRecordPage = (item: FollowItem) => {
+  router.push({
+    path: '/workplace',
+    query: {
+      author: item.uperName,
+    },
+  });
+};
 // 表单错误信息
 const addFormErrors = ref({
   uperName: '',
@@ -1328,5 +1344,16 @@ html.dark-mode .hint-desc {
 /* 可选：统一调整所有form-item的extra间距（如果需要） */
 :deep(.ant-form-item) {
   --ant-form-item-extra-margin-top: 6px; /* 全局调整，优先级低于单独设置的类 */
+}
+
+/* 博主姓名可点击样式 */
+.author-name-link {
+  color: #1890ff;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.author-name-link:hover {
+  color: #40a9ff;
+  text-decoration: underline;
 }
 </style>
