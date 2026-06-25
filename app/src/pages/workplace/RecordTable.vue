@@ -189,6 +189,7 @@ import locale from 'ant-design-vue/es/date-picker/locale/zh_CN';
 import { message, Modal } from 'ant-design-vue';
 import CryptoJS from 'crypto-js';
 import { useRoute } from 'vue-router';
+import { useRouteParamStore } from '@/store/routeParam';
 import {
   SearchOutlined,
   SyncOutlined,
@@ -392,6 +393,17 @@ watch(isBatchMode, (isOpen) => {
     });
   }
 });
+
+// ---------- 新增：监听跳转传入的博主参数，自动填充并查询 ----------
+watch(
+  () => paramStore.workplaceAuthor,
+  (newVal) => {
+    if (newVal) {
+      quaryData.author = newVal;
+      GetRecords();
+    }
+  }
+);
 
 // 基础状态（优化：删除冗余的 datas 响应式数组）
 const loading = ref(false);
@@ -1036,16 +1048,13 @@ const copyVideoPath = (path?: string) => {
   }
   copyToClipboard(path, '视频保存路径已复制到剪贴板！');
 };
-
+const paramStore = useRouteParamStore();
 // -------------------------- 页面初始化 --------------------------
 onMounted(() => {
   // getConfig();
   getCookies();
-  // 新增：读取路由参数，自动填充博主并查询
-  const authorParam = route.query.author as string;
-  if (authorParam) {
-    quaryData.author = authorParam;
-    // 等Cookie加载完再执行查询，保证cookieId有默认值
+  if (paramStore.workplaceAuthor) {
+    quaryData.author = paramStore.workplaceAuthor;
     nextTick(() => {
       GetRecords();
     });

@@ -163,6 +163,7 @@ import { message, Spin, Empty, Tooltip, Modal, Form, FormInstance, Popconfirm } 
 import { useApiStore } from '@/store';
 // 顶部新增导入
 import { useRouter } from 'vue-router';
+import { useRouteParamStore } from '@/store/routeParam';
 import {
   CloseOutlined,
   SearchOutlined,
@@ -263,14 +264,13 @@ const addFormRules = ref({
 });
 
 const router = useRouter();
+const paramStore = useRouteParamStore();
 // 新增：跳转记录页并携带博主名称
 const goToRecordPage = (item: FollowItem) => {
-  router.push({
-    path: '/workplace',
-    query: {
-      author: item.uperName,
-    },
-  });
+  // 1. 先把参数存入 Store
+  paramStore.setWorkplaceAuthor(item.uperName);
+  // 2. 纯路径跳转，不带 query，标签不会重复
+  router.push('/workplace');
 };
 // 表单错误信息
 const addFormErrors = ref({
