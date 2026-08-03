@@ -241,13 +241,78 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
 
-  //检查版本
-  async function getVer() {
-    return http.request<any, Response<any>>('/api/config/mytag', 'get').then(r => {
-      return r;
-    }).finally(() => {
+  // 检查版本：缓存 1 天，避免每次进入页面都重复请求
+  const VER_CACHE_KEY = 'coreapi:getVer';
+  const VER_CACHE_DURATION = 24 * 60 * 60 * 1000;
+  let getVerPending: Promise<Response<any>> | null = null;
 
-    });
+  function readVerCache(): Response<any> | null {
+    try {
+      const cacheText = localStorage.getItem(VER_CACHE_KEY);
+      if (!cacheText) {
+        return null;
+      }
+
+      const cache = JSON.parse(cacheText) as {
+        expireAt: number;
+        value: Response<any>;
+      };
+
+      if (!cache.expireAt || cache.expireAt <= Date.now() || !cache.value) {
+        localStorage.removeItem(VER_CACHE_KEY);
+        return null;
+      }
+
+      return cache.value;
+    } catch {
+      // 缓存数据异常时直接清除，随后重新请求接口
+      try {
+        localStorage.removeItem(VER_CACHE_KEY);
+      } catch {
+        // 忽略浏览器禁用 localStorage 等异常
+      }
+      return null;
+    }
+  }
+
+  function writeVerCache(value: Response<any>) {
+    try {
+      localStorage.setItem(VER_CACHE_KEY, JSON.stringify({
+        expireAt: Date.now() + VER_CACHE_DURATION,
+        value
+      }));
+    } catch {
+      // localStorage 不可用或空间不足时，不影响接口正常返回
+    }
+  }
+
+  async function getVer(forceRefresh = false): Promise<Response<any>> {
+    if (!forceRefresh) {
+      const cachedValue = readVerCache();
+      if (cachedValue) {
+        return cachedValue;
+      }
+    }
+
+    // 多个组件同时调用时，共用同一个请求
+    if (getVerPending) {
+      return getVerPending;
+    }
+
+    getVerPending = http
+      .request<any, Response<any>>('/api/config/mytag', 'get')
+      .then((response) => {
+        // 仅缓存业务成功的结果，接口报错时下次仍会重新请求
+        if (response.code === 0) {
+          writeVerCache(response);
+        }
+        return response;
+      })
+      .finally(() => {
+        getVerPending = null;
+      });
+
+    return getVerPending;
   }
   //检查版本
   async function CheckTag() {
