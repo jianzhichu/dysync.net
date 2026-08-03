@@ -1,6 +1,30 @@
 <template>
-  <div class="login flex items-center justify-center">
-    <login-box class="shadow-lg" @success="onLoginSuccess" @failure="onLoginFail" />
+  <div class="login-page">
+    <div class="room-scene" aria-hidden="true">
+      <div class="ambient ambient-left"></div>
+      <div class="ambient ambient-right"></div>
+
+      <div class="nas-corner">
+        <div class="shelf-line"></div>
+        <div class="nas-device">
+          <span class="nas-led nas-led-green"></span>
+          <span class="nas-led nas-led-blue"></span>
+          <span class="nas-slot nas-slot-1"></span>
+          <span class="nas-slot nas-slot-2"></span>
+          <span class="nas-slot nas-slot-3"></span>
+          <span class="nas-slot nas-slot-4"></span>
+        </div>
+      </div>
+
+      <div class="video-corner">
+        <div class="video-mark">♪</div>
+        <div class="shelf-line"></div>
+      </div>
+    </div>
+
+    <login-box class="login-panel" @success="onLoginSuccess" @failure="onLoginFail" />
+
+    <div class="login-page-tip">NAS · 抖音同步助手</div>
   </div>
 </template>
 
@@ -181,57 +205,234 @@ function onLoginFail(reason: string, fields: any) {
 </script>
 
 <style scoped lang="less">
-.login {
+.login-page {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
   height: 100vh;
-  min-height: -webkit-fill-available;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  position: relative;
+  height: 100dvh;
+  padding: 28px;
   overflow: hidden;
-  padding: 20px 0;
+  color: #f8fafc;
+  background: radial-gradient(circle at 50% 18%, rgba(41, 98, 171, 0.2), transparent 34%),
+    radial-gradient(circle at 50% 88%, rgba(23, 77, 139, 0.22), transparent 38%),
+    linear-gradient(180deg, #07111f 0%, #081426 54%, #091426 100%);
 
   &::before {
     content: '';
     position: absolute;
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
-    background: rgba(54, 191, 250, 0.1);
-    top: 15%;
-    left: 5%;
-    filter: blur(60px);
-    @media (min-width: 768px) {
-      width: 400px;
-      height: 400px;
-      top: 20%;
-      left: 15%;
-      filter: blur(80px);
-    }
+    inset: 0;
+    z-index: -3;
+    pointer-events: none;
+    opacity: 0.62;
+    background-image: radial-gradient(circle at 6% 12%, rgba(255, 255, 255, 0.62) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 16% 34%, rgba(74, 162, 255, 0.82) 0 1px, transparent 2.2px),
+      radial-gradient(circle at 26% 8%, rgba(255, 255, 255, 0.44) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 38% 26%, rgba(255, 255, 255, 0.38) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 63% 12%, rgba(255, 255, 255, 0.54) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 76% 31%, rgba(58, 153, 255, 0.7) 0 1.2px, transparent 2.3px),
+      radial-gradient(circle at 88% 10%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 94% 42%, rgba(255, 255, 255, 0.4) 0 1px, transparent 1.8px);
   }
 
   &::after {
     content: '';
     position: absolute;
-    width: 220px;
-    height: 220px;
+    left: 50%;
+    bottom: -190px;
+    z-index: -2;
+    width: min(860px, 78vw);
+    height: 330px;
+    pointer-events: none;
     border-radius: 50%;
-    background: rgba(54, 191, 250, 0.08);
-    bottom: 5%;
-    right: 5%;
-    filter: blur(40px);
-    @media (min-width: 768px) {
-      width: 300px;
-      height: 300px;
-      bottom: 10%;
-      right: 10%;
-      filter: blur(60px);
-    }
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(28, 103, 183, 0.23), rgba(8, 20, 38, 0) 68%);
+    filter: blur(10px);
   }
 }
 
-@supports (bottom: env(safe-area-inset-bottom)) {
-  .login {
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-top: env(safe-area-inset-top);
+.room-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambient {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(90px);
+  opacity: 0.18;
+}
+
+.ambient-left {
+  left: -120px;
+  bottom: 70px;
+  width: 420px;
+  height: 250px;
+  background: #d08b3f;
+}
+
+.ambient-right {
+  right: -120px;
+  bottom: 50px;
+  width: 440px;
+  height: 260px;
+  background: #1b64ba;
+}
+
+.nas-corner,
+.video-corner {
+  position: absolute;
+  bottom: 9vh;
+  width: 270px;
+  height: 180px;
+  opacity: 0.48;
+  filter: saturate(0.88);
+}
+
+.nas-corner {
+  left: 7vw;
+}
+
+.video-corner {
+  right: 7vw;
+}
+
+.shelf-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(118, 146, 180, 0.22), transparent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
+}
+
+.nas-device {
+  position: absolute;
+  left: 46px;
+  bottom: 24px;
+  width: 148px;
+  height: 102px;
+  border: 1px solid rgba(137, 165, 196, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(29, 44, 64, 0.86), rgba(10, 18, 31, 0.9));
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.44);
+}
+
+.nas-slot {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  width: 23px;
+  border: 1px solid rgba(117, 146, 178, 0.14);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(49, 67, 89, 0.68), rgba(15, 25, 39, 0.9));
+}
+
+.nas-slot-1 {
+  left: 18px;
+}
+.nas-slot-2 {
+  left: 47px;
+}
+.nas-slot-3 {
+  left: 76px;
+}
+.nas-slot-4 {
+  left: 105px;
+}
+
+.nas-led {
+  position: absolute;
+  z-index: 2;
+  right: 8px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  box-shadow: 0 0 7px currentColor;
+}
+
+.nas-led-green {
+  top: 18px;
+  color: #4ade80;
+  background: currentColor;
+}
+
+.nas-led-blue {
+  top: 29px;
+  color: #3b82f6;
+  background: currentColor;
+}
+
+.video-mark {
+  position: absolute;
+  right: 44px;
+  bottom: 38px;
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border: 1px solid rgba(245, 178, 86, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 190, 103, 0.74);
+  font-size: 38px;
+  font-weight: 700;
+  background: rgba(21, 28, 41, 0.64);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.4);
+}
+
+.login-panel {
+  position: relative;
+  z-index: 2;
+}
+
+.login-page-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 2;
+  transform: translateX(-50%);
+  color: rgba(148, 163, 184, 0.52);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .nas-corner,
+  .video-corner {
+    display: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .login-page {
+    padding: 16px;
+    background: radial-gradient(circle at 50% 18%, rgba(42, 112, 190, 0.2), transparent 38%),
+      linear-gradient(180deg, #07111f 0%, #09172a 100%);
+  }
+
+  .login-page-tip {
+    bottom: 10px;
+    font-size: 10px;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 768px) {
+  .login-page {
+    padding: 12px;
+  }
+
+  .login-page-tip {
+    display: none;
   }
 }
 </style>
