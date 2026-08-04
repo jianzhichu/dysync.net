@@ -104,61 +104,32 @@
         </div>
       </section>
 
-      <!-- 详细分类统计 - 保持原有不变 -->
+      <!-- 视频作者统计 -->
       <section class="detailed-stats">
         <div class="stats-header">
-          <div class="tab-controls">
-            <a-badge :count="totalAuthors">
-              <button class="tab-btn" :class="{ active: currentTab === 'author' }" @click="changeTab('author')">
-                视频作者
-              </button>
-            </a-badge>
-            <a-badge :count="categoryTotal">
-              <button class="tab-btn" :class="{ active: currentTab === 'type' }" @click="changeTab('type')">
-                视频分类
-              </button>
-            </a-badge>
-          </div>
+          <a-badge :count="totalAuthors">
+            <h2 class="section-title">视频作者</h2>
+          </a-badge>
         </div>
 
-        <transition name="stats-fade" mode="out-in">
-          <div v-if="currentTab === 'author'" key="author-view" class="stats-content">
-            <div class="authors-grid">
-              <div class="author-card" v-for="(author, index) in authors" :key="index" @dblclick="handleDeleteItem(author)">
-                <div class="author-info-row">
-                  <div class="author-avatar">
-                    <img :src="author.icon" alt="作者头像" />
-                  </div>
-                  <div class="author-info">
-                    <h3 class="author-name">{{ author.name }}</h3>
-                    <p class="author-stats">同步数量: {{ author.count }}</p>
-                  </div>
+        <div class="stats-content">
+          <div class="authors-grid">
+            <div class="author-card" v-for="(author, index) in authors" :key="index" @dblclick="handleDeleteItem(author)">
+              <div class="author-info-row">
+                <div class="author-avatar">
+                  <img :src="author.icon" alt="作者头像" />
                 </div>
-                <div class="author-progress">
-                  <div class="progress-bar" :style="{ width: `${(author.count / totalVideos) * 100}%` }"></div>
+                <div class="author-info">
+                  <h3 class="author-name">{{ author.name }}</h3>
+                  <p class="author-stats">同步数量: {{ author.count }}</p>
                 </div>
+              </div>
+              <div class="author-progress">
+                <div class="progress-bar" :style="{ width: `${totalVideos > 0 ? (author.count / totalVideos) * 100 : 0}%` }"></div>
               </div>
             </div>
           </div>
-          <div v-else key="category-view" class="stats-content">
-            <div class="categories-grid">
-              <div class="category-card" v-for="(category, index) in categories" :key="index" :style="{ '--category-color': category.color }">
-                <div class="category-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 12 12" fill="white">
-                    <use :xlink:href="`#${category.icon}`"></use>
-                  </svg>
-                </div>
-                <div class="category-info">
-                  <h3 class="category-name">{{ category.name }}</h3>
-                  <p class="category-stats">作品数: {{ category.count }}</p>
-                </div>
-                <div class="category-percentage">
-                  {{ Math.round((category.count / totalVideos) * 100) }}%
-                </div>
-              </div>
-            </div>
-          </div>
-        </transition>
+        </div>
       </section>
     </div>
 
@@ -167,12 +138,6 @@
       <!-- 新增内联样式，强制设置宽高 -->
       <div class="full-chart-container" ref="fullChartRef" style="width: 100%; height: 400px; min-height: 400px; background: #fff;"></div>
     </a-modal>
-
-    <svg style="display: none;">
-      <symbol id="cup" viewBox="0 0 12 12">
-        <path d="M18 4h2v16h-2zM4 4h14v2H4zM4 8h10v2H4zM4 12h10v2H4zM4 16h6v2H4zM4 20h6v2H4z" />
-      </symbol>
-    </svg>
   </div>
 </template>
 
@@ -190,12 +155,6 @@ interface Author {
   icon: string;
   uperId?: string;
 }
-interface Category {
-  name: string;
-  count: number;
-  color: string;
-  icon: string;
-}
 interface SyncDataItem {
   date: string;
   favorite: number;
@@ -209,7 +168,6 @@ interface SyncDataItem {
 // 状态管理 - 保留所有原有变量
 const totalVideos = ref<number>(0);
 const totalAuthors = ref<number>(0);
-const categoryTotal = ref<number>(0);
 const fileSizeTotal = ref<string>('0.00');
 const totalDiskSize = ref<string>('0.00');
 
@@ -227,10 +185,7 @@ const graphicVideoSize = ref<string>('0.00');
 const videoMixSize = ref<string>('0.00');
 const videoSeriesSize = ref<string>('0.00');
 
-const categories = ref<Category[]>([]);
 const authors = ref<Author[]>([]);
-const currentTab = ref<string>('author');
-const tabCount = ref<number>(0);
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
@@ -245,15 +200,6 @@ let fullChartInstance: echarts.ECharts | null = null; // 全屏图表实例
 defineOptions({
   name: 'StatsDashboard',
 });
-
-// 生成随机十六进制颜色
-const generateRandomColor = () => {
-  const randomHex = () =>
-    Math.floor(Math.random() * 256)
-      .toString(16)
-      .padStart(2, '0');
-  return `#${randomHex()}${randomHex()}${randomHex()}`;
-};
 
 //获取chart数据
 const generateSyncData = () => {
@@ -550,42 +496,43 @@ onMounted(() => {
 onUnmounted(() => {
   destroyFullChart();
 });
-const changeTab = (e: string) => {
-  currentTab.value = e;
-  tabCount.value = e === 'author' ? totalAuthors.value : categoryTotal.value;
-};
 
 const loadDashboardData = async () => {
   try {
     const res = await useApiStore().VideoStatics();
-    totalAuthors.value = res.data.authorCount;
-    categoryTotal.value = res.data.categoryCount;
-    totalVideos.value = res.data.videoCount;
-    fileSizeTotal.value = res.data.videoSizeTotal || '0.00';
-    totalDiskSize.value = res.data.totalDiskSize || '0.00';
 
-    favoriteCount.value = res.data.favoriteCount;
-    collectCount.value = res.data.collectCount;
-    followCount.value = res.data.followCount || 0;
-    graphicVideoCount.value = res.data.graphicVideoCount || 0;
-    mixCount.value = res.data.mixCount || 0;
-    seriesCount.value = res.data.seriesCount || 0;
+    // 🔴 核心修复：先校验返回结构，再读取数据
+    if (res?.code !== 0 || !res?.data) {
+      message.warning(res?.message || '获取仪表盘数据失败');
+      return;
+    }
 
-    favoriteSize.value = res.data.videoFavoriteSize || '0.00';
-    collectSize.value = res.data.videoCollectSize || '0.00';
-    followSize.value = res.data.videoFollowSize || '0.00';
-    graphicVideoSize.value = res.data.graphicVideoSize || '0.00';
-    videoMixSize.value = res.data.videoMixSize || '0.00';
-    videoSeriesSize.value = res.data.videoSeriesSize || '0.00';
+    const data = res.data;
 
-    categories.value = res.data.categories;
-    authors.value = res.data.authors;
-    categories.value.forEach((item) => {
-      item.icon = 'cup';
-      item.color = generateRandomColor();
-    });
+    // 使用可选链 + 默认值，逐个字段安全赋值
+    totalAuthors.value = data.authorCount ?? 0;
+    totalVideos.value = data.videoCount ?? 0;
+    fileSizeTotal.value = data.videoSizeTotal ?? '0.00';
+    totalDiskSize.value = data.totalDiskSize ?? '0.00';
+
+    favoriteCount.value = data.favoriteCount ?? 0;
+    collectCount.value = data.collectCount ?? 0;
+    followCount.value = data.followCount ?? 0;
+    graphicVideoCount.value = data.graphicVideoCount ?? 0;
+    mixCount.value = data.mixCount ?? 0;
+    seriesCount.value = data.seriesCount ?? 0;
+
+    favoriteSize.value = data.videoFavoriteSize ?? '0.00';
+    collectSize.value = data.videoCollectSize ?? '0.00';
+    followSize.value = data.videoFollowSize ?? '0.00';
+    graphicVideoSize.value = data.graphicVideoSize ?? '0.00';
+    videoMixSize.value = data.videoMixSize ?? '0.00';
+    videoSeriesSize.value = data.videoSeriesSize ?? '0.00';
+
+    authors.value = data.authors ?? [];
   } catch (err) {
     console.error('加载仪表盘数据失败：', err);
+    message.error('加载仪表盘数据异常，请刷新重试');
   }
 };
 
@@ -715,6 +662,7 @@ const handleDeleteItem = (item: Author) => {
     grid-template-columns: 1fr;
   }
 }
+
 .main-card {
   border-radius: 16px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
@@ -816,42 +764,28 @@ const handleDeleteItem = (item: Author) => {
   align-items: center;
   margin-bottom: 25px;
 }
-.tab-controls {
-  display: flex;
-  gap: 10px;
-}
-.tab-btn {
-  background: transparent;
-  border: none;
-  color: #666666;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.tab-btn.active {
-  background: rgba(76, 175, 80, 0.2);
-  color: #4caf50;
-  font-weight: 500;
+.section-title {
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333333;
 }
 .stats-content {
   animation: fadeIn 0.5s ease;
 }
-.authors-grid,
-.categories-grid {
+.authors-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 15px;
 }
 @media (min-width: 576px) {
-  .authors-grid,
-  .categories-grid {
+  .authors-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 @media (min-width: 992px) {
-  .authors-grid,
-  .categories-grid {
+  .authors-grid {
     grid-template-columns: repeat(5, 1fr);
   }
 }
@@ -892,14 +826,12 @@ const handleDeleteItem = (item: Author) => {
   flex-direction: column;
   gap: 3px;
 }
-.author-name,
-.category-name {
+.author-name {
   margin: 0;
   font-size: 16px;
   color: #333333;
 }
-.author-stats,
-.category-stats {
+.author-stats {
   margin: 5px 0px;
   font-size: 12px;
   color: #666666;
@@ -918,35 +850,6 @@ const handleDeleteItem = (item: Author) => {
   border-radius: 3px;
   transition: width 0.5s ease;
 }
-.category-card {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  background: #eeeeee;
-  border-radius: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-}
-.category-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
-}
-.category-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background-color: var(--category-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.category-percentage {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--category-color);
-}
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -956,15 +859,6 @@ const handleDeleteItem = (item: Author) => {
     opacity: 1;
     transform: translateY(0);
   }
-}
-.stats-fade-enter-from,
-.stats-fade-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
-}
-.stats-fade-enter-active,
-.stats-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .secondary-card {
@@ -1051,17 +945,17 @@ html.dark-mode .chart-title {
 html.dark-mode .detailed-stats {
   background: rgba(30, 30, 50, 0.8);
 }
-html.dark-mode .author-card,
-html.dark-mode .category-card {
+html.dark-mode .section-title {
+  color: #ffffff;
+}
+html.dark-mode .author-card {
   background: rgba(40, 40, 65, 0.6);
   box-shadow: none;
 }
-html.dark-mode .author-name,
-html.dark-mode .category-name {
+html.dark-mode .author-name {
   color: #ffffff;
 }
-html.dark-mode .author-stats,
-html.dark-mode .category-stats {
+html.dark-mode .author-stats {
   color: #b0b0c3;
 }
 html.dark-mode .author-progress {
@@ -1103,5 +997,194 @@ html.dark-mode .fullscreen-btn:hover {
   background-color: rgba(60, 60, 85, 0.8);
   color: #42a5f5;
   border-color: #42a5f5;
+}
+
+/* ===== 移动端最终覆盖：顶部统计固定一行 2 个 ===== */
+@media (max-width: 576px) {
+  .stats-dashboard {
+    padding: 8px 0 !important;
+  }
+
+  .dashboard-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 8px !important;
+  }
+
+  .stats-overview {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .stats-left {
+    min-width: 0 !important;
+    padding: 10px !important;
+  }
+
+  /* 视频总数、存储总计：一行两个 */
+  .stats-left .stat-header {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+    margin-bottom: 8px !important;
+  }
+
+  .stats-left .main-stat-item {
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 10px 8px !important;
+    background: #fff !important;
+    border: 1px solid #e8e8e8 !important;
+    border-radius: 8px !important;
+  }
+
+  .stats-left .stat-meta {
+    display: block !important;
+    margin-bottom: 4px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+  }
+
+  .stats-left .stat-value {
+    min-width: 0 !important;
+    font-size: 22px !important;
+    line-height: 1.15 !important;
+    gap: 3px !important;
+    white-space: nowrap !important;
+  }
+
+  .stats-left .unit {
+    font-size: 13px !important;
+  }
+
+  /* 六个明细统计：固定一行两个 */
+  .stats-left .stat-subitems {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-top: 8px !important;
+  }
+
+  .stats-left .stat-subitems > .subitem {
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: 22px minmax(0, 1fr) !important;
+    grid-template-areas:
+      'icon label'
+      'icon value' !important;
+    column-gap: 6px !important;
+    row-gap: 2px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 62px !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    align-items: center !important;
+  }
+
+  .stats-left .subitem-icon {
+    grid-area: icon !important;
+    width: 22px !important;
+    height: 22px !important;
+    align-self: center !important;
+  }
+
+  .stats-left .subitem-icon svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .stats-left .subitem-meta {
+    grid-area: label !important;
+    min-width: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .stats-left .subitem-value {
+    grid-area: value !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding-left: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+  }
+
+  .stats-left .split {
+    font-size: 10px !important;
+  }
+
+  .stats-right {
+    padding: 8px !important;
+  }
+
+  .chart-container {
+    min-height: 210px !important;
+    padding-right: 28px !important;
+  }
+
+  .fullscreen-btn {
+    top: 3px !important;
+    right: 3px !important;
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .detailed-stats {
+    padding: 14px !important;
+  }
+}
+
+/* 极窄屏仍保持两列 */
+@media (max-width: 360px) {
+  .stats-left .stat-header,
+  .stats-left .stat-subitems {
+    gap: 5px !important;
+  }
+
+  .stats-left .main-stat-item {
+    padding: 8px 6px !important;
+  }
+
+  .stats-left .stat-value {
+    font-size: 19px !important;
+  }
+
+  .stats-left .stat-subitems > .subitem {
+    grid-template-columns: 20px minmax(0, 1fr) !important;
+    column-gap: 4px !important;
+    min-height: 58px !important;
+    padding: 6px !important;
+  }
+
+  .stats-left .subitem-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .stats-left .subitem-meta,
+  .stats-left .subitem-value {
+    font-size: 10px !important;
+  }
+}
+
+/* 暗黑模式下移动端统计块背景 */
+@media (max-width: 576px) {
+  html.dark-mode .stats-left .main-stat-item {
+    background: rgba(40, 40, 65, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
 }
 </style>

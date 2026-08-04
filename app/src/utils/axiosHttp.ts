@@ -148,7 +148,20 @@ function createAxiosHttp(config: AxiosRequestConfig): AxiosHttp {
       }
     },
     setAuthorization(token: string, expires: number | Date, name?: string): void {
-      Cookie.set(name ?? _axios.defaults.xsrfCookieName!, token, { expires });
+      // 后端传入 number 的单位是毫秒；
+      // js-cookie 的 number 单位是天，所以转换为绝对 Date。
+      const expiresAt =
+        expires instanceof Date
+          ? expires
+          : new Date(Date.now() + expires);
+
+      Cookie.set(
+        name ?? _axios.defaults.xsrfCookieName!,
+        token,
+        {
+          expires: expiresAt,
+        }
+      );
     },
     removeAuthorization(name?: string): void {
       Cookie.remove(name ?? _axios.defaults.xsrfCookieName!);

@@ -1,7 +1,7 @@
 {
   "deploy": "docker", //fn,docker
   "dbconn": "",
-  "tagName": "beta_2.2.2", //arm,beta,latest beta_2.2.2
+  "tagName": "beta_2.2.3", //arm,beta,latest beta_2.2.3
   "dbtype": "Sqlite",
   "fnVersion": "0.1.4"
 }

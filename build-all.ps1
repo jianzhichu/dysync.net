@@ -2,9 +2,9 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "===== 1/3 开始构建 x86 beta 版本 =====" -ForegroundColor Cyan
-docker build -t jianzhichu/dysync.net:beta_2.2.2 .
-docker tag jianzhichu/dysync.net:beta_2.2.2 ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.2.2
-docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.2.2
+docker build -t jianzhichu/dysync.net:beta_2.2.3 .
+docker tag jianzhichu/dysync.net:beta_2.2.3 ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.2.3
+docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.2.3
 Write-Host "x86 beta 版本推送完成" -ForegroundColor Green
 
 try {
@@ -14,9 +14,9 @@ try {
     Rename-Item appsettings-arm.json appsettings.json
 
     # 指定 Dockerfile-arm 构建，无需重命名 Dockerfile
-    docker buildx build --platform linux/arm64 -f Dockerfile-arm -t jianzhichu/dysync.net:arm_2.2.2 .
-    docker tag jianzhichu/dysync.net:arm_2.2.2 ccr.ccs.tencentyun.com/jianzhichu/dysync:arm_2.2.2
-    docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:arm_2.2.2
+    docker buildx build --platform linux/arm64 -f Dockerfile-arm -t jianzhichu/dysync.net:arm_2.2.3 .
+    docker tag jianzhichu/dysync.net:arm_2.2.3 ccr.ccs.tencentyun.com/jianzhichu/dysync:arm_2.2.3
+    docker push ccr.ccs.tencentyun.com/jianzhichu/dysync:arm_2.2.3
     Write-Host "ARM 版本推送完成" -ForegroundColor Green
 }
 finally {

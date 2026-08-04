@@ -1,104 +1,111 @@
 <template>
   <div>
-    <!-- 优化查询区域：调整布局，时间、博主名称、标题放一行，宽度自适应 -->
+    <!-- 查询条件区域：仅优化布局与样式 -->
     <div class="query-container">
-      <a-form layout="inline" :model="quaryData" class="query-form">
-
-        <!-- 第一行：时间选择器组 + 博主名称 + 标题（合并为一行，自适应宽度） -->
-        <div class="form-row form-main-row">
-
-          <a-form-item label="同步日期" class="form-item form-item-date">
-            <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" class="range-picker" />
+      <a-form :model="quaryData" class="query-form">
+        <!-- 第一行：基础筛选条件 -->
+        <div class="query-fields-grid">
+          <a-form-item label="同步日期" class="query-field query-field-date">
+            <a-range-picker v-model:value="value1" :ranges="ranges" :locale="locale" @change="datePicked" class="query-control range-picker" />
           </a-form-item>
 
-          <a-form-item label="发布日期" class="form-item form-item-date">
-            <a-range-picker v-model:value="value2" :ranges="ranges2" :locale="locale" @change="datePicked2" class="range-picker" />
+          <a-form-item label="发布日期" class="query-field query-field-date">
+            <a-range-picker v-model:value="value2" :ranges="ranges2" :locale="locale" @change="datePicked2" class="query-control range-picker" />
           </a-form-item>
 
-          <a-form-item label="博主" ref="author" name="author" class="form-item form-item-input">
-            <a-input v-model:value="quaryData.author" class="query-input" placeholder="请输入博主名称" />
+          <a-form-item label="博主" ref="author" name="author" class="query-field">
+            <a-input v-model:value="quaryData.author" class="query-control query-input" placeholder="请输入博主名称" />
           </a-form-item>
-          <a-form-item label="标题" ref="title" name="title" class="form-item form-item-input">
-            <a-input v-model:value="quaryData.title" class="query-input" placeholder="请输入标题" />
+
+          <a-form-item label="标题" ref="title" name="title" class="query-field">
+            <a-input v-model:value="quaryData.title" class="query-control query-input" placeholder="请输入视频标题" />
           </a-form-item>
         </div>
 
-        <!-- 第二行：单选组 + 按钮组 -->
-        <div class="form-row form-actions-row">
-          <a-form-item class="form-item">
-            <a-select ref="select" v-model:value="quaryData.cookieId" style="width: 120px" :options="cookies"></a-select>
-          </a-form-item>
-          <a-form-item label="视频类型" class="form-item radio-group-item">
-            <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged" class="video-type-radio">
-              <a-radio-button value="*">全部</a-radio-button>
-              <a-radio-button value="1">喜欢的</a-radio-button>
-              <a-radio-button value="2">收藏的</a-radio-button>
-              <a-radio-button value="3">关注的</a-radio-button>
-              <a-radio-button value="4" v-if="showImageViedo">图文视频</a-radio-button>
-              <a-radio-button value="5">收藏夹</a-radio-button>
-              <a-radio-button value="6">合集</a-radio-button>
-              <a-radio-button value="7">短剧</a-radio-button>
-            </a-radio-group>
-          </a-form-item>
+        <!-- 第二行：账号、视频类型和操作按钮 -->
+        <div class="query-toolbar">
+          <div class="query-toolbar-main">
+            <a-form-item label="账号" class="query-account-field">
+              <a-select ref="select" v-model:value="quaryData.cookieId" class="account-select" :options="cookies" />
+            </a-form-item>
 
-          <a-button type="primary" @click="GetRecords" class="query-button">
-            <SearchOutlined />查询
-          </a-button>
-          <a-form-item class="form-item batch-operation-item" style="margin-left:20px;">
-            <a-switch v-model:checked="isBatchMode" checked-children="批量" un-checked-children="批量" class="batch-switch" />
-          </a-form-item>
+            <a-form-item label="视频类型" class="query-type-field">
+              <a-radio-group v-model:value="quaryData.viedoType" button-style="solid" @change="onViedoTypeChanged" class="video-type-radio">
+                <a-radio-button value="*">全部</a-radio-button>
+                <a-radio-button value="1">喜欢的</a-radio-button>
+                <a-radio-button value="2">收藏的</a-radio-button>
+                <a-radio-button value="3">关注的</a-radio-button>
+                <a-radio-button value="4" v-if="showImageViedo">图文视频</a-radio-button>
+                <a-radio-button value="5">收藏夹</a-radio-button>
+                <a-radio-button value="6">合集</a-radio-button>
+                <a-radio-button value="7">短剧</a-radio-button>
+              </a-radio-group>
+            </a-form-item>
+          </div>
 
-          <a-form-item class="form-item button-group-item">
-            <a-space size="middle" class="button-group">
-              <!-- <a-button success @click="handleBatchShare" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
-                <ShareAltOutlined />
-                批量分享
-              </a-button> -->
-              <a-button danger @click="handleBatchSync" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
+          <div class="query-toolbar-actions">
+            <a-button type="primary" @click="GetRecords" class="query-button">
+              <SearchOutlined />
+              <span>查询</span>
+            </a-button>
+
+            <div class="batch-mode-control">
+              <span class="batch-mode-label">批量操作</span>
+              <a-switch v-model:checked="isBatchMode" checked-children="开" un-checked-children="关" class="batch-switch" />
+            </div>
+
+            <div v-if="isBatchMode" class="batch-action-group">
+              <a-button @click="handleBatchSync" class="batch-sync-button" :disabled="selectedRowKeys.length === 0 || isSyncing">
                 <SyncOutlined />
                 重新下载
               </a-button>
-              <a-button danger @click="handleBatchDelete" class="delete-button" v-if="isBatchMode" :disabled="selectedRowKeys.length === 0 || isSyncing">
-                <close-outlined />
+
+              <a-button danger @click="handleBatchDelete" class="batch-delete-button" :disabled="selectedRowKeys.length === 0 || isSyncing">
+                <DeleteOutlined />
                 永久删除
               </a-button>
-            </a-space>
-          </a-form-item>
-          <!-- 按钮代码 -->
-          <a-form-item class="form-item delete-btn-2-wrapper">
-            <a-button type="primary" danger @click="handShowDeleteVideos" class="delete-button-2">
-              <!-- <ClearOutlined />  -->
-              <!-- 注意首字母大写，Antd图标命名规范 -->
-              <delete-outlined />
+            </div>
+
+            <a-button danger @click="handShowDeleteVideos" class="deleted-records-button">
+              <DeleteOutlined />
               已删除
             </a-button>
-          </a-form-item>
+          </div>
         </div>
       </a-form>
     </div>
 
     <!-- 已删除视频-抽屉 -->
 
-    <a-drawer title="已删除视频" size="large" :visible="deleteVideoShow" @close="onDeleteVideoClose">
+    <a-drawer title="已删除视频" size="large" :visible="deleteVideoShow" @close="onDeleteVideoClose" class="deleted-video-drawer">
       <template #extra>
+        <span class="deleted-video-total">共 {{ deleteVideos.length }} 条</span>
       </template>
-      <a-list size="small" bordered :data-source="deleteVideos">
-        <template #renderItem="{item, index}">
-          <a-list-item>
-            <!-- 新增文本容器，用于控制省略号 -->
-            <div class="delete-video-title-container">
-              <span class="delete-video-index">{{ index + 1 }}.</span>
-              <span class="delete-video-title" :title="item.videoTitle || '无标题'">
-                {{ item.videoTitle }}
-              </span>
-            </div>
 
-            <!-- <a-button type="text" size="small" class="copy-delete-video-btn" @click="(e) => copyVideoPath(item.videoSavePath)">
-              <CopyOutlined /> 复制
-            </a-button> -->
-          </a-list-item>
-        </template>
-      </a-list>
+      <div class="deleted-video-list-wrapper">
+        <a-list size="small" bordered :data-source="pagedDeleteVideos" class="deleted-video-list">
+          <template #renderItem="{ item, index }">
+            <a-list-item>
+              <div class="delete-video-title-container">
+                <span class="delete-video-index">
+                  {{ (deleteVideoPagination.current - 1) * deleteVideoPagination.pageSize + index + 1 }}.
+                </span>
+                <span class="delete-video-title" :title="item.videoTitle || '无标题'">
+                  {{ item.videoTitle || '无标题' }}
+                </span>
+              </div>
+            </a-list-item>
+          </template>
+
+          <template #empty>
+            <div class="deleted-video-empty">暂无已删除视频</div>
+          </template>
+        </a-list>
+
+        <div v-if="deleteVideos.length > 0" class="deleted-video-pagination">
+          <a-pagination v-model:current="deleteVideoPagination.current" v-model:page-size="deleteVideoPagination.pageSize" :total="deleteVideos.length" :page-size-options="['10', '20', '50', '100']" show-size-changer show-less-items :show-total="(total) => `共 ${total} 条`" />
+        </div>
+      </div>
     </a-drawer>
     <!-- 视频播放弹窗 - 保持原有 -->
     <a-modal v-model:visible="isModalOpen" :width="900" :mask-closable="false" :footer="null" @cancel="handleCancel" :body-style="{ padding: '0', overflow: 'hidden', backgroundColor: '#fff' }" :style="{ 
@@ -152,28 +159,37 @@
     </a-modal>
 
     <!-- 表格 - 增加复选框和操作列 -->
-    <a-table :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading" :row-selection="isBatchMode ? rowSelection : null" row-key="id" :sorter="true">
+    <a-table class="record-table" size="small" :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading" :row-selection="isBatchMode ? rowSelection : null" row-key="id" :sorter="true">
       <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'createTimeStr'">
+          <span class="publish-date-text">{{ formatPublishDate(record.createTimeStr) }}</span>
+        </template>
+
         <template v-if="column.dataIndex === 'videoTitle'">
           <a class="video-title-link" :title="record.videoTitle || '无标题'" @click="handleVideoClick(record)" @mouseenter="handleTitleMouseEnter" @mouseleave="handleTitleMouseLeave">
             {{ formatVideoTitle(record.videoTitle) }}
           </a>
         </template>
         <template v-if="column.key === 'operation'">
-          <a-space size="small">
-            <a-button type="link" @click="handleReDownload(record)" :disabled="isSyncing">
-              <SyncOutlined />
-              重新同步
-            </a-button>
-            <a-button type="link" @click="handleShare(record)" :disabled="!record.id">
-              <ShareAltOutlined />
-              分享
-            </a-button>
-            <a-button type="link" danger @click="handleDelete(record)" :disabled="!record.id">
-              <DeleteOutlined />
-              删除
-            </a-button>
-          </a-space>
+          <div class="operation-actions">
+            <a-tooltip title="重新同步">
+              <a-button type="text" shape="circle" class="operation-icon-btn operation-sync-btn" @click="handleReDownload(record)" :disabled="isSyncing" aria-label="重新同步">
+                <SyncOutlined />
+              </a-button>
+            </a-tooltip>
+
+            <a-tooltip title="分享">
+              <a-button type="text" shape="circle" class="operation-icon-btn operation-share-btn" @click="handleShare(record)" :disabled="!record.id" aria-label="分享">
+                <ShareAltOutlined />
+              </a-button>
+            </a-tooltip>
+
+            <a-tooltip title="永久删除">
+              <a-button type="text" shape="circle" danger class="operation-icon-btn operation-delete-btn" @click="handleDelete(record)" :disabled="!record.id" aria-label="永久删除">
+                <DeleteOutlined />
+              </a-button>
+            </a-tooltip>
+          </div>
         </template>
       </template>
     </a-table>
@@ -299,7 +315,7 @@ const columns = ref([
     title: '发布时间',
     dataIndex: 'createTimeStr',
     align: 'center',
-    width: 180,
+    width: 100,
     sorter: true,
     sortOrder: sortParams.value.field === 'createTime' ? sortParams.value.order : null,
     onHeaderCell: () => ({
@@ -312,13 +328,13 @@ const columns = ref([
     title: '同步类型',
     dataIndex: 'viedoTypeStr',
     align: 'center',
-    width: 120,
+    width: 100,
   },
   {
     title: '博主',
     dataIndex: 'author',
     align: 'center',
-    width: 150,
+    width: 120,
     sorter: true,
     sortOrder: sortParams.value.field === 'author' ? sortParams.value.order : null,
     onHeaderCell: () => ({
@@ -327,17 +343,17 @@ const columns = ref([
       },
     }),
   },
-  {
-    title: '视频类型',
-    dataIndex: 'viedoCate',
-    width: 200,
-    align: 'center',
-  },
+  // {
+  //   title: '视频类型',
+  //   dataIndex: 'viedoCate',
+  //   width: 200,
+  //   align: 'center',
+  // },
   {
     title: '视频标题',
     dataIndex: 'videoTitle',
     align: 'left',
-    width: 350,
+    // width: 350,
   },
   {
     title: 'CK名称',
@@ -349,7 +365,7 @@ const columns = ref([
     title: '操作',
     key: 'operation',
     align: 'center',
-    width: 180,
+    width: 116,
   },
 ]);
 
@@ -487,10 +503,24 @@ const formatPathSeparator = (path: string | undefined) => {
   // 正则表达式 /\\/g 表示全局匹配所有反斜杠
   return path.replace(/\\/g, '/');
 };
+/** 发布时间仅显示日期：YYYY-MM-DD */
+const formatPublishDate = (value?: string) => {
+  if (!value) return '-';
+
+  const parsed = dayjs(value);
+  if (parsed.isValid()) {
+    return parsed.format('YYYY-MM-DD');
+  }
+
+  // 兼容后端返回非标准日期字符串
+  const rawValue = String(value).trim();
+  return rawValue.length >= 10 ? rawValue.slice(0, 10) : rawValue;
+};
+
 /** 格式化表格视频标题：超过20字符显示省略号 */
 const formatVideoTitle = (title?: string) => {
   if (!title) return '无标题';
-  return title.length > 20 ? `${title.slice(0, 20)}...` : title;
+  return title.length > 60 ? `${title.slice(0, 60)}...` : title;
 };
 
 /** 格式化弹窗标题：超过40字符显示省略号 */
@@ -837,20 +867,48 @@ const handleBatchDelete = () => {
 };
 
 const deleteVideoShow = ref(false);
+
+const deleteVideos = ref<any[]>([]);
+
+const deleteVideoPagination = reactive({
+  current: 1,
+  pageSize: 10,
+});
+
+const pagedDeleteVideos = computed(() => {
+  const start = (deleteVideoPagination.current - 1) * deleteVideoPagination.pageSize;
+  const end = start + deleteVideoPagination.pageSize;
+
+  return deleteVideos.value.slice(start, end);
+});
+
 const handShowDeleteVideos = () => {
+  deleteVideoPagination.current = 1;
   deleteVideoShow.value = true;
   getDeleteViedos();
 };
 
-const deleteVideos = ref([]);
 const getDeleteViedos = () => {
   useApiStore()
     .GetDeleteViedos()
     .then((res) => {
-      deleteVideos.value = res.data;
+      deleteVideos.value = Array.isArray(res.data) ? res.data : [];
+
+      const maxPage = Math.max(1, Math.ceil(deleteVideos.value.length / deleteVideoPagination.pageSize));
+
+      if (deleteVideoPagination.current > maxPage) {
+        deleteVideoPagination.current = maxPage;
+      }
+    })
+    .catch((error) => {
+      deleteVideos.value = [];
+      deleteVideoPagination.current = 1;
+      console.error('获取已删除视频失败：', error);
+      message.error('获取已删除视频失败，请稍后重试');
     });
 };
-const onDeleteVideoClose = (e) => {
+
+const onDeleteVideoClose = () => {
   deleteVideoShow.value = false;
 };
 
@@ -1012,12 +1070,12 @@ const handleShare = (record: DataItem) => {
   }
 };
 
-//视频删除不再下载
+// 视频永久删除，不再下载
 const handleDelete = (record: DataItem) => {
   Modal.confirm({
-    title: '确认删除',
-    content: `您确定要删除这条视频数据吗？此操作不可撤销，以后也不会再下载！！！`,
-    okText: '确认删除',
+    title: '确认永久删除',
+    content: `您确定要永久删除这条视频数据吗？此操作不可撤销，以后也不会再下载。`,
+    okText: '永久删除',
     cancelText: '取消',
     okType: 'danger',
     onOk: async () => {
@@ -1026,15 +1084,15 @@ const handleDelete = (record: DataItem) => {
           .DeleteVideo(record.id)
           .then((res) => {
             if (res.code == 0) {
-              message.success('删除成功,再也不会下载！！！');
+              message.success('永久删除成功，以后不会再下载。');
             } else {
-              message.error('删除失败');
+              message.error('永久删除失败');
             }
             GetRecords();
           });
       } catch (error) {
-        console.error('删除失败', error);
-        message.error('视频删除失败，请稍后再试');
+        console.error('永久删除失败', error);
+        message.error('视频永久删除失败，请稍后再试');
       }
     },
   });
@@ -1625,5 +1683,752 @@ onMounted(() => {
 
 html.dark-mode .ant-table-column-sort {
   background: #161627;
+}
+
+/* ===== 表格发布时间与操作列优化 ===== */
+.publish-date-text {
+  color: #4e5969;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.operation-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.operation-icon-btn {
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.operation-icon-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.operation-sync-btn {
+  color: #7c3aed !important;
+}
+
+.operation-sync-btn:not(:disabled):hover {
+  color: #6d28d9 !important;
+  background: rgba(124, 58, 237, 0.1) !important;
+}
+
+.operation-share-btn {
+  color: #1677ff !important;
+}
+
+.operation-share-btn:not(:disabled):hover {
+  color: #0958d9 !important;
+  background: rgba(22, 119, 255, 0.1) !important;
+}
+
+.operation-delete-btn {
+  color: #ff4d4f !important;
+}
+
+.operation-delete-btn:not(:disabled):hover {
+  color: #cf1322 !important;
+  background: rgba(255, 77, 79, 0.1) !important;
+}
+
+/* 暗色主题 */
+html.dark-mode .publish-date-text {
+  color: #c4c6d0;
+}
+
+html.dark-mode .operation-sync-btn {
+  color: #a970ff !important;
+}
+
+html.dark-mode .operation-share-btn {
+  color: #5ab0ff !important;
+}
+
+html.dark-mode .operation-delete-btn {
+  color: #ff7875 !important;
+}
+
+html.dark-mode .operation-sync-btn:not(:disabled):hover {
+  background: rgba(169, 112, 255, 0.14) !important;
+}
+
+html.dark-mode .operation-share-btn:not(:disabled):hover {
+  background: rgba(90, 176, 255, 0.14) !important;
+}
+
+html.dark-mode .operation-delete-btn:not(:disabled):hover {
+  background: rgba(255, 120, 117, 0.14) !important;
+}
+
+/* ===== 表格紧凑行高（当前 style 不是 scoped，不使用 :deep） ===== */
+
+/*
+ * 当前文件使用的是 <style>，不是 <style scoped>。
+ * 因此直接定位 Ant Design Table 生成的真实 DOM：
+ * .ant-table-thead、.ant-table-tbody、.ant-table-cell。
+ */
+.record-table .ant-table-thead > tr > th,
+.record-table .ant-table-tbody > tr > td {
+  padding: 10px 5px !important;
+  line-height: 1.35 !important;
+  height: auto !important;
+}
+
+/* 第一列排序单元格也使用相同行高 */
+.record-table .ant-table-tbody > tr > td.ant-table-column-sort {
+  padding: 15px 5px !important;
+}
+
+/* 操作列左右间距固定为 5px */
+.record-table .ant-table-thead > tr > th:last-child,
+.record-table .ant-table-tbody > tr > td:last-child {
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+}
+
+/* 操作按钮为 28px，正文行实际高度约为 38px */
+.record-table .operation-icon-btn {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+}
+
+/* 避免操作按钮内部行高把表格行撑高 */
+.record-table .operation-icon-btn .anticon {
+  line-height: 1 !important;
+}
+
+/* 日期和普通文本保持单行 */
+.record-table .publish-date-text,
+.record-table .operation-actions {
+  line-height: 1.35 !important;
+}
+
+/* ===== 查询条件区域：整齐紧凑版 ===== */
+.query-container {
+  margin: 12px 0 14px;
+  padding: 14px;
+  border: 1px solid #e8edf3;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(31, 45, 61, 0.045);
+}
+
+.query-form {
+  width: 100%;
+}
+
+/* 第一行：四个筛选条件严格对齐 */
+.query-fields-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(260px, 1.25fr)
+    minmax(260px, 1.25fr)
+    minmax(180px, 0.8fr)
+    minmax(180px, 0.8fr);
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.query-container .query-field,
+.query-container .query-account-field,
+.query-container .query-type-field {
+  min-width: 0;
+  margin: 0 !important;
+}
+
+.query-container .ant-form-item-label {
+  padding: 0 0 5px !important;
+  line-height: 1 !important;
+}
+
+.query-container .ant-form-item-label > label {
+  height: auto !important;
+  color: #5d6875;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.query-container .ant-form-item-control,
+.query-container .ant-form-item-control-input,
+.query-container .ant-form-item-control-input-content {
+  min-width: 0;
+  width: 100%;
+}
+
+.query-control,
+.account-select {
+  width: 100% !important;
+}
+
+.query-container .ant-picker,
+.query-container .ant-input,
+.query-container .ant-input-affix-wrapper,
+.query-container .ant-select-selector {
+  height: 34px !important;
+  border-color: #dfe5ec !important;
+  border-radius: 8px !important;
+  background: #fafbfc !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.query-container .ant-picker {
+  padding: 4px 10px !important;
+}
+
+.query-container .ant-input,
+.query-container .ant-input-affix-wrapper {
+  font-size: 12px;
+}
+
+.query-container .ant-input-affix-wrapper .ant-input {
+  height: auto !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.query-container .ant-select-selector {
+  display: flex;
+  align-items: center;
+  padding: 0 10px !important;
+}
+
+.query-container .ant-select-selection-item,
+.query-container .ant-select-selection-placeholder {
+  line-height: 32px !important;
+  font-size: 12px;
+}
+
+.query-container .ant-picker:hover,
+.query-container .ant-input:hover,
+.query-container .ant-input-affix-wrapper:hover,
+.query-container .ant-select:hover .ant-select-selector {
+  border-color: #aab7c6 !important;
+  background: #ffffff !important;
+}
+
+.query-container .ant-picker-focused,
+.query-container .ant-input:focus,
+.query-container .ant-input-affix-wrapper-focused,
+.query-container .ant-select-focused .ant-select-selector {
+  border-color: #7c3aed !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.09) !important;
+}
+
+/* 第二行 */
+.query-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 12px;
+}
+
+.query-toolbar-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.query-account-field {
+  flex: 0 0 130px;
+}
+
+.query-type-field {
+  min-width: 0;
+  flex: 1;
+}
+
+.video-type-radio {
+  display: inline-flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.video-type-radio .ant-radio-button-wrapper {
+  height: 34px;
+  padding: 0 13px;
+  color: #5d6875;
+  border-color: #dfe5ec;
+  background: #ffffff;
+  font-size: 12px;
+  line-height: 32px;
+}
+
+.video-type-radio .ant-radio-button-wrapper:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.video-type-radio .ant-radio-button-wrapper:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.video-type-radio .ant-radio-button-wrapper:hover {
+  color: #7c3aed;
+}
+
+.video-type-radio .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+  color: #ffffff;
+  border-color: #7c3aed;
+  background: #7c3aed;
+  box-shadow: -1px 0 0 0 #7c3aed;
+}
+
+.video-type-radio .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled)::before {
+  background-color: #7c3aed !important;
+}
+
+/* 右侧操作区固定整齐排列 */
+.query-toolbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.query-button,
+.batch-sync-button,
+.batch-delete-button,
+.deleted-records-button {
+  height: 34px !important;
+  padding: 0 13px !important;
+  border-radius: 8px !important;
+  font-size: 12px;
+  box-shadow: none !important;
+}
+
+.query-button {
+  min-width: 82px;
+  border-color: #7c3aed !important;
+  background: #7c3aed !important;
+}
+
+.query-button:hover {
+  border-color: #6d28d9 !important;
+  background: #6d28d9 !important;
+}
+
+.batch-mode-control {
+  height: 34px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #e2e7ed;
+  border-radius: 8px;
+  color: #687382;
+  background: #f8fafb;
+}
+
+.batch-mode-label {
+  font-size: 11px;
+}
+
+.batch-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.batch-sync-button {
+  color: #6d28d9;
+  border-color: rgba(124, 58, 237, 0.28);
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.batch-sync-button:not(:disabled):hover {
+  color: #ffffff;
+  border-color: #7c3aed;
+  background: #7c3aed;
+}
+
+.batch-delete-button,
+.deleted-records-button {
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  background: rgba(239, 68, 68, 0.045) !important;
+}
+
+.batch-delete-button:not(:disabled):hover,
+.deleted-records-button:hover {
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+  background: #ef4444 !important;
+}
+
+/* 暗色主题 */
+html.dark-mode .query-container {
+  border-color: #303247;
+  background: #19192d;
+  box-shadow: none;
+}
+
+html.dark-mode .query-fields-grid {
+  border-bottom-color: #303247;
+}
+
+html.dark-mode .query-container .ant-form-item-label > label {
+  color: #b9bbc8;
+}
+
+html.dark-mode .query-container .ant-picker,
+html.dark-mode .query-container .ant-input,
+html.dark-mode .query-container .ant-input-affix-wrapper,
+html.dark-mode .query-container .ant-select-selector {
+  color: #e7e8ef !important;
+  border-color: #34364c !important;
+  background: #202037 !important;
+}
+
+html.dark-mode .query-container .ant-input-affix-wrapper .ant-input {
+  background: transparent !important;
+}
+
+html.dark-mode .query-container .ant-picker-input > input,
+html.dark-mode .query-container .ant-input,
+html.dark-mode .query-container .ant-select-selection-item {
+  color: #e7e8ef !important;
+}
+
+html.dark-mode .query-container .ant-picker-input > input::placeholder,
+html.dark-mode .query-container .ant-input::placeholder,
+html.dark-mode .query-container .ant-select-selection-placeholder {
+  color: #74768a !important;
+}
+
+html.dark-mode .video-type-radio .ant-radio-button-wrapper {
+  color: #b9bbc8;
+  border-color: #34364c;
+  background: #202037;
+}
+
+html.dark-mode .video-type-radio .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+  color: #ffffff;
+  border-color: #7c3aed;
+  background: #7c3aed;
+}
+
+html.dark-mode .batch-mode-control {
+  color: #b9bbc8;
+  border-color: #34364c;
+  background: #202037;
+}
+
+/* 中等宽度：基础条件变成两列，操作区自动换行 */
+@media (max-width: 1380px) {
+  .query-fields-grid {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+  }
+
+  .query-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .query-toolbar-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* 平板 */
+@media (max-width: 900px) {
+  .query-container {
+    padding: 12px;
+  }
+
+  .query-toolbar-main {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .query-account-field {
+    flex-basis: auto;
+    width: 180px;
+  }
+}
+
+/* 移动端 */
+@media (max-width: 680px) {
+  .query-fields-grid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .query-account-field {
+    width: 100%;
+  }
+
+  .video-type-radio {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .video-type-radio .ant-radio-button-wrapper {
+    padding: 0 5px;
+    text-align: center;
+    border: 1px solid #dfe5ec !important;
+    border-radius: 7px !important;
+  }
+
+  .query-toolbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .query-button,
+  .batch-sync-button,
+  .batch-delete-button,
+  .deleted-records-button,
+  .batch-mode-control {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .batch-action-group {
+    display: contents;
+  }
+}
+
+/* ===== 查询条件对齐与已删除前端分页 ===== */
+
+/*
+ * 当前文件使用普通 <style>，直接覆盖 Ant Design 表单结构。
+ * 每个查询项统一为：固定宽度标签 + 自适应控件。
+ */
+.query-fields-grid {
+  align-items: center;
+}
+
+.query-container .query-field {
+  display: grid !important;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.query-container .query-field .ant-form-item-label {
+  width: 62px;
+  padding: 0 !important;
+  overflow: visible;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.query-container .query-field .ant-form-item-label > label {
+  width: 100%;
+  height: 34px !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  line-height: 34px !important;
+}
+
+.query-container .query-field .ant-form-item-control {
+  min-width: 0;
+}
+
+.query-container .query-field .ant-form-item-control-input {
+  min-height: 34px !important;
+}
+
+.query-container .query-field .ant-form-item-control-input-content {
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+/* 第二行账号、视频类型采用相同的对齐方式 */
+.query-container .query-account-field,
+.query-container .query-type-field {
+  display: grid !important;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.query-container .query-account-field .ant-form-item-label,
+.query-container .query-type-field .ant-form-item-label {
+  width: 62px;
+  padding: 0 !important;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.query-container .query-account-field .ant-form-item-label > label,
+.query-container .query-type-field .ant-form-item-label > label {
+  width: 100%;
+  height: 34px !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  line-height: 34px !important;
+}
+
+.query-container .query-account-field .ant-form-item-control-input,
+.query-container .query-type-field .ant-form-item-control-input {
+  min-height: 34px !important;
+}
+
+.query-container .query-account-field .ant-form-item-control-input-content,
+.query-container .query-type-field .ant-form-item-control-input-content {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+/* 第一行控件自身保持同一高度和垂直位置 */
+.query-container .query-field .ant-picker,
+.query-container .query-field .ant-input,
+.query-container .query-field .ant-input-affix-wrapper {
+  margin: 0 !important;
+  vertical-align: middle;
+}
+
+/* 第二行取消原先底部对齐造成的视觉错位 */
+.query-toolbar,
+.query-toolbar-main {
+  align-items: center;
+}
+
+.query-account-field {
+  flex-basis: 200px;
+}
+
+/* 已删除视频抽屉 */
+.deleted-video-total {
+  color: #7a8592;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.deleted-video-list-wrapper {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.deleted-video-list {
+  flex: 1;
+}
+
+.deleted-video-list .ant-list-item {
+  min-height: 46px;
+  padding: 9px 12px !important;
+}
+
+.deleted-video-list .delete-video-title-container {
+  margin-right: 0;
+}
+
+.deleted-video-list .delete-video-index {
+  min-width: 38px;
+  color: #8a949f;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.deleted-video-list .delete-video-title {
+  color: #3f4a56;
+  font-size: 13px;
+}
+
+.deleted-video-pagination {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 12px;
+  padding: 12px 0 2px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #edf0f3;
+  background: #ffffff;
+}
+
+.deleted-video-empty {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9aa3ad;
+  font-size: 13px;
+}
+
+/* 暗色主题 */
+html.dark-mode .deleted-video-total {
+  color: #a3a5b2;
+}
+
+html.dark-mode .deleted-video-list .delete-video-index {
+  color: #818393;
+}
+
+html.dark-mode .deleted-video-list .delete-video-title {
+  color: #d7d8df;
+}
+
+html.dark-mode .deleted-video-pagination {
+  border-top-color: #303247;
+  background: #19192d;
+}
+
+html.dark-mode .deleted-video-empty {
+  color: #858797;
+}
+
+/* 中等宽度下依旧保持标签与控件同一行 */
+@media (max-width: 1380px) {
+  .query-container .query-field,
+  .query-container .query-account-field,
+  .query-container .query-type-field {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+}
+
+/* 移动端允许标签宽度略缩小 */
+@media (max-width: 680px) {
+  .query-container .query-field,
+  .query-container .query-account-field,
+  .query-container .query-type-field {
+    grid-template-columns: 56px minmax(0, 1fr);
+    column-gap: 6px;
+  }
+
+  .query-container .query-field .ant-form-item-label,
+  .query-container .query-account-field .ant-form-item-label,
+  .query-container .query-type-field .ant-form-item-label {
+    width: 56px;
+  }
+
+  .deleted-video-pagination {
+    justify-content: center;
+    overflow-x: auto;
+  }
 }
 </style>

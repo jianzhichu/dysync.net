@@ -1356,4 +1356,1224 @@ html.dark-mode .hint-desc {
   color: #40a9ff;
   text-decoration: underline;
 }
+
+/* ===== 关注用户管理页面：视觉美化覆盖 ===== */
+
+/* 页面背景与整体留白 */
+.dept-user-card-container {
+  box-sizing: border-box;
+  max-width: 1560px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 18px 20px 24px;
+  background: radial-gradient(circle at 100% 0, rgba(64, 150, 255, 0.08), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, #f5f7fa 100%);
+}
+
+/* 顶部工具栏 */
+.search-tab-container {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #e8edf3;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 28px rgba(31, 45, 61, 0.07);
+  backdrop-filter: blur(12px);
+}
+
+.tab-wrapper {
+  min-width: 260px;
+  overflow: hidden;
+}
+
+/* 顶部账号 Tab 改为轻量胶囊 */
+.custom-tabs {
+  overflow: visible;
+  border-radius: 12px;
+  box-shadow: none;
+  background: transparent;
+}
+
+:deep(.custom-tabs .ant-tabs-nav) {
+  margin: 0 !important;
+}
+
+:deep(.custom-tabs .ant-tabs-nav::before) {
+  display: none !important;
+}
+
+:deep(.custom-tabs .ant-tabs-nav-wrap) {
+  overflow-x: auto;
+}
+
+:deep(.custom-tabs .ant-tabs-tab) {
+  margin: 0 4px 0 0 !important;
+  padding: 8px 13px !important;
+  border-radius: 10px !important;
+  color: #707b88 !important;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+:deep(.custom-tabs .ant-tabs-tab:hover) {
+  color: #1677ff !important;
+  background: rgba(22, 119, 255, 0.06);
+}
+
+:deep(.custom-tabs .ant-tabs-tab-active) {
+  background: rgba(22, 119, 255, 0.1) !important;
+}
+
+:deep(.custom-tabs .ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: #1677ff !important;
+  font-weight: 600 !important;
+}
+
+:deep(.custom-tabs .ant-tabs-ink-bar) {
+  display: none !important;
+}
+
+/* 筛选与按钮区域 */
+.search-area {
+  min-width: 0;
+  gap: 9px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid #edf1f5;
+  border-radius: 13px;
+  color: #687383;
+  background: #f8fafc;
+  font-size: 12px;
+  line-height: 1;
+}
+
+:deep(.search-area .ant-switch) {
+  margin-left: -4px;
+}
+
+:deep(.search-area .ant-switch-checked) {
+  background: #3ba55d !important;
+}
+
+.search-btn,
+.sync-btn {
+  height: 36px !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.search-btn {
+  width: 36px;
+  padding: 0 !important;
+  color: #5f6b78;
+  border-color: #e3e8ee;
+  background: #fff;
+}
+
+.search-btn:hover {
+  color: #1677ff !important;
+  border-color: rgba(22, 119, 255, 0.35) !important;
+  background: rgba(22, 119, 255, 0.05) !important;
+}
+
+.search-input-wrapper {
+  width: 250px;
+}
+
+:deep(.search-input.ant-input-affix-wrapper),
+.search-input {
+  height: 36px !important;
+  border-radius: 10px !important;
+  border-color: #e2e8f0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+:deep(.search-input.ant-input-affix-wrapper-focused),
+:deep(.search-input.ant-input-affix-wrapper:hover) {
+  border-color: rgba(22, 119, 255, 0.42) !important;
+}
+
+.sync-btn {
+  padding: 0 13px !important;
+  border: 0 !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.search-area .sync-btn.ant-btn-primary {
+  background: linear-gradient(135deg, #4096ff, #1677ff) !important;
+  box-shadow: 0 5px 13px rgba(22, 119, 255, 0.2) !important;
+}
+
+.search-area .sync-btn.ant-btn-dangerous {
+  background: linear-gradient(135deg, #ff7875, #f04444) !important;
+  box-shadow: 0 5px 13px rgba(240, 68, 68, 0.18) !important;
+}
+
+.search-area .sync-btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.sync-btn:disabled {
+  color: #a7b0ba !important;
+  border: 1px solid #e5e9ee !important;
+  background: #f1f3f5 !important;
+  box-shadow: none !important;
+}
+
+/* 卡片列表 */
+.card-list-container {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px !important;
+  max-height: calc(100vh - 122px);
+  padding: 2px 3px 34px;
+  scrollbar-gutter: stable;
+}
+
+.card-list-container::-webkit-scrollbar {
+  width: 7px;
+}
+
+.card-list-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-list-container::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(127, 139, 153, 0.25);
+}
+
+/* 博主卡片 */
+.custom-card {
+  min-height: 154px;
+  overflow: hidden !important;
+  border: 1px solid #e7ecf1 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%) !important;
+  box-shadow: 0 5px 18px rgba(31, 45, 61, 0.055) !important;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
+}
+
+.custom-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #69b1ff, #1677ff);
+}
+
+.custom-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(22, 119, 255, 0.24) !important;
+  box-shadow: 0 10px 26px rgba(31, 45, 61, 0.09) !important;
+}
+
+/* 非关注卡片 */
+.no-followed-card {
+  border-color: #f2dada !important;
+  background: linear-gradient(180deg, #fffafa 0%, #fffdfd 100%) !important;
+}
+
+.no-followed-card::before {
+  background: linear-gradient(180deg, #ff8a8a, #ef4444);
+}
+
+.no-followed-card:hover {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  box-shadow: 0 10px 26px rgba(239, 68, 68, 0.08) !important;
+}
+
+:deep(.custom-card .ant-card-body) {
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+.card-inner {
+  min-height: 154px;
+  padding: 17px 18px 14px 20px !important;
+}
+
+/* 主开关 */
+.card-switch {
+  top: 13px;
+  right: 14px;
+  padding: 4px 6px;
+  border: 1px solid #edf0f3;
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.94);
+}
+
+:deep(.card-switch .ant-switch-checked),
+:deep(.sync-switch-wrapper .ant-switch-checked) {
+  background: #3ba55d !important;
+}
+
+/* 头像与主内容 */
+.card-main-content {
+  gap: 15px;
+  margin-top: 3px !important;
+}
+
+.avatar-wrapper {
+  width: 58px;
+  height: 58px;
+  margin-top: 2px;
+  padding: 3px;
+  border: 1px solid rgba(22, 119, 255, 0.15);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 13px rgba(31, 45, 61, 0.09);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.avatar-wrapper:hover {
+  transform: scale(1.04);
+}
+
+:deep(.avatar-wrapper .ant-avatar),
+:deep(.avatar-wrapper .ant-avatar-lg) {
+  width: 50px !important;
+  height: 50px !important;
+}
+
+.avatar-placeholder {
+  font-size: 19px;
+  background: linear-gradient(135deg, #4096ff, #69b1ff);
+}
+
+.card-content {
+  min-width: 0;
+  gap: 6px;
+  margin: 1px 0 0;
+}
+
+/* 姓名行 */
+.card-name {
+  min-height: 27px;
+  padding-right: 70px;
+  color: #25313b;
+  font-size: 15px !important;
+  line-height: 1.35;
+}
+
+.author-name-link {
+  display: inline-block;
+  max-width: 170px;
+  overflow: hidden;
+  color: #25313b;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.author-name-link:hover {
+  color: #1677ff;
+  text-decoration: none;
+}
+
+.card-name > span:nth-child(2) {
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #85909c;
+  background: #f1f4f7;
+  font-size: 10px !important;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.no-followed-badge {
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #d9363e;
+  background: #fff0f0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.delete-btn {
+  width: 25px !important;
+  height: 25px !important;
+  margin-left: 5px !important;
+  border-radius: 8px !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+}
+
+/* 签名 */
+.card-desc {
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  color: #7f8b96;
+  background: #f7f9fa;
+}
+
+.signature-text {
+  width: 100%;
+  max-height: 34px;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+}
+
+/* 底部路径和全量同步 */
+.card-path-sync-container {
+  height: 34px !important;
+  margin-top: 2px !important;
+  gap: 7px;
+}
+
+.path-area {
+  max-width: calc(100% - 112px);
+  min-width: 0;
+  height: 32px;
+  padding: 0 5px 0 9px;
+  border: 1px solid #edf0f3;
+  border-radius: 9px;
+  background: #f7f9fa;
+}
+
+.path-text {
+  min-width: 0;
+  height: 30px;
+  color: #56616d;
+  font-size: 11px !important;
+  line-height: 30px !important;
+}
+
+.path-empty {
+  color: #a9b1b9;
+}
+
+.edit-btn {
+  width: 27px !important;
+  height: 27px !important;
+  border-radius: 8px !important;
+  color: #1677ff !important;
+}
+
+.edit-btn:hover {
+  background: rgba(22, 119, 255, 0.07) !important;
+}
+
+.edit-btn .anticon {
+  font-size: 14px !important;
+}
+
+.edit-input-group {
+  gap: 5px;
+}
+
+:deep(.edit-input-group .ant-input) {
+  height: 28px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sync-switch-wrapper {
+  width: 105px !important;
+  height: 32px;
+  padding: 0 8px;
+  gap: 6px;
+  border-radius: 9px;
+  background: rgba(59, 165, 93, 0.08);
+}
+
+.sync-label {
+  color: #64806c;
+  font-size: 10px !important;
+}
+
+/* 加载、空状态 */
+.loading-container,
+.no-more-container,
+.empty-container {
+  border-radius: 14px;
+}
+
+.loading-container {
+  min-height: 90px;
+  color: #73808d;
+}
+
+.no-more-container {
+  padding: 14px 0;
+  color: #9aa4ad;
+}
+
+.empty-container {
+  min-height: 320px;
+  border: 1px dashed #dce3e8;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* 新增弹窗 */
+:deep(.ant-modal-content) {
+  overflow: hidden;
+  border-radius: 16px !important;
+  box-shadow: 0 18px 55px rgba(31, 45, 61, 0.18) !important;
+}
+
+:deep(.ant-modal-header) {
+  margin: 0 !important;
+  padding: 18px 22px 14px !important;
+  border-bottom: 1px solid #edf0f3;
+}
+
+:deep(.ant-modal-title) {
+  color: #25313b;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+:deep(.ant-modal-body) {
+  padding: 16px 22px 10px !important;
+}
+
+:deep(.ant-modal-footer) {
+  padding: 12px 22px 18px !important;
+  border-top: 1px solid #edf0f3;
+}
+
+:deep(.add-form .ant-input) {
+  height: 38px !important;
+  border-radius: 9px !important;
+}
+
+:deep(.add-form .ant-form-item-label > label) {
+  color: #596573;
+  font-size: 13px;
+}
+
+/* 平板及移动端 */
+@media (max-width: 900px) {
+  .dept-user-card-container {
+    padding: 10px 10px 18px;
+  }
+
+  .search-tab-container {
+    position: static;
+    align-items: stretch;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .tab-wrapper {
+    width: 100%;
+  }
+
+  .search-area {
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+  }
+
+  .search-input-wrapper {
+    flex: 1;
+    min-width: 180px;
+    width: auto;
+  }
+
+  .card-list-container {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-list-container {
+    gap: 12px !important;
+  }
+
+  .custom-card {
+    min-height: 148px;
+  }
+
+  .card-inner {
+    min-height: 148px;
+    padding: 15px 14px 13px 17px !important;
+  }
+
+  .card-main-content {
+    gap: 12px;
+  }
+
+  .avatar-wrapper {
+    width: 52px;
+    height: 52px;
+  }
+
+  :deep(.avatar-wrapper .ant-avatar),
+  :deep(.avatar-wrapper .ant-avatar-lg) {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .card-name {
+    padding-right: 62px;
+  }
+
+  .author-name-link {
+    max-width: 130px;
+  }
+
+  .signature-text {
+    width: 100%;
+  }
+
+  .path-area {
+    max-width: calc(100% - 101px);
+  }
+
+  .sync-switch-wrapper {
+    width: 94px !important;
+  }
+
+  .search-area {
+    font-size: 11px;
+  }
+}
+
+/* ===== 关注用户管理页面：紧凑版覆盖 ===== */
+
+/* 页面整体更紧凑 */
+.dept-user-card-container {
+  padding: 10px 12px 16px;
+}
+
+/* 顶部工具栏压缩高度和留白 */
+.search-tab-container {
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 13px;
+}
+
+:deep(.custom-tabs .ant-tabs-tab) {
+  padding: 6px 10px !important;
+  font-size: 12px;
+}
+
+.search-area {
+  gap: 6px;
+  padding: 4px 5px 4px 8px;
+  border-radius: 11px;
+  font-size: 11px;
+}
+
+.search-btn,
+.sync-btn {
+  height: 32px !important;
+  border-radius: 8px !important;
+}
+
+.search-btn {
+  width: 32px;
+}
+
+.search-input-wrapper {
+  width: 220px;
+}
+
+:deep(.search-input.ant-input-affix-wrapper),
+.search-input {
+  height: 32px !important;
+  border-radius: 8px !important;
+}
+
+.sync-btn {
+  padding: 0 10px !important;
+  gap: 4px;
+}
+
+.sync-btn-text {
+  font-size: 12px;
+}
+
+/* 卡片列表间距缩小 */
+.card-list-container {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px !important;
+  max-height: calc(100vh - 100px);
+  padding: 1px 2px 20px;
+}
+
+/* 卡片更矮、更紧凑 */
+.custom-card {
+  min-height: 128px;
+  border-radius: 13px !important;
+}
+
+.card-inner {
+  min-height: 128px;
+  padding: 12px 13px 10px 15px !important;
+}
+
+.card-switch {
+  top: 10px;
+  right: 11px;
+  padding: 2px 4px;
+}
+
+/* 头像缩小 */
+.card-main-content {
+  gap: 11px;
+  margin-top: 1px !important;
+}
+
+.avatar-wrapper {
+  width: 48px;
+  height: 48px;
+  padding: 2px;
+}
+
+:deep(.avatar-wrapper .ant-avatar),
+:deep(.avatar-wrapper .ant-avatar-lg) {
+  width: 42px !important;
+  height: 42px !important;
+}
+
+.avatar-placeholder {
+  font-size: 16px;
+}
+
+/* 内容区域压缩 */
+.card-content {
+  gap: 4px;
+  margin-top: 0;
+}
+
+.card-name {
+  min-height: 23px;
+  padding-right: 58px;
+  font-size: 14px !important;
+}
+
+.author-name-link {
+  max-width: 150px;
+  font-size: 14px;
+}
+
+.card-name > span:nth-child(2) {
+  margin-left: 4px;
+  padding: 1px 6px;
+  font-size: 9px !important;
+}
+
+.no-followed-badge {
+  margin-left: 4px;
+  padding: 1px 6px;
+  font-size: 9px;
+}
+
+.delete-btn {
+  width: 22px !important;
+  height: 22px !important;
+  margin-left: 4px !important;
+}
+
+/* 签名区域更低 */
+.card-desc {
+  min-height: 28px;
+  padding: 5px 7px;
+  border-radius: 8px;
+}
+
+.signature-text {
+  max-height: 28px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* 路径和全量同步区域压缩 */
+.card-path-sync-container {
+  height: 29px !important;
+  margin-top: 0 !important;
+  gap: 5px;
+}
+
+.path-area {
+  max-width: calc(100% - 96px);
+  height: 28px;
+  padding: 0 4px 0 7px;
+  border-radius: 8px;
+}
+
+.path-text {
+  height: 26px;
+  font-size: 10px !important;
+  line-height: 26px !important;
+}
+
+.edit-btn {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 7px !important;
+}
+
+.edit-btn .anticon {
+  font-size: 12px !important;
+}
+
+:deep(.edit-input-group .ant-input) {
+  height: 24px !important;
+  font-size: 11px !important;
+}
+
+.sync-switch-wrapper {
+  width: 90px !important;
+  height: 28px;
+  padding: 0 6px;
+  gap: 4px;
+  border-radius: 8px;
+}
+
+.sync-label {
+  font-size: 9px !important;
+}
+
+/* 状态区域压缩 */
+.loading-container {
+  min-height: 64px;
+  padding: 12px 0;
+}
+
+.no-more-container {
+  padding: 10px 0;
+  font-size: 12px;
+}
+
+.empty-container {
+  min-height: 220px;
+  padding: 24px 0;
+}
+
+/* 弹窗更紧凑 */
+:deep(.ant-modal-header) {
+  padding: 14px 18px 10px !important;
+}
+
+:deep(.ant-modal-body) {
+  padding: 12px 18px 6px !important;
+}
+
+:deep(.ant-modal-footer) {
+  padding: 10px 18px 14px !important;
+}
+
+:deep(.add-form .ant-form-item) {
+  margin-bottom: 14px !important;
+}
+
+:deep(.add-form .ant-input) {
+  height: 34px !important;
+  border-radius: 8px !important;
+}
+
+/* 平板 */
+@media (max-width: 900px) {
+  .dept-user-card-container {
+    padding: 8px 8px 14px;
+  }
+
+  .search-tab-container {
+    padding: 8px;
+  }
+
+  .search-area {
+    gap: 5px;
+  }
+
+  .search-input-wrapper {
+    min-width: 150px;
+  }
+}
+
+/* 移动端 */
+@media (max-width: 768px) {
+  .card-list-container {
+    gap: 8px !important;
+  }
+
+  .custom-card,
+  .card-inner {
+    min-height: 122px;
+  }
+
+  .card-inner {
+    padding: 11px 11px 9px 13px !important;
+  }
+
+  .card-main-content {
+    gap: 9px;
+  }
+
+  .avatar-wrapper {
+    width: 44px;
+    height: 44px;
+  }
+
+  :deep(.avatar-wrapper .ant-avatar),
+  :deep(.avatar-wrapper .ant-avatar-lg) {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .card-name {
+    padding-right: 52px;
+  }
+
+  .author-name-link {
+    max-width: 120px;
+  }
+
+  .path-area {
+    max-width: calc(100% - 88px);
+  }
+
+  .sync-switch-wrapper {
+    width: 82px !important;
+  }
+}
+
+/* ===== 底部间距压缩与暗色主题恢复 ===== */
+
+/* 页面底部留白进一步压缩 */
+.dept-user-card-container {
+  padding-bottom: 6px;
+}
+
+.card-list-container {
+  padding-bottom: 6px;
+}
+
+.no-more-container {
+  padding-top: 6px;
+  padding-bottom: 4px;
+}
+
+.loading-container {
+  padding-bottom: 6px;
+}
+
+.empty-container {
+  margin-bottom: 0;
+}
+
+/* 平板与移动端底部留白同步压缩 */
+@media (max-width: 900px) {
+  .dept-user-card-container {
+    padding-bottom: 6px;
+  }
+
+  .card-list-container {
+    padding-bottom: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dept-user-card-container {
+    padding-bottom: 4px;
+  }
+
+  .card-list-container {
+    padding-bottom: 2px;
+  }
+}
+
+/*
+ * 暗色主题不再使用美化版新增的背景色和卡片色，
+ * 继续沿用原文件中已有的 dark-mode 配色。
+ */
+
+/* ===== 卡片底部压缩 + 暗色主题恢复 ===== */
+
+/* 关闭同步时，不再为路径区域保留空白高度 */
+.card-path-sync-container:has(.path-placeholder) {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.path-placeholder {
+  display: none !important;
+}
+
+/* 卡片整体再压缩一点，主要减少底部空白 */
+.custom-card {
+  min-height: 108px !important;
+}
+
+.card-inner {
+  min-height: 108px !important;
+  padding-top: 10px !important;
+  padding-bottom: 8px !important;
+}
+
+.card-main-content {
+  margin-top: 0 !important;
+}
+
+.card-content {
+  gap: 3px !important;
+}
+
+.card-desc {
+  min-height: 24px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+.signature-text {
+  max-height: 26px !important;
+}
+
+.card-path-sync-container {
+  height: 27px !important;
+}
+
+.path-area,
+.sync-switch-wrapper {
+  height: 26px !important;
+}
+
+.path-text {
+  height: 24px !important;
+  line-height: 24px !important;
+}
+
+/* 暗色主题：恢复成原先深色页面效果 */
+html.dark-mode .dept-user-card-container {
+  background: transparent !important;
+}
+
+/* 顶部不再显示白色工具卡片 */
+html.dark-mode .dept-user-card-container .search-tab-container {
+  padding: 4px 0 10px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html.dark-mode .dept-user-card-container .custom-tabs {
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container :deep(.custom-tabs .ant-tabs-tab) {
+  color: #c2c3d1 !important;
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container :deep(.custom-tabs .ant-tabs-tab:hover) {
+  color: #b26cff !important;
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container :deep(.custom-tabs .ant-tabs-tab-active) {
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container :deep(.custom-tabs .ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: #9b4dff !important;
+}
+
+html.dark-mode .dept-user-card-container :deep(.custom-tabs .ant-tabs-ink-bar) {
+  display: block !important;
+  height: 2px !important;
+  background: #8b3dff !important;
+}
+
+/* 顶部筛选区恢复透明深色 */
+html.dark-mode .dept-user-card-container .search-area {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  color: #d1d1dc !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container .search-btn {
+  color: #d1d1dc !important;
+  border-color: #34354a !important;
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container .search-btn:hover {
+  color: #ffffff !important;
+  border-color: #52546d !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* 新增按钮恢复紫色，立即同步恢复红色 */
+html.dark-mode .dept-user-card-container .search-area .sync-btn.ant-btn-primary {
+  color: #ffffff !important;
+  background: #7c3aed !important;
+  box-shadow: none !important;
+}
+
+html.dark-mode .dept-user-card-container .search-area .sync-btn.ant-btn-dangerous {
+  color: #ffffff !important;
+  background: #ef4444 !important;
+  box-shadow: none !important;
+}
+
+html.dark-mode .dept-user-card-container .search-input-wrapper :deep(.ant-input),
+html.dark-mode .dept-user-card-container :deep(.search-input.ant-input-affix-wrapper) {
+  color: #e9e9f1 !important;
+  border-color: #34354a !important;
+  background: #1b1b31 !important;
+}
+
+/* 卡片恢复为原先的深色、透明感 */
+html.dark-mode .dept-user-card-container .custom-card {
+  border-color: #34364b !important;
+  background: rgba(25, 25, 45, 0.82) !important;
+  box-shadow: none !important;
+}
+
+html.dark-mode .dept-user-card-container .custom-card::before {
+  display: none !important;
+}
+
+html.dark-mode .dept-user-card-container .custom-card:hover {
+  transform: none !important;
+  border-color: #4a4d67 !important;
+  box-shadow: none !important;
+}
+
+html.dark-mode .dept-user-card-container .no-followed-card {
+  border-color: #34364b !important;
+  background: rgba(25, 25, 45, 0.82) !important;
+}
+
+html.dark-mode .dept-user-card-container .no-followed-card:hover {
+  border-color: #4a4d67 !important;
+}
+
+/* 主开关区域恢复透明 */
+html.dark-mode .dept-user-card-container .card-switch {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+/* 头像恢复原样，不显示白色外圈和阴影 */
+html.dark-mode .dept-user-card-container .avatar-wrapper {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 文字颜色恢复原先层级 */
+html.dark-mode .dept-user-card-container .card-name {
+  color: #f1f1f5 !important;
+}
+
+html.dark-mode .dept-user-card-container .author-name-link {
+  color: #29a8ff !important;
+}
+
+html.dark-mode .dept-user-card-container .author-name-link:hover {
+  color: #64c2ff !important;
+}
+
+html.dark-mode .dept-user-card-container .card-name > span:nth-child(2) {
+  color: #f0f0f5 !important;
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container .card-desc {
+  color: #9091a2 !important;
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container .signature-text {
+  color: #9091a2 !important;
+}
+
+/* 路径和全量同步恢复深色控件感 */
+html.dark-mode .dept-user-card-container .path-area {
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+html.dark-mode .dept-user-card-container .path-text {
+  color: #c8c9d3 !important;
+}
+
+html.dark-mode .dept-user-card-container .path-empty {
+  color: #747586 !important;
+}
+
+html.dark-mode .dept-user-card-container .sync-switch-wrapper {
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container .sync-label {
+  color: #a4a5b2 !important;
+}
+
+html.dark-mode .dept-user-card-container .edit-btn {
+  color: #30aaff !important;
+}
+
+html.dark-mode .dept-user-card-container .edit-btn:hover {
+  color: #69c0ff !important;
+  background: transparent !important;
+}
+
+/* 非关注标识和删除按钮恢复柔和红色 */
+html.dark-mode .dept-user-card-container .no-followed-badge {
+  color: #ffb8b8 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+html.dark-mode .dept-user-card-container .delete-btn {
+  color: #ffc0c0 !important;
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container .delete-btn:hover {
+  color: #ffffff !important;
+  background: rgba(239, 68, 68, 0.18) !important;
+}
+
+/* 列表和状态区域保持深色页面背景 */
+html.dark-mode .dept-user-card-container .card-list-container,
+html.dark-mode .dept-user-card-container .loading-container,
+html.dark-mode .dept-user-card-container .no-more-container {
+  background: transparent !important;
+}
+
+html.dark-mode .dept-user-card-container .empty-container {
+  color: #8f90a0 !important;
+  border-color: #34364b !important;
+  background: transparent !important;
+}
+
+/* 移动端也同步压缩卡片底部 */
+@media (max-width: 768px) {
+  .custom-card,
+  .card-inner {
+    min-height: 102px !important;
+  }
+
+  .card-inner {
+    padding-bottom: 7px !important;
+  }
+}
 </style>
