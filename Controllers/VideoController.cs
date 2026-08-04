@@ -23,7 +23,7 @@ namespace dy.net.Controllers
         /// 分页查询收藏视频
         /// </summary>
         /// <param name="dto"></param>
-        [Authorize]
+        //[Authorize]
         [HttpPost("paged")]
         public async Task<IActionResult> GetPagedAsync(DouyinVideoPageRequestDto dto)
         {
@@ -41,7 +41,7 @@ namespace dy.net.Controllers
         /// 查询统计数据
         /// </summary>
         /// <returns></returns>
-        [Authorize]
+        //[Authorize]
         [HttpGet("statics")]
         public async Task<IActionResult> GetStaticsAsync()
         {
