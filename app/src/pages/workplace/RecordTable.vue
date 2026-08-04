@@ -159,7 +159,7 @@
     </a-modal>
 
     <!-- 表格 - 增加复选框和操作列 -->
-    <a-table class="record-table" size="small" :columns="columns" :data-source="dataSource" bordered :pagination="pagination" @change="handleTableChange" :loading="loading" :row-selection="isBatchMode ? rowSelection : null" row-key="id" :sorter="true">
+    <a-table class="record-table" size="small" :columns="columns" :data-source="dataSource" bordered :pagination="pagination" table-layout="fixed" @change="handleTableChange" :loading="loading" :row-selection="isBatchMode ? rowSelection : null" row-key="id">
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'createTimeStr'">
           <span class="publish-date-text">{{ formatPublishDate(record.createTimeStr) }}</span>
@@ -216,6 +216,8 @@ import {
 } from '@ant-design/icons-vue';
 
 const route = useRoute();
+const paramStore = useRouteParamStore();
+
 // 类型定义
 type RangeValue = [Dayjs, Dayjs];
 interface DataItem {
@@ -261,6 +263,7 @@ dayjs.locale('zh-cn');
 // 批量操作相关状态
 const isBatchMode = ref(false); // 批量操作开关状态
 const selectedRowKeys = ref<string[]>([]); // 选中的行ID集合
+const isSyncing = ref(false); // 同步状态（必须在 rowSelection computed 之前初始化）
 // 📌 新增：排序状态管理
 const sortParams = ref<SortParam>({
   field: 'syncTime', // 默认排序字段（发布时间）
@@ -297,10 +300,19 @@ const rowSelection = computed<CustomTableRowSelection<DataItem>>(() => ({
 
 const columns = ref([
   {
+    title: 'CK名称',
+    key: 'dyUser',
+    dataIndex: 'dyUser',
+    align: 'center',
+    width: 110,
+    ellipsis: true,
+  },
+  {
     title: '同步时间',
+    key: 'syncTimeStr',
     dataIndex: 'syncTimeStr',
     align: 'center',
-    width: 180,
+    width: 160,
     sorter: true, // 开启排序
     // 绑定排序状态：当前排序字段是syncTime时显示对应排序方向
     sortOrder: sortParams.value.field === 'syncTime' ? sortParams.value.order : null,
@@ -313,9 +325,10 @@ const columns = ref([
   },
   {
     title: '发布时间',
+    key: 'createTimeStr',
     dataIndex: 'createTimeStr',
     align: 'center',
-    width: 100,
+    width: 110,
     sorter: true,
     sortOrder: sortParams.value.field === 'createTime' ? sortParams.value.order : null,
     onHeaderCell: () => ({
@@ -326,15 +339,19 @@ const columns = ref([
   },
   {
     title: '同步类型',
+    key: 'viedoTypeStr',
     dataIndex: 'viedoTypeStr',
     align: 'center',
-    width: 100,
+    width: 110,
+    ellipsis: true,
   },
   {
     title: '博主',
+    key: 'author',
     dataIndex: 'author',
     align: 'center',
-    width: 120,
+    width: 150,
+    ellipsis: true,
     sorter: true,
     sortOrder: sortParams.value.field === 'author' ? sortParams.value.order : null,
     onHeaderCell: () => ({
@@ -349,23 +366,20 @@ const columns = ref([
   //   width: 200,
   //   align: 'center',
   // },
+
   {
     title: '视频标题',
+    key: 'videoTitle',
     dataIndex: 'videoTitle',
     align: 'left',
-    // width: 350,
-  },
-  {
-    title: 'CK名称',
-    dataIndex: 'dyUser',
-    align: 'center',
-    width: 120,
+    // 不设置固定宽度：自动占用其余空间
+    ellipsis: true,
   },
   {
     title: '操作',
     key: 'operation',
     align: 'center',
-    width: 116,
+    width: 108,
   },
 ]);
 
@@ -410,17 +424,6 @@ watch(isBatchMode, (isOpen) => {
   }
 });
 
-// ---------- 新增：监听跳转传入的博主参数，自动填充并查询 ----------
-watch(
-  () => paramStore.workplaceAuthor,
-  (newVal) => {
-    if (newVal) {
-      quaryData.author = newVal;
-      GetRecords();
-    }
-  }
-);
-
 // 基础状态（优化：删除冗余的 datas 响应式数组）
 const loading = ref(false);
 const showImageViedo = ref(true);
@@ -446,7 +449,7 @@ const quaryData: UnwrapRef<QuaryParam> = reactive({
   viedoType: '*',
   authorId: '',
   fileHash: '',
-  sortField: 'createTime', // 📌 默认排序字段
+  sortField: 'syncTime', // 默认与 sortParams 保持一致
   sortOrder: 'desc', // 📌 默认降序
   cookieId: '',
 });
@@ -457,7 +460,7 @@ const pagination = ref({
   defaultPageSize: 10,
   total: 0,
   showSizeChanger: true, // 强制显示「每页显示数量」下拉框（关键修复）
-  showTotal: () => `共 ${0} 条`,
+  showTotal: (total: number) => `共 ${total} 条`,
   // showQuickJumper: true, // 显示快速跳转输入框（可选，增强体验）
   pageSizeOptions: ['10', '20', '50', '100'], // 自定义每页条数选项（可选）
   showSizeChange: (current, pageSize) => {
@@ -471,7 +474,6 @@ const pagination = ref({
 // 视频播放相关配置
 const DEFAULT_LOW_VOLUME = 0.3;
 const isVideoLoading = ref(false); // 视频加载状态
-const isSyncing = ref(false); // 同步状态
 const currentVideoInfo = ref<DataItem | null>(null); // 当前播放视频信息
 
 // 视频弹窗相关状态
@@ -550,34 +552,59 @@ const GetRecords = () => {
 
   if (value1.value) {
     quaryData.dates = value1.value.map((date) => date.format('YYYY-MM-DD'));
+  } else {
+    delete quaryData.dates;
   }
+
   if (value2.value) {
-    quaryData.dates2 = value2.value.map((date) => date.format('YYYY-MM-DD')); // 修复：之前误写为value1
+    quaryData.dates2 = value2.value.map((date) => date.format('YYYY-MM-DD'));
+  } else {
+    delete quaryData.dates2;
   }
-  // 📌 关键：将前端排序状态转换为后端需要的参数
+
+  // 将 Ant Design Vue 的排序值转换为后端参数。
   quaryData.sortField = sortParams.value.field;
-  // 转换排序方向（antd的ascend/descend 转 后端常用的asc/desc）
   quaryData.sortOrder = sortParams.value.order === 'ascend' ? 'asc' : 'desc';
+
   useApiStore()
-    .VideoPageList(quaryData)
+    .VideoPageList({ ...quaryData })
     .then((res) => {
-      loading.value = false;
-      if (res.code === 0) {
-        dataSource.value = res.data.data; // 直接更新 ref 数组，优化响应式
-        pagination.value.current = res.data.pageIndex;
-        pagination.value.defaultPageSize = res.data.pageSize;
-        pagination.value.total = res.data.total;
-        pagination.value.showTotal = () => `共 ${res.data.total} 条`;
-      } else {
+      if (res.code !== 0) {
         message.warning(res.message || '获取数据失败');
+        return;
       }
+
+      dataSource.value = Array.isArray(res.data?.data) ? res.data.data : [];
+      pagination.value.current = Number(res.data?.pageIndex) || 1;
+      pagination.value.defaultPageSize = Number(res.data?.pageSize) || 10;
+      pagination.value.total = Number(res.data?.total) || 0;
+      pagination.value.showTotal = (total: number) => `共 ${total} 条`;
     })
     .catch((error) => {
-      loading.value = false;
       console.error('获取表格数据失败:', error);
       message.error('获取数据失败，请稍后重试');
+    })
+    .finally(() => {
+      loading.value = false;
     });
 };
+
+// 监听工作台传入的博主；所有依赖变量均已初始化，避免 TDZ 错误。
+watch(
+  () => paramStore.workplaceAuthor,
+  (newVal, oldVal) => {
+    const author = String(newVal ?? '').trim();
+    const previousAuthor = String(oldVal ?? '').trim();
+
+    if (author === previousAuthor) {
+      return;
+    }
+
+    quaryData.author = author;
+    pagination.value.current = 1;
+    GetRecords();
+  }
+);
 
 // 📌 修复：分页时无排序操作，强制保留默认syncTime排序
 const handleTableChange = (paginationObj: any, filters: any, sorter: any) => {
@@ -621,26 +648,40 @@ const handleTableChange = (paginationObj: any, filters: any, sorter: any) => {
   GetRecords();
 };
 
-const cookies = ref([]);
+interface CookieOption {
+  value: string;
+  label: string;
+}
+
+const cookies = ref<CookieOption[]>([]);
+
 const getCookies = () => {
   useApiStore()
     .CookiePageList({})
     .then((res) => {
-      if (res.data.data.length > 0) {
-        cookies.value = res.data.data.map((item) => {
-          return {
-            value: item['id'] ?? '',
-            label: item['userName'] ?? '',
-          };
-        });
-        cookies.value.unshift({
-          value: '', // 全部对应的 value 为空字符串
-          label: '全部', // 显示的文本，可根据需求修改
-        });
+      const source = Array.isArray(res.data?.data) ? res.data.data : [];
 
-        quaryData.cookieId = cookies.value[0].value;
-        GetRecords();
+      cookies.value = [
+        { value: '', label: '全部' },
+        ...source.map((item: Record<string, unknown>) => ({
+          value: String(item.id ?? ''),
+          label: String(item.userName ?? ''),
+        })),
+      ];
+
+      // 保留当前有效账号；无效时回退到“全部”。
+      if (!cookies.value.some((item) => item.value === quaryData.cookieId)) {
+        quaryData.cookieId = '';
       }
+
+      GetRecords();
+    })
+    .catch((error) => {
+      console.error('获取账号列表失败:', error);
+      cookies.value = [{ value: '', label: '全部' }];
+      quaryData.cookieId = '';
+      message.error('获取账号列表失败，已按全部账号查询');
+      GetRecords();
     });
 };
 
@@ -669,14 +710,14 @@ const StartNow = () => {
 };
 
 /** 同步日期选择器变化事件 */
-const datePicked = (_, dateArry: RangeValue) => {
-  quaryData.dates = dateArry.map((date) => date.format('YYYY-MM-DD'));
+const datePicked = (_: unknown, dateArry: RangeValue | null) => {
+  quaryData.dates = dateArry?.map((date) => date.format('YYYY-MM-DD'));
   console.log('选择的同步日期范围:', quaryData.dates);
 };
 
 /** 发布日期选择器变化事件 */
-const datePicked2 = (_, dateArry: RangeValue) => {
-  quaryData.dates2 = dateArry.map((date) => date.format('YYYY-MM-DD'));
+const datePicked2 = (_: unknown, dateArry: RangeValue | null) => {
+  quaryData.dates2 = dateArry?.map((date) => date.format('YYYY-MM-DD'));
   console.log('选择的发布日期范围:', quaryData.dates2);
 };
 
@@ -1106,17 +1147,15 @@ const copyVideoPath = (path?: string) => {
   }
   copyToClipboard(path, '视频保存路径已复制到剪贴板！');
 };
-const paramStore = useRouteParamStore();
 // -------------------------- 页面初始化 --------------------------
 onMounted(() => {
-  // getConfig();
-  getCookies();
-  if (paramStore.workplaceAuthor) {
-    quaryData.author = paramStore.workplaceAuthor;
-    nextTick(() => {
-      GetRecords();
-    });
+  const author = String(paramStore.workplaceAuthor ?? '').trim();
+  if (author) {
+    quaryData.author = author;
   }
+
+  // getCookies 成功或失败后统一执行一次 GetRecords。
+  getCookies();
 });
 </script>
 
@@ -1772,6 +1811,65 @@ html.dark-mode .operation-delete-btn:not(:disabled):hover {
   background: rgba(255, 120, 117, 0.14) !important;
 }
 
+/* ===== 响应式表格列宽 =====
+ * 小列使用 columns 中的固定宽度，视频标题列不指定宽度，自动占满剩余空间。
+ * 不再设置固定总宽度，避免浏览器缩放、侧栏宽度或生产布局变化导致操作列溢出。
+ */
+.record-table,
+.record-table .ant-spin-nested-loading,
+.record-table .ant-spin-container,
+.record-table .ant-table,
+.record-table .ant-table-container,
+.record-table .ant-table-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.record-table .ant-table-container table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+}
+
+/* 桌面端不产生横向滚动，操作列始终处于容器右侧。 */
+.record-table .ant-table-content {
+  overflow-x: hidden !important;
+}
+
+.record-table .ant-table-cell {
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.record-table .video-title-link {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 操作按钮总宽约 92px，108px 列宽可完整容纳三个按钮。 */
+.record-table .operation-actions {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* 小屏幕允许滚动，避免固定信息列被压得无法阅读。 */
+@media (max-width: 900px) {
+  .record-table .ant-table-content {
+    overflow-x: auto !important;
+  }
+
+  .record-table .ant-table-container table {
+    min-width: 760px !important;
+  }
+}
+
 /* ===== 表格紧凑行高（当前 style 不是 scoped，不使用 :deep） ===== */
 
 /*
@@ -1781,14 +1879,14 @@ html.dark-mode .operation-delete-btn:not(:disabled):hover {
  */
 .record-table .ant-table-thead > tr > th,
 .record-table .ant-table-tbody > tr > td {
-  padding: 10px 5px !important;
+  padding: 10px 15px !important;
   line-height: 1.35 !important;
   height: auto !important;
 }
 
 /* 第一列排序单元格也使用相同行高 */
 .record-table .ant-table-tbody > tr > td.ant-table-column-sort {
-  padding: 15px 5px !important;
+  padding: 10px 15px !important;
 }
 
 /* 操作列左右间距固定为 5px */

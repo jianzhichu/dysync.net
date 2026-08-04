@@ -34,7 +34,7 @@
       </div>
     </div>
     <!-- 卡片列表区域 -->
-    <div class="card-list-container" @scroll="handleScroll">
+    <div ref="cardListRef" class="card-list-container" @scroll.passive="handleScroll">
       <a-card v-for="(item, index) in currentTabData" :key="item.id" :data-key="item.id" class="custom-card" :bordered="true" :hoverable="true" :class="{ 'no-followed-card': item.isNoFollowed }">
         <div class="card-inner">
           <!-- 非关注标记 -->
@@ -111,6 +111,13 @@
           </div>
         </div>
       </a-card>
+
+      <!--
+        无限滚动哨兵：
+        IntersectionObserver 同时兼容“容器内部滚动”和“页面滚动”。
+        scroll 事件仍保留，作为旧浏览器和特殊布局的兜底。
+      -->
+      <div v-show="hasMore && !noMoreData" ref="loadMoreSentinelRef" class="load-more-sentinel" aria-hidden="true"></div>
 
       <!-- 加载状态 -->
       <div v-if="loading" class="loading-container">
@@ -196,6 +203,7 @@ interface FollowItem {
   uperId?: string; // 原userId改为uperId
   douyinNo?: string;
   isNoFollowed: boolean; // 新增：是否为非关注博主
+  secUid?: string;
 }
 
 interface QuaryParam {
@@ -234,6 +242,12 @@ const searchInputVisible = ref(false);
 const searchInputRef = ref<HTMLInputElement | null>(null);
 const isSyncDisabled = ref(false);
 const isAddDisabled = ref(false);
+
+// 无限滚动相关 DOM 与观察器
+const cardListRef = ref<HTMLDivElement | null>(null);
+const loadMoreSentinelRef = ref<HTMLDivElement | null>(null);
+let loadMoreObserver: IntersectionObserver | null = null;
+let deferredLoadTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 新增表单相关
 const addModalVisible = ref(false);
@@ -292,30 +306,52 @@ const quaryData: UnwrapRef<QuaryParam> = reactive({
 });
 
 // 生命周期 - 挂载时初始化
-onMounted(() => {
+onMounted(async () => {
   quaryData.pageIndex = 0;
+
+  // 等待列表 DOM 挂载后启用底部哨兵。
+  await nextTick();
+  setupLoadMoreObserver();
+
   initData();
 });
 
 const onSyncFilterChange = () => {
-  quaryData.pageIndex = 0;
+  resetPagingState();
   initData();
 };
-// 生命周期 - 卸载时移除滚动监听
+
+// 生命周期 - 卸载时释放观察器和延迟任务
 onUnmounted(() => {
-  const cardContainer = document.querySelector('.dept-user-card-container .card-list-container');
-  if (cardContainer) {
-    cardContainer.removeEventListener('scroll', handleScroll);
+  loadMoreObserver?.disconnect();
+  loadMoreObserver = null;
+
+  if (deferredLoadTimer) {
+    clearTimeout(deferredLoadTimer);
+    deferredLoadTimer = null;
   }
 });
 
+// 重置分页状态。所有筛选、搜索和 Tab 切换都必须从第一页重新开始。
+const resetPagingState = () => {
+  quaryData.pageIndex = 0;
+  noMoreData.value = false;
+  hasMore.value = true;
+};
+
 // 初始化数据（统一入口，避免循环）
 const initData = () => {
+  resetPagingState();
+
   GetCookies().then(() => {
-    // Cookie获取成功后，直接加载当前Tab数据
+    // Cookie 获取成功后，直接加载当前 Tab 数据。
     if (activeTabKey.value) {
       quaryData.mySelfId = activeTabKey.value;
       GetFollows(true);
+    } else {
+      followData.value = [];
+      noMoreData.value = true;
+      hasMore.value = false;
     }
   });
 };
@@ -328,8 +364,9 @@ const GetCookies = (): Promise<void> => {
       .then((res) => {
         if (res.code === 0) {
           tabList.value = res.data;
-          // 设置默认选中第一个Tab
-          if (tabList.value.length > 0 && !activeTabKey.value) {
+          // 当前账号不存在时回退到第一个 Tab，避免列表被旧 key 过滤为空。
+          const currentTabExists = tabList.value.some((tab) => tab.key === activeTabKey.value);
+          if (tabList.value.length > 0 && !currentTabExists) {
             activeTabKey.value = tabList.value[0].key;
           }
         }
@@ -343,69 +380,120 @@ const GetCookies = (): Promise<void> => {
   });
 };
 
+// 当前哨兵接近可视区域时继续加载。
+// 首屏数据不足以形成滚动条时，也会自动补取下一页。
+const scheduleLoadMoreIfNeeded = () => {
+  if (deferredLoadTimer) {
+    clearTimeout(deferredLoadTimer);
+  }
+
+  deferredLoadTimer = setTimeout(() => {
+    deferredLoadTimer = null;
+
+    if (loading.value || !hasMore.value || noMoreData.value) {
+      return;
+    }
+
+    const sentinel = loadMoreSentinelRef.value;
+    if (!sentinel) {
+      return;
+    }
+
+    const rect = sentinel.getBoundingClientRect();
+    const preloadDistance = 180;
+
+    if (rect.top <= window.innerHeight + preloadDistance) {
+      GetFollows(false);
+    }
+  }, 60);
+};
+
 // 获取关注用户列表
 const GetFollows = (isReset = false) => {
-  if (loading.value || (noMoreData.value && !isReset)) return;
+  if (loading.value) {
+    return;
+  }
+
+  if (!isReset && (!hasMore.value || noMoreData.value)) {
+    return;
+  }
+
+  if (!activeTabKey.value) {
+    return;
+  }
+
+  if (isReset) {
+    resetPagingState();
+    quaryData.mySelfId = activeTabKey.value;
+  }
+
+  const requestedPage = isReset ? 0 : quaryData.pageIndex;
+  const requestParams: QuaryParam = {
+    ...quaryData,
+    pageIndex: requestedPage,
+    mySelfId: activeTabKey.value,
+  };
 
   loading.value = true;
 
   useApiStore()
-    .FollowList(quaryData)
+    .FollowList(requestParams)
     .then((res) => {
-      if (res.code === 0) {
-        const newData = res.data.data || [];
-        const total = res.data.total || 0;
-
-        // 格式化数据 - 确保isNoFollowed有默认值
-        const formattedData = newData.map((item) => ({
-          ...item,
-          isSaving: false,
-          isEditing: item.isEditing ?? false,
-          uperId: item.uperId || item.id, // 兼容旧数据，优先使用uperId字段（原userId）
-          isNoFollowed: item.isNoFollowed ?? false, // 新增字段默认值为false
-        }));
-
-        // 更新当前Tab的总数
-        if (isReset) {
-          const tabIndex = tabList.value.findIndex((tab) => tab.key === activeTabKey.value);
-          if (tabIndex !== -1) {
-            tabList.value[tabIndex].total = total;
-          }
-        }
-
-        // 判断是否还有更多数据
-        if (formattedData.length < quaryData.pageSize) {
-          noMoreData.value = true;
-          hasMore.value = false;
-        } else {
-          noMoreData.value = false;
-          hasMore.value = true;
-        }
-
-        // 合并数据（避免重复）
-        if (isReset) {
-          followData.value = formattedData;
-        } else {
-          const existingKeys = followData.value.map((item) => item.id);
-          const uniqueNewData = formattedData.filter((item) => !existingKeys.includes(item.id));
-          followData.value = [...followData.value, ...uniqueNewData];
-        }
-
-        quaryData.pageIndex += 1;
-      } else {
-        message.error('获取关注用户列表失败');
-        noMoreData.value = true;
-        hasMore.value = false;
+      if (res.code !== 0) {
+        throw new Error(res.message || '获取关注用户列表失败');
       }
+
+      const rawData = Array.isArray(res.data?.data) ? res.data.data : [];
+      const total = Number(res.data?.total) || 0;
+
+      const formattedData: FollowItem[] = rawData.map((item: FollowItem) => ({
+        ...item,
+        isSaving: false,
+        isEditing: item.isEditing ?? false,
+        uperId: item.uperId || item.id,
+        isNoFollowed: item.isNoFollowed ?? false,
+      }));
+
+      if (isReset) {
+        followData.value = formattedData;
+      } else {
+        const existingKeys = new Set(followData.value.map((item) => item.id));
+        const uniqueNewData = formattedData.filter((item) => !existingKeys.has(item.id));
+        followData.value = [...followData.value, ...uniqueNewData];
+      }
+
+      // 更新当前 Tab 总数。
+      const tabIndex = tabList.value.findIndex((tab) => tab.key === activeTabKey.value);
+      if (tabIndex !== -1) {
+        tabList.value[tabIndex].total = total;
+      }
+
+      const loadedForCurrentTab = followData.value.filter((item) => item.mySelfId === activeTabKey.value).length;
+
+      const reachedTotal = total > 0 && loadedForCurrentTab >= total;
+      const emptyPage = formattedData.length === 0;
+      const shortPage = formattedData.length < requestParams.pageSize;
+
+      noMoreData.value = reachedTotal || emptyPage || shortPage;
+      hasMore.value = !noMoreData.value;
+
+      // 只有本页成功返回后才推进页码，避免请求失败造成跳页。
+      quaryData.pageIndex = requestedPage + 1;
     })
     .catch((err) => {
       console.error('获取关注用户列表异常：', err);
-      message.error('网络异常，请重试');
-      noMoreData.value = true;
-      hasMore.value = false;
+      message.error(err instanceof Error ? err.message : '网络异常，请重试');
+
+      // 请求失败不直接判定“没有更多”，允许用户继续滚动重试。
+      hasMore.value = true;
+      noMoreData.value = false;
     })
     .finally(() => {
       loading.value = false;
+
+      nextTick(() => {
+        scheduleLoadMoreIfNeeded();
+      });
     });
 };
 
@@ -429,25 +517,19 @@ const toggleSearchInput = () => {
 
 // 执行搜索
 const handleSearch = () => {
-  quaryData.pageIndex = 0;
-  noMoreData.value = false;
-  hasMore.value = true;
+  resetPagingState();
   GetFollows(true);
 };
 
-// Tab切换 - 只在用户主动切换时触发，不再调用GetCookies
+// Tab 切换。
+// a-tabs 的 v-model 可能先更新 activeTabKey 再触发 change，不能用“值相同”提前 return。
 const handleTabChange = (key: string) => {
-  if (activeTabKey.value === key) return; // 避免重复切换同一Tab
-
   activeTabKey.value = key;
   quaryData.mySelfId = key;
-  quaryData.pageIndex = 0;
-  noMoreData.value = false;
-  hasMore.value = true;
   searchInputVisible.value = false;
   quaryData.followUserName = null;
 
-  // 直接加载当前Tab数据，不再调用GetCookies
+  resetPagingState();
   GetFollows(true);
 };
 
@@ -456,16 +538,60 @@ const currentTabData = computed(() => {
   return followData.value.filter((item) => item.mySelfId === activeTabKey.value);
 });
 
-// 滚动加载更多
-const handleScroll = () => {
-  const cardContainer = document.querySelector('.dept-user-card-container .card-list-container');
-  if (!cardContainer || loading.value || !hasMore.value || noMoreData.value) return;
+// 统一触发下一页加载。
+const loadNextPage = () => {
+  if (loading.value || !hasMore.value || noMoreData.value) {
+    return;
+  }
 
-  const { scrollTop, scrollHeight, clientHeight } = cardContainer as HTMLDivElement;
+  GetFollows(false);
+};
 
-  // 滚动到底部100px内时加载更多
-  if (scrollTop + clientHeight >= scrollHeight - 100) {
-    GetFollows(false);
+// IntersectionObserver 使用浏览器视口作为 root。
+// 它既能感知 card-list-container 内部滚动，也能兼容窄屏下页面本身滚动。
+const setupLoadMoreObserver = () => {
+  loadMoreObserver?.disconnect();
+
+  if (!('IntersectionObserver' in window)) {
+    return;
+  }
+
+  const sentinel = loadMoreSentinelRef.value;
+  if (!sentinel) {
+    return;
+  }
+
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        loadNextPage();
+      }
+    },
+    {
+      root: null,
+      rootMargin: '0px 0px 180px 0px',
+      threshold: 0.01,
+    }
+  );
+
+  loadMoreObserver.observe(sentinel);
+};
+
+// 滚动事件作为兜底。直接使用事件目标，不再全局 querySelector。
+const handleScroll = (event: Event) => {
+  if (loading.value || !hasMore.value || noMoreData.value) {
+    return;
+  }
+
+  const cardContainer = event.currentTarget as HTMLDivElement | null;
+  if (!cardContainer) {
+    return;
+  }
+
+  const remaining = cardContainer.scrollHeight - cardContainer.scrollTop - cardContainer.clientHeight;
+
+  if (remaining <= 180) {
+    loadNextPage();
   }
 };
 
@@ -702,8 +828,13 @@ const handleDeleteItem = (item: FollowItem) => {
   });
 };
 
-const goDouyinUp = (item) => {
-  window.open('https://www.douyin.com/user/' + item.secUid, '_blank', 'noopener noreferrer');
+const goDouyinUp = (item: FollowItem) => {
+  if (!item.secUid) {
+    message.warning('该博主缺少 secUid，无法打开抖音主页');
+    return;
+  }
+
+  window.open('https://www.douyin.com/user/' + item.secUid, '_blank', 'noopener,noreferrer');
 };
 </script>
 
@@ -1545,6 +1676,13 @@ html.dark-mode .hint-desc {
 .card-list-container::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: rgba(127, 139, 153, 0.25);
+}
+
+.load-more-sentinel {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
 }
 
 /* 博主卡片 */
