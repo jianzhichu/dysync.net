@@ -36,12 +36,13 @@ namespace dy.net.extension
         #region 静态缓存字段（核心优化：避免重复计算/读取）
         // 只读静态字段，防止外部随意修改，减少内存混乱
         public static  string FnDataFolder;
-        // 缓存JWT密钥字节数组，避免重复编码
-        private static readonly byte[] _jwtKeyBytes;
         // 缓存部署配置，避免重复读取Appsettings
         private static readonly string _deployConfig;
         // 缓存实体程序集类型，避免SqlSugar每次都反射（核心内存优化）
         private static readonly Type[] _entityTypes;
+        // CodeFirst 只允许在应用启动阶段执行一次，避免每个请求重复建表/改表。
+        private static readonly SemaphoreSlim _databaseInitLock = new(1, 1);
+        private static int _databaseInitialized;
         // 缓存响应压缩MIME类型，避免每次请求拼接
         private static readonly IEnumerable<string> _compressionMimeTypes;
         #endregion
@@ -49,9 +50,6 @@ namespace dy.net.extension
         #region 静态构造函数（仅执行一次，初始化所有缓存）
         static ServiceExtension()
         {
-            // 初始化JWT密钥（仅一次）
-            _jwtKeyBytes = Encoding.ASCII.GetBytes(Md5Util.JWT_TOKEN_KEY);
-         
             // 初始化实体类型（仅一次反射，缓存结果）
             Assembly entityAssembly = Assembly.GetExecutingAssembly();
             _entityTypes = entityAssembly.GetTypes()
@@ -197,10 +195,15 @@ namespace dy.net.extension
         }
 
         /// <summary>
-        /// 配置JWT认证：缓存密钥字节数组，避免重复编码
+        /// 配置 JWT 认证。签名密钥由 JwtTokenService 统一管理，
+        /// 应用重启后不会再随机变化。
         /// </summary>
-        public static void ConfigureJwtAuthentication(this IServiceCollection services)
+        public static void ConfigureJwtAuthentication(
+            this IServiceCollection services,
+            JwtTokenService jwtTokenService)
         {
+            ArgumentNullException.ThrowIfNull(jwtTokenService);
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -208,43 +211,61 @@ namespace dy.net.extension
             })
             .AddJwtBearer(options =>
             {
+                options.RequireHttpsMetadata = false;
+                options.SaveToken = true;
+                options.TokenValidationParameters = jwtTokenService.CreateValidationParameters();
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
-                        // 优化：减少LINQ调用，直接取值（减少临时对象创建）
                         var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-                        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        if (!string.IsNullOrWhiteSpace(authHeader) &&
+                            authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                         {
-                            context.Token = authHeader.Substring(7);
+                            context.Token = authHeader.Substring(7).Trim();
                         }
+
+                        return Task.CompletedTask;
+                    },
+                    OnAuthenticationFailed = context =>
+                    {
+                        context.Response.Headers["X-Auth-Error"] =
+                            context.Exception is SecurityTokenExpiredException
+                                ? "TOKEN_EXPIRED"
+                                : "TOKEN_INVALID";
+
+                        Log.Warning(
+                            context.Exception,
+                            "JWT认证失败，Path={Path}，ErrorType={ErrorType}",
+                            context.Request.Path,
+                            context.Response.Headers["X-Auth-Error"].ToString());
+
+                        return Task.CompletedTask;
+                    },
+                    OnChallenge = context =>
+                    {
+                        if (!context.Response.Headers.ContainsKey("X-Auth-Error"))
+                        {
+                            context.Response.Headers["X-Auth-Error"] = "AUTH_REQUIRED";
+                        }
+
                         return Task.CompletedTask;
                     }
-                };
-                options.RequireHttpsMetadata = false;
-                options.SaveToken = true;
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(_jwtKeyBytes), // 使用缓存的密钥
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.FromSeconds(60)
                 };
             });
         }
 
         /// <summary>
-        /// SqlSugar注册：核心优化-使用缓存的实体类型+缓存连接字符串+移除空AOP委托
+        /// 注册 SqlSugar。这里只创建请求级客户端，不再执行 CodeFirst。
+        /// CodeFirst 由 InitializeDatabaseAsync 在应用启动时统一执行一次。
         /// </summary>
         public static void AddSqlsugar(this IServiceCollection services, string dbpath)
         {
-            // 提前创建连接字符串，避免每次创建ISqlSugarClient都调用（减少重复计算）
             string sqliteConn = CreateSqliteDBConn(dbpath);
-            services.AddScoped<ISqlSugarClient>(db =>
+
+            services.AddScoped<ISqlSugarClient>(_ =>
             {
-                var sqlSugar = new SqlSugarClient(new ConnectionConfig
+                return new SqlSugarClient(new ConnectionConfig
                 {
                     ConnectionString = sqliteConn,
                     InitKeyType = InitKeyType.Attribute,
@@ -252,18 +273,55 @@ namespace dy.net.extension
                     IsAutoCloseConnection = true
                 }, db =>
                 {
-                    // 移除空的Debug日志委托，避免空委托的内存占用
-                    db.Aop.OnError = (e) =>
+                    db.Aop.OnError = e =>
                     {
-                        Serilog.Log.Error(e, $"SqlSugar执行错误：{e.Message}，SQL：{e.Sql}");
+                        Log.Error(e, "SqlSugar执行错误：{Message}，SQL：{Sql}", e.Message, e.Sql);
                     };
-
-                    db.DbMaintenance.CreateDatabase();
-                    // 核心优化：使用缓存的实体类型，避免每次都反射（减少GC和内存）
-                    db.CodeFirst.InitTables(_entityTypes);
                 });
-                return sqlSugar;
             });
+        }
+
+        /// <summary>
+        /// 应用启动时初始化数据库一次。
+        /// 避免每次解析 ISqlSugarClient 都运行 CreateDatabase/CodeFirst，
+        /// 解决连续刷新时并发 DDL、SQLite 锁和请求异常问题。
+        /// </summary>
+        public static async Task InitializeDatabaseAsync(this IServiceProvider serviceProvider)
+        {
+            if (Volatile.Read(ref _databaseInitialized) == 1)
+            {
+                return;
+            }
+
+            await _databaseInitLock.WaitAsync();
+            try
+            {
+                if (_databaseInitialized == 1)
+                {
+                    return;
+                }
+
+                using var scope = serviceProvider.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ISqlSugarClient>();
+
+                Log.Information("开始执行数据库初始化和 CodeFirst，共 {EntityCount} 个实体", _entityTypes.Length);
+                db.DbMaintenance.CreateDatabase();
+                db.CodeFirst.InitTables(_entityTypes);
+                // CodeFirst 完成后补建业务索引。
+                // 使用 IF NOT EXISTS，已有数据库和重复启动都安全。
+                EnsureDouyinVideoIndexes(db);
+                Volatile.Write(ref _databaseInitialized, 1);
+                Log.Information("数据库初始化和 CodeFirst 执行完成");
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "数据库初始化或 CodeFirst 执行失败，应用停止启动");
+                throw;
+            }
+            finally
+            {
+                _databaseInitLock.Release();
+            }
         }
 
         /// <summary>
@@ -397,6 +455,79 @@ namespace dy.net.extension
             return services;
         }
 
+        /// <summary>
+        /// 启动时为 dy_collect_video 补建常用查询索引。
+        /// 仅由 InitializeDatabaseAsync 调用，一个进程最多执行一次。
+        /// </summary>
+        private static void EnsureDouyinVideoIndexes(
+            ISqlSugarClient db)
+        {
+            string[] indexSqlStatements =
+            {
+                // 按作品 ID 查询、去重和批量存在性判断。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_aweme_id""
+                  ON ""dy_collect_video"" (""AwemeId"")",
+
+                // 默认分页、最近记录和同步日期范围查询。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_sync_time""
+                  ON ""dy_collect_video"" (""SyncTime"" DESC)",
+
+                // 按视频类型筛选并按同步时间倒序。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_type_sync""
+                  ON ""dy_collect_video""
+                     (""ViedoType"", ""SyncTime"" DESC)",
+
+                // 按账号筛选并按同步时间倒序。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_cookie_sync""
+                  ON ""dy_collect_video""
+                     (""CookieId"", ""SyncTime"" DESC)",
+
+                // 同时按视频类型、账号筛选。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_type_cookie_sync""
+                  ON ""dy_collect_video""
+                     (""ViedoType"", ""CookieId"", ""SyncTime"" DESC)",
+
+                // 收藏夹、合集、短剧的记录数量统计。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_category""
+                  ON ""dy_collect_video""
+                     (""CateId"", ""CateXId"", ""ViedoType"")",
+
+                // 关注视频重复标题编号查询。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_author_title_time""
+                  ON ""dy_collect_video""
+                     (
+                         ""AuthorId"",
+                         ""ViedoType"",
+                         ""VideoTitleSimplify"",
+                         ""CreateTime"" DESC
+                     )",
+
+                // 按博主用户 ID 查询视频。
+                @"CREATE INDEX IF NOT EXISTS
+                  ""idx_dy_collect_video_dy_user_id""
+                  ON ""dy_collect_video"" (""DyUserId"")"
+            };
+
+            foreach (string indexSql in indexSqlStatements)
+            {
+                db.Ado.ExecuteCommand(indexSql);
+            }
+
+            // 更新 SQLite 查询优化器统计信息。
+            db.Ado.ExecuteCommand(
+                @"ANALYZE ""dy_collect_video""");
+
+            Log.Information(
+                "dy_collect_video 索引检查完成，索引数量={IndexCount}",
+                indexSqlStatements.Length);
+        }
 
 
         ///// <summary>

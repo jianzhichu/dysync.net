@@ -845,7 +845,7 @@ namespace dy.net.job
                                 try
                                 {
                                     //File.Delete(exitVideo.VideoSavePath);
-                                    DeleteOldViedo(exitVideo);
+                                    DeleteOldVideo(exitVideo);
                                     //Log.Debug($"已删除旧文件：{exitVideo.VideoSavePath}");
                                 }
                                 catch (Exception ex)
@@ -878,7 +878,7 @@ namespace dy.net.job
                                     // 当前类型优先级更高 → 替换旧视频
                                     //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在低优先级视频（{exitVideoType.GetVideoTypeDesc()}），替换为当前优先级：{currentVideoType.GetVideoTypeDesc()}");
                                     // 删除旧文件
-                                    DeleteOldViedo(exitVideo);
+                                    DeleteOldVideo(exitVideo);
                                     // 继续下载
                                 }
                                 else
@@ -909,23 +909,62 @@ namespace dy.net.job
             return true;
         }
 
-        private static void DeleteOldViedo(DouyinVideo exitVideo)
+        private static void DeleteOldVideo(
+     DouyinVideo video)
         {
-            if (File.Exists(exitVideo.VideoSavePath))
+            if (video == null ||
+                string.IsNullOrWhiteSpace(
+                    video.VideoSavePath))
             {
-                var dirPath = Path.GetDirectoryName(exitVideo.VideoSavePath);
-                if (Directory.Exists(dirPath))
+                return;
+            }
+
+            string videoPath =
+                Path.GetFullPath(video.VideoSavePath);
+
+            if (File.Exists(videoPath))
+            {
+                File.Delete(videoPath);
+            }
+
+            // 删除当前剧集自己的 NFO
+            string episodeNfo =
+                Path.ChangeExtension(videoPath, ".nfo");
+
+            if (File.Exists(episodeNfo))
+            {
+                File.Delete(episodeNfo);
+            }
+
+            /*
+             * 合集和短剧的 poster.jpg、tvshow.nfo、
+             * .actors 是目录共享文件，不能在删除一集时删除。
+             */
+            if (video.ViedoType != VideoTypeEnum.dy_mix &&
+                video.ViedoType != VideoTypeEnum.dy_series)
+            {
+                if (!string.IsNullOrWhiteSpace(
+                        video.VideoCoverSavePath) &&
+                    File.Exists(video.VideoCoverSavePath))
                 {
-                    Directory.Delete(dirPath, true);
-                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-已删除旧文件夹：{dirPath}");
+                    File.Delete(video.VideoCoverSavePath);
                 }
-                //查看是否还有其他文件，如果没有则删除文件夹
-                var parentDir = Path.GetDirectoryName(exitVideo.VideoSavePath);
-                if (Directory.Exists(parentDir) && !Directory.EnumerateFileSystemEntries(parentDir).Any())
-                {
-                    Directory.Delete(parentDir);
-                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-已删除空文件夹：{parentDir}");
-                }
+            }
+
+            string directory =
+                Path.GetDirectoryName(videoPath);
+
+            // 只能删除真正的空目录，绝对不能递归删除
+            if (!string.IsNullOrWhiteSpace(directory) &&
+                Directory.Exists(directory) &&
+                !Directory
+                    .EnumerateFileSystemEntries(directory)
+                    .Any())
+            {
+                Directory.Delete(
+                    directory,
+                    recursive: false
+                );
             }
         }
 
@@ -1238,8 +1277,33 @@ namespace dy.net.job
                         // 清理无效的文件和文件夹
                         if (Directory.Exists(fileNamefolder))
                         {
-                            File.Delete(savePath);
-                            Directory.Delete(fileNamefolder, true);
+                            if (File.Exists(savePath))
+                            {
+                                File.Delete(savePath);
+                            }
+
+                            string episodeNfo =
+                                Path.ChangeExtension(savePath, ".nfo");
+
+                            if (File.Exists(episodeNfo))
+                            {
+                                File.Delete(episodeNfo);
+                            }
+
+                            /*
+                             * fileNamefolder 对合集和短剧而言是共享目录，
+                             * 无论如何都不能递归删除。
+                             */
+                            if (Directory.Exists(fileNamefolder) &&
+                                !Directory
+                                    .EnumerateFileSystemEntries(fileNamefolder)
+                                    .Any())
+                            {
+                                Directory.Delete(
+                                    fileNamefolder,
+                                    recursive: false
+                                );
+                            }
                             Log.Error($"[{cookie.UserName}][{VideoType.GetDesc()}]-图文视频-删除合成失败的视频文件和目录...");
                         }
                         return null;

@@ -32,6 +32,10 @@ namespace dy.net
             ConfigureServices(builder.Services, builder.Configuration, builder.Environment, dbPath);
             // 构建应用
             var app = builder.Build();
+
+            // 数据库建库/CodeFirst 只在启动阶段执行一次，完成后才开始接受请求。
+            await app.Services.InitializeDatabaseAsync();
+
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);
             Log.Debug($"dy.sync app is started successfully  on  {DefaultListenUrl}");
@@ -157,8 +161,10 @@ namespace dy.net
             // 响应压缩
             services.AddResponseCompression();
 
-            // JWT认证
-            services.ConfigureJwtAuthentication();
+            // JWT认证。密钥优先读取 Jwt:Key；未配置时持久化到数据库目录 jwt.key。
+            var jwtTokenService = new JwtTokenService(config, dbPath);
+            services.AddSingleton(jwtTokenService);
+            services.ConfigureJwtAuthentication(jwtTokenService);
         }
 
 

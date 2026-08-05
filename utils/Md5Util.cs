@@ -1,5 +1,4 @@
-﻿using ClockSnowFlake;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace dy.net.utils
@@ -7,7 +6,6 @@ namespace dy.net.utils
     public static class Md5Util
     {
 
-        public static string JWT_TOKEN_KEY = "dysync.net-key-" + IdGener.GetGuid();
         public static string Md5(this string inputString)
         {
 

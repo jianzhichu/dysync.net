@@ -1,6 +1,7 @@
-﻿using dy.net.model.dto;
+using dy.net.model.dto;
 using dy.net.service;
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
 
 namespace dy.net.Controllers
 {
@@ -16,26 +17,64 @@ namespace dy.net.Controllers
             this.webHostEnvironment = webHostEnvironment;
             this.logInfoService = logInfoService;
         }
-
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         [HttpGet("/api/logs/GetLog/{type}/{date}")]
-        public async Task<IActionResult> GetLog([FromRoute] string type, [FromRoute] string date)
+        public async Task<IActionResult> GetLog(
+            [FromRoute] string type,
+            [FromRoute] string date)
         {
-            var filePath = Path.Combine(webHostEnvironment.IsDevelopment() ? Directory.GetCurrentDirectory() : AppDomain.CurrentDomain.BaseDirectory, "logs", $"log-{type}-{date}.txt");
-            if (!System.IO.File.Exists(filePath))
-            {
-                var msg = $"{date}，没有发现{type}的日志";
-                //Serilog.Log.Error(msg);
-                return Ok(msg);
-            }
-            return PhysicalFile(filePath, "text/plain; charset=utf-8");
+            DisableClientCache();
 
-            //下面的方案提示文件被占用
-            //var encoding = Encoding.GetEncoding("UTF-8"); // 指定文本文件的编码
-            //var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-            //var fileContent = encoding.GetString(fileBytes);
-            //return  Content (fileContent, "text/plain", encoding);
+            var logDirectory = Path.Combine(
+                webHostEnvironment.IsDevelopment()
+                    ? Directory.GetCurrentDirectory()
+                    : AppDomain.CurrentDomain.BaseDirectory,
+                "logs");
+
+            try
+            {
+                await using var stream =
+                    logInfoService.GetLogFileStream(logDirectory, type, date);
+
+                using var reader = new StreamReader(
+                    stream,
+                    Encoding.UTF8,
+                    detectEncodingFromByteOrderMarks: true,
+                    bufferSize: 8192,
+                    leaveOpen: false);
+
+                var content = await reader.ReadToEndAsync();
+
+                // 使用统一响应结构，避免前端响应拦截器把纯文本判为异常。
+                return ApiResult.Success<string>(content);
+            }
+            catch (FileNotFoundException)
+            {
+                return ApiResult.Success<string>($"{date}，没有发现{type}的日志");
+            }
+            catch (ArgumentException ex)
+            {
+                return ApiResult.Fail(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(
+                    ex,
+                    "读取日志失败，Type={Type}, Date={Date}",
+                    type,
+                    date);
+
+                return ApiResult.Fail("读取日志失败：" + ex.Message);
+            }
         }
 
+        private void DisableClientCache()
+        {
+            Response.Headers["Cache-Control"] =
+                "no-store, no-cache, must-revalidate, max-age=0";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+        }
 
 
 

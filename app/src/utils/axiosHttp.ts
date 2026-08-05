@@ -160,11 +160,14 @@ function createAxiosHttp(config: AxiosRequestConfig): AxiosHttp {
         token,
         {
           expires: expiresAt,
+          path: '/',
+          sameSite: 'lax',
+          secure: window.location.protocol === 'https:',
         }
       );
     },
     removeAuthorization(name?: string): void {
-      Cookie.remove(name ?? _axios.defaults.xsrfCookieName!);
+      Cookie.remove(name ?? _axios.defaults.xsrfCookieName!, { path: '/' });
     },
     checkAuthorization(name?: string | undefined): boolean {
       return Boolean(Cookie.get(name ?? _axios.defaults.xsrfCookieName!));

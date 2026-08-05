@@ -31,120 +31,11 @@
 <script lang="ts" setup>
 import LoginBox from './LoginBox.vue';
 import { useRouter } from 'vue-router';
-import { message, notification, Modal } from 'ant-design-vue'; // 引入 Modal 用于确认提示
-import { onMounted, ref, h } from 'vue';
+import { message } from 'ant-design-vue';
+import { onMounted } from 'vue';
 import { useApiStore } from '@/store';
-import { CopyOutlined } from '@ant-design/icons-vue';
 
 const router = useRouter();
-
-// 版本数据存储
-const currentTag = ref<string>('');
-const latestTag = ref<string>('未知版本');
-
-// 复制版本号到剪贴板核心逻辑
-const copyToClipboard = async (content: string, type: string) => {
-  if (!content || content === '未知版本') {
-    message.warning(`${type}无有效内容可复制`);
-    return;
-  }
-
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(content);
-      message.success(`${type}已复制到剪贴板 ✅`);
-    } else {
-      const textarea = document.createElement('textarea');
-      textarea.value = content;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      textarea.style.top = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      message.success(`${type}已复制到剪贴板 ✅`);
-    }
-  } catch (err) {
-    console.error('复制失败：', err);
-    message.error('复制失败，请手动选中复制');
-  }
-};
-
-// 统一的关闭处理：标记缓存 + 关闭通知
-const handleNoticeClose = (noticeKey: string) => {
-  console.log('版本提醒通知已关闭，后续不再提醒');
-  // 标记为已提醒，存入缓存（确保版本通知和确认弹窗都不再出现）
-  localStorage.setItem('maintain_notice_shown', 'true');
-  // 关闭版本通知
-  notification.close(noticeKey);
-};
-
-// 关闭前的确认提示弹窗
-const showCloseConfirm = (noticeKey: string) => {
-  Modal.confirm({
-    title: '确认关闭',
-    content: '关闭后该提醒将不再弹出，确定要关闭吗？',
-    okText: '确定',
-    cancelText: '取消',
-    onOk: () => {
-      // 确认关闭：执行统一处理
-      handleNoticeClose(noticeKey);
-      message.success('提醒已关闭，后续不再弹出');
-    },
-    onCancel: () => {
-      // 取消关闭：不执行任何操作，保留版本通知
-      message.info('已取消关闭');
-    },
-  });
-};
-
-// 打开右上角 notification 通知
-const openVersionNotice = () => {
-  const noticeKey = `version_notice_${Date.now()}`;
-  notification.open({
-    message: '温馨提示一下',
-    key: noticeKey,
-    duration: 0,
-    placement: 'topRight',
-    // 通知描述内容
-    description: h('div', { class: 'notice-content' }, [
-      h('p', { class: 'notice-desc' }, '当前您使用的docker镜像为阿里云镜像，已停止维护。'),
-      h('p', { class: 'notice-version-item' }, [
-        h('strong', { class: 'notice-version-label' }, '当前版本：'),
-        h('span', { style: { color: '#ff4d4f', fontWeight: '500' } }, currentTag.value.replace('[不再维护]', '')),
-        h(CopyOutlined, {
-          class: 'notice-copy-icon',
-          title: '复制当前版本',
-          onClick: () => copyToClipboard(currentTag.value.replace('[不再维护]', ''), '当前版本'),
-        }),
-      ]),
-      h('p', { class: 'notice-version-item' }, [
-        h('strong', { class: 'notice-version-label' }, '最新版本：'),
-        h('span', { style: { color: '#52c41a', fontWeight: '500' } }, latestTag.value),
-        h(CopyOutlined, {
-          class: 'notice-copy-icon',
-          title: '复制最新版本',
-          onClick: () => copyToClipboard(latestTag.value, '最新版本'),
-        }),
-      ]),
-      h('p', { class: 'notice-tip' }, '建议升级到最新版本！'),
-    ]),
-    // 「我已知晓」按钮：点击触发确认弹窗
-    btn: () =>
-      h(
-        'button',
-        {
-          class: 'notice-confirm-btn',
-          onClick: () => {
-            // 不直接关闭，先弹出确认提示
-            showCloseConfirm(noticeKey);
-          },
-        },
-        '我已知晓'
-      ),
-  });
-};
 
 onMounted(() => {
   useApiStore()
@@ -156,28 +47,6 @@ onMounted(() => {
       }
     });
 
-  useApiStore()
-    .CheckTag()
-    .then((res) => {
-      if (res.code === 0) {
-        if (res.data.length > 0) {
-          const tag = res.data[0];
-          if (tag.indexOf('不再维护') !== -1) {
-            const hasShown = localStorage.getItem('maintain_notice_shown');
-            if (!hasShown) {
-              currentTag.value = tag;
-              latestTag.value = res.data.length >= 2 ? res.data[1] : '未知版本';
-              openVersionNotice();
-            }
-          }
-        }
-      } else {
-        message.error(res.message);
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-    });
 });
 
 function onLoginSuccess() {

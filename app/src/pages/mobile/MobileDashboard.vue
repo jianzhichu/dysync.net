@@ -270,8 +270,6 @@
                   <a-button type="text" class="delete-btn" v-if="item.isNoFollowed" @click="(e) => { e.stopPropagation(); handleDeleteItem(item); }" :disabled="item.isSaving" title="删除">
                     <DeleteOutlined />
                   </a-button>
-                  <!-- 同步总开关 -->
-                  <a-switch v-model:checked="item.openSync" @change="(checked) => handleSwitchChange(item, checked)" checked-children="开" un-checked-children="关" :disabled="item.isSaving" />
                 </div>
               </div>
             </div>
@@ -283,8 +281,8 @@
               </a-tooltip>
             </div>
 
-            <!-- 路径+全量同步：仅同步开启时显示【修复布局】 -->
-            <div class="follow-card-bottom" v-if="item.openSync">
+            <!-- 路径、开启和全量同步保持同一行 -->
+            <div class="follow-card-bottom">
               <div class="path-area">
                 <template v-if="item.isEditing">
                   <div class="edit-input-group">
@@ -303,9 +301,17 @@
                   </a-button>
                 </template>
               </div>
-              <div class="full-sync-area">
-                <span class="full-sync-label">全量同步</span>
-                <a-switch v-model:checked="item.fullSync" size="small" @change="(checked) => handleSyncChange(item, checked)" :disabled="item.isSaving" />
+
+              <div class="follow-switches">
+                <div class="enable-sync-area">
+                  <span class="enable-sync-label">开启</span>
+                  <a-switch v-model:checked="item.openSync" size="small" @change="(checked) => handleSwitchChange(item, checked)" :disabled="item.isSaving" />
+                </div>
+
+                <div v-if="item.openSync" class="full-sync-area">
+                  <span class="full-sync-label">全量</span>
+                  <a-switch v-model:checked="item.fullSync" size="small" @change="(checked) => handleSyncChange(item, checked)" :disabled="item.isSaving" />
+                </div>
               </div>
             </div>
           </div>
@@ -729,16 +735,14 @@ const closeLogModal = () => {
   currentLog.value = null;
   logContent.value = '';
 };
-const loadLogDetailContent = (log: LogItem) => {
+const loadLogDetailContent = async (log: LogItem) => {
   try {
     const requestParams = `${getLogType(log).toLowerCase()}/${log.date}`;
-    useApiStore()
-      .apiGetLogs(requestParams)
-      .then((logContentStr: string) => {
-        const formattedLog = formatLogTime(logContentStr);
-        logContent.value = formattedLog.split('\n').reverse().join('\n');
-      });
+    const logContentStr = await useApiStore().apiGetLogs(requestParams);
+    const formattedLog = formatLogTime(String(logContentStr ?? ''));
+    logContent.value = formattedLog.split('\n').reverse().join('\n');
   } catch (err) {
+    console.error('加载日志详情失败：', err);
     logContent.value = '日志内容加载失败，请重试';
   }
 };
@@ -1132,6 +1136,222 @@ body {
   scrollbar-width: none !important; /* 火狐隐藏滚动条 */
   -ms-overflow-style: none !important; /* IE/Edge 隐藏滚动条 */
 }
+
+/* ===== 关注 Tab：路径与开启同一行 + 紧凑卡片 ===== */
+.follow-list-container {
+  gap: 8px !important;
+  padding-bottom: 14px !important;
+}
+
+.follow-card {
+  border-radius: 13px !important;
+  box-shadow: 0 3px 12px rgba(31, 45, 61, 0.05) !important;
+}
+
+.follow-card:hover {
+  transform: none;
+  box-shadow: 0 4px 14px rgba(31, 45, 61, 0.07) !important;
+}
+
+.follow-card-inner {
+  min-height: 0 !important;
+  gap: 7px !important;
+  padding: 10px 10px 9px 14px !important;
+}
+
+.follow-card-top {
+  align-items: center;
+  gap: 9px;
+}
+
+.avatar-wrapper {
+  width: 44px;
+  height: 44px;
+  padding: 1px;
+}
+
+:deep(.follow-card .ant-avatar),
+:deep(.follow-card .ant-avatar-lg) {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 16px !important;
+}
+
+.name-actions {
+  width: calc(100% - 53px) !important;
+  gap: 4px;
+}
+
+.name-wrapper {
+  align-items: center;
+}
+
+.uper-title-line {
+  gap: 1px;
+}
+
+.uper-name {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.douyin-no {
+  padding: 1px 6px;
+  font-size: 9px;
+}
+
+.no-followed-badge {
+  height: 18px;
+  padding: 0 6px;
+  font-size: 9px;
+}
+
+.top-actions {
+  gap: 5px;
+}
+
+.sync-state-text {
+  gap: 4px;
+  font-size: 9px;
+}
+
+.sync-state-text i {
+  width: 5px;
+  height: 5px;
+}
+
+.delete-btn {
+  width: 25px !important;
+  height: 25px !important;
+  border-radius: 7px !important;
+}
+
+.follow-card-desc {
+  padding: 4px 7px;
+  border-radius: 7px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+/* 路径与开启操作强制同一行 */
+.follow-card-bottom {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding-top: 6px !important;
+}
+
+.path-area {
+  min-width: 0;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 7px;
+}
+
+.path-text {
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.edit-btn {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 7px !important;
+}
+
+.edit-input-group {
+  gap: 4px;
+}
+
+.path-input {
+  height: 26px !important;
+  font-size: 11px !important;
+}
+
+.follow-switches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.enable-sync-area,
+.full-sync-area {
+  width: auto !important;
+  min-width: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px;
+  border-radius: 7px;
+  box-sizing: border-box;
+}
+
+.enable-sync-area {
+  background: rgba(64, 150, 255, 0.075);
+}
+
+.full-sync-area {
+  background: rgba(76, 175, 80, 0.075);
+}
+
+.enable-sync-label,
+.full-sync-label {
+  font-size: 9px !important;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.enable-sync-label {
+  color: #5f7894;
+}
+
+.full-sync-label {
+  color: #64806c;
+}
+
+:deep(.follow-switches .ant-switch-small) {
+  min-width: 28px !important;
+}
+
+/* 小屏也不换行 */
+@media screen and (max-width: 375px) {
+  .follow-card-inner {
+    gap: 6px !important;
+    padding: 9px 9px 8px 13px !important;
+  }
+
+  .follow-card-bottom {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .follow-switches {
+    gap: 3px;
+  }
+
+  .enable-sync-area,
+  .full-sync-area {
+    gap: 3px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .enable-sync-label,
+  .full-sync-label {
+    font-size: 8px !important;
+  }
+}
+
+html.dark-mode .enable-sync-area {
+  background: rgba(64, 150, 255, 0.12);
+}
+
+html.dark-mode .enable-sync-label {
+  color: #9fc4ec;
+}
+
 </style>
 
 <style scoped>

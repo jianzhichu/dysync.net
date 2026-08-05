@@ -1,6 +1,6 @@
 <!-- components/VersionDrawer.vue -->
 <script lang="ts" setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import { Drawer } from 'ant-design-vue';
 import { CloseOutlined, CopyOutlined, CheckCircleOutlined } from '@ant-design/icons-vue';
 import { useApiStore } from '@/store';
@@ -16,19 +16,20 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-// 组件挂载时获取配置
-onMounted(() => {});
-
+// 打开抽屉时只读取缓存，不请求后台。
 const getVersions = () => {
-  useApiStore()
-    .CheckTag()
-    .then((res) => {
-      if (res.code == 1) {
-        dyVersions.value = res.data;
-      } else {
-        message.error(res.message);
-      }
-    });
+  const cachedResponse =
+    useApiStore().getCachedCheckTag();
+
+  if (
+    cachedResponse?.code === 0 &&
+    Array.isArray(cachedResponse.data)
+  ) {
+    dyVersions.value = cachedResponse.data;
+    return;
+  }
+
+  dyVersions.value = [];
 };
 
 // 版本数据

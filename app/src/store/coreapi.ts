@@ -28,6 +28,9 @@ import { Response } from '@/types';
 //   view?: string;
 // }
 
+export const VERSION_CACHE_UPDATED_EVENT =
+  'dysync:version-cache-updated';
+
 export const useApiStore = defineStore('coreapi', () => {
 
 
@@ -62,14 +65,31 @@ export const useApiStore = defineStore('coreapi', () => {
 
       });
   }
-  //后台日志
-  async function apiGetLogs(param: string) {
-    return http.request<any, Response<any>>('/api/logs/GetLog/' + param, 'get').then(r => {
-      // console.log(r)
-      return r.data;
-    }).finally(() => {
+  // 后台日志
+  async function apiGetLogs(param: string): Promise<string> {
+    const safePath = param
+      .split('/')
+      .map((part) => encodeURIComponent(part))
+      .join('/');
 
-    });
+    return http
+      .request<string, Response<string>>(
+        '/api/logs/GetLog/' + safePath,
+        'get',
+        {
+          // 避免旧版本后端、代理服务器或浏览器继续复用304缓存。
+          _ts: Date.now(),
+        }
+      )
+      .then((response) => {
+        // 兼容上一版后端误把字符串日志放入 message 的情况。
+        const content = response.data ??
+          (response.message && response.message !== '操作成功'
+            ? response.message
+            : '');
+
+        return String(content);
+      });
   }
   //用户信息-头像
   async function apiUserInfo() {
@@ -241,71 +261,150 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
 
-  // 检查版本：缓存 1 天，避免每次进入页面都重复请求
-  const VER_CACHE_KEY = 'coreapi:getVer';
-  const VER_CACHE_DURATION = 24 * 60 * 60 * 1000;
-  let getVerPending: Promise<Response<any>> | null = null;
+  // 版本信息只允许两种情况访问后台：
+  // 1. 登录成功后强制刷新一次；
+  // 2. 用户手动点击“获取版本”时强制刷新。
+  // 普通组件挂载和 F5 刷新只能读取 localStorage 缓存。
+  const GET_VER_CACHE_KEY = 'coreapi:getVer:v2';
+  const CHECK_TAG_CACHE_KEY = 'coreapi:checkTag:v2';
 
-  function readVerCache(): Response<any> | null {
+  let getVerPending: Promise<Response<any>> | null = null;
+  let checkTagPending: Promise<Response<any>> | null = null;
+
+  type VersionCacheType = 'getVer' | 'checkTag';
+
+  type VersionRefreshResult = {
+    getVer: Response<any> | null;
+    checkTag: Response<any> | null;
+    errors: unknown[];
+  };
+
+  function createEmptyVersionResponse(
+    message = '暂无版本缓存'
+  ): Response<any> {
+    return {
+      code: 0,
+      message,
+      data: null,
+    };
+  }
+
+  function readVersionCache(
+    cacheKey: string
+  ): Response<any> | null {
     try {
-      const cacheText = localStorage.getItem(VER_CACHE_KEY);
+      const cacheText = localStorage.getItem(cacheKey);
       if (!cacheText) {
         return null;
       }
 
       const cache = JSON.parse(cacheText) as {
-        expireAt: number;
-        value: Response<any>;
+        value?: Response<any>;
       };
 
-      if (!cache.expireAt || cache.expireAt <= Date.now() || !cache.value) {
-        localStorage.removeItem(VER_CACHE_KEY);
+      if (!cache?.value) {
+        localStorage.removeItem(cacheKey);
         return null;
       }
 
       return cache.value;
-    } catch {
-      // 缓存数据异常时直接清除，随后重新请求接口
+    } catch (error) {
       try {
-        localStorage.removeItem(VER_CACHE_KEY);
+        localStorage.removeItem(cacheKey);
       } catch {
-        // 忽略浏览器禁用 localStorage 等异常
+        // 浏览器禁用 localStorage 时忽略清理异常。
       }
+
+      console.warn('读取版本缓存失败：', error);
       return null;
     }
   }
 
-  function writeVerCache(value: Response<any>) {
+  function notifyVersionCacheUpdated(
+    type: VersionCacheType
+  ) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent(VERSION_CACHE_UPDATED_EVENT, {
+        detail: { type },
+      })
+    );
+  }
+
+  function writeVersionCache(
+    cacheKey: string,
+    value: Response<any>,
+    type: VersionCacheType
+  ) {
     try {
-      localStorage.setItem(VER_CACHE_KEY, JSON.stringify({
-        expireAt: Date.now() + VER_CACHE_DURATION,
-        value
-      }));
-    } catch {
-      // localStorage 不可用或空间不足时，不影响接口正常返回
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          updatedAt: Date.now(),
+          value,
+        })
+      );
+
+      notifyVersionCacheUpdated(type);
+    } catch (error) {
+      console.warn('保存版本缓存失败：', error);
     }
   }
 
-  async function getVer(forceRefresh = false): Promise<Response<any>> {
+  function getCachedVer(): Response<any> | null {
+    return readVersionCache(GET_VER_CACHE_KEY);
+  }
+
+  function getCachedCheckTag(): Response<any> | null {
+    return readVersionCache(CHECK_TAG_CACHE_KEY);
+  }
+
+  function clearVersionCaches() {
+    try {
+      localStorage.removeItem(GET_VER_CACHE_KEY);
+      localStorage.removeItem(CHECK_TAG_CACHE_KEY);
+
+      // 清理旧版本曾经使用过的缓存键。
+      localStorage.removeItem('coreapi:getVer');
+      localStorage.removeItem('dysync_version_cache');
+    } catch (error) {
+      console.warn('清理版本缓存失败：', error);
+    }
+  }
+
+  // 获取当前部署版本（/api/config/mytag）。
+  // forceRefresh=false 时绝不访问后台，只返回缓存。
+  async function getVer(
+    forceRefresh = false
+  ): Promise<Response<any>> {
     if (!forceRefresh) {
-      const cachedValue = readVerCache();
-      if (cachedValue) {
-        return cachedValue;
-      }
+      return (
+        getCachedVer() ??
+        createEmptyVersionResponse('暂无当前版本缓存')
+      );
     }
 
-    // 多个组件同时调用时，共用同一个请求
     if (getVerPending) {
       return getVerPending;
     }
 
     getVerPending = http
-      .request<any, Response<any>>('/api/config/mytag', 'get')
+      .request<any, Response<any>>(
+        '/api/config/mytag',
+        'get'
+      )
       .then((response) => {
-        // 仅缓存业务成功的结果，接口报错时下次仍会重新请求
         if (response.code === 0) {
-          writeVerCache(response);
+          writeVersionCache(
+            GET_VER_CACHE_KEY,
+            response,
+            'getVer'
+          );
         }
+
         return response;
       })
       .finally(() => {
@@ -314,13 +413,78 @@ export const useApiStore = defineStore('coreapi', () => {
 
     return getVerPending;
   }
-  //检查版本
-  async function CheckTag() {
-    return http.request<any, Response<any>>('/api/config/checktag', 'get').then(r => {
-      return r;
-    }).finally(() => {
 
-    });
+  // 获取版本列表（/api/config/checktag）。
+  // forceRefresh=false 时绝不访问后台，只返回缓存。
+  async function CheckTag(
+    forceRefresh = false
+  ): Promise<Response<any>> {
+    if (!forceRefresh) {
+      return (
+        getCachedCheckTag() ??
+        createEmptyVersionResponse('暂无版本列表缓存')
+      );
+    }
+
+    if (checkTagPending) {
+      return checkTagPending;
+    }
+
+    checkTagPending = http
+      .request<any, Response<any>>(
+        '/api/config/checktag',
+        'get'
+      )
+      .then((response) => {
+        if (response.code === 0) {
+          writeVersionCache(
+            CHECK_TAG_CACHE_KEY,
+            response,
+            'checkTag'
+          );
+        }
+
+        return response;
+      })
+      .finally(() => {
+        checkTagPending = null;
+      });
+
+    return checkTagPending;
+  }
+
+  // 同时刷新两个版本接口。
+  // 登录成功和手动“获取版本”都调用这个方法。
+  async function refreshVersionInfo(
+    forceRefresh = true
+  ): Promise<VersionRefreshResult> {
+    const [getVerResult, checkTagResult] =
+      await Promise.allSettled([
+        getVer(forceRefresh),
+        CheckTag(forceRefresh),
+      ]);
+
+    const errors: unknown[] = [];
+
+    if (getVerResult.status === 'rejected') {
+      errors.push(getVerResult.reason);
+    }
+
+    if (checkTagResult.status === 'rejected') {
+      errors.push(checkTagResult.reason);
+    }
+
+    return {
+      getVer:
+        getVerResult.status === 'fulfilled'
+          ? getVerResult.value
+          : getCachedVer(),
+      checkTag:
+        checkTagResult.status === 'fulfilled'
+          ? checkTagResult.value
+          : getCachedCheckTag(),
+      errors,
+    };
   }
 
   async function mp3List() {
@@ -456,6 +620,10 @@ export const useApiStore = defineStore('coreapi', () => {
     BatchSaveCate,
     CatePageList,
     getVer,
+    getCachedVer,
+    getCachedCheckTag,
+    refreshVersionInfo,
+    clearVersionCaches,
     mp3List,
     BathRealDelete,
     DeleteByAuthor,

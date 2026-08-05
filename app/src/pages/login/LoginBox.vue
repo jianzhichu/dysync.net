@@ -184,7 +184,7 @@ async function login(params: LoginFormProps) {
     message.success('登录成功！');
   } catch (e: any) {
     emit('failure', e.message || '登录失败', params);
-    message.error(e.data?.erro || '登录失败，请重试');
+    message.error(e?.message || e?.data?.message || '登录失败，请重试');
   } finally {
     loading.value = false;
   }

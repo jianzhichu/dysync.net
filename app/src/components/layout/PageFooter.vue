@@ -1,11 +1,27 @@
 <script lang="ts" setup>
 import { GithubOutlined, CopyrightOutlined } from '@ant-design/icons-vue';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useApiStore } from '@/store';
+import { VERSION_CACHE_UPDATED_EVENT } from '@/store/coreapi';
 
 // 响应式变量存储年份文本
 const yearText = ref('');
-const currentVersion = ref(); // 已存在的版本号响应式变量
+const currentVersion = ref<any>(null);
+
+const loadCachedVersion = () => {
+  const cachedResponse =
+    useApiStore().getCachedVer();
+
+  currentVersion.value =
+    cachedResponse?.code === 0
+      ? cachedResponse.data
+      : null;
+};
+
+const handleVersionCacheUpdated = () => {
+  loadCachedVersion();
+};
+
 onMounted(() => {
   const currentYear = new Date().getFullYear();
   const startYear = 2025;
@@ -15,13 +31,21 @@ onMounted(() => {
   } else {
     yearText.value = `${startYear}-${currentYear}`;
   }
-  useApiStore()
-    .getVer()
-    .then((r) => {
-      if (r.code == 0) {
-        currentVersion.value = r.data; // 接口返回后赋值版本号
-      }
-    });
+
+  // F5 时只读缓存，不访问 getver/mytag。
+  loadCachedVersion();
+
+  window.addEventListener(
+    VERSION_CACHE_UPDATED_EVENT,
+    handleVersionCacheUpdated
+  );
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener(
+    VERSION_CACHE_UPDATED_EVENT,
+    handleVersionCacheUpdated
+  );
 });
 </script>
 

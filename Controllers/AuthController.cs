@@ -1,13 +1,8 @@
-﻿using ClockSnowFlake;
-using dy.net.model.dto;
+﻿using dy.net.model.dto;
 using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace dy.net.Controllers
 {
@@ -17,13 +12,16 @@ namespace dy.net.Controllers
     {
         private readonly IWebHostEnvironment webHostEnvironment;
         private readonly AdminUserService _userService;
+        private readonly JwtTokenService _jwtTokenService;
 
         public AuthController(
             AdminUserService userService,
-            IWebHostEnvironment webHostEnvironment)
+            IWebHostEnvironment webHostEnvironment,
+            JwtTokenService jwtTokenService)
         {
             _userService = userService;
             this.webHostEnvironment = webHostEnvironment;
+            _jwtTokenService = jwtTokenService;
         }
 
         /// <summary>
@@ -65,61 +63,20 @@ namespace dy.net.Controllers
 
             var user = await _userService.GetUser(loginUserInfo.UserName);
 
-            if (user == null)
+            if (user == null || user.Password != Md5Util.Md5(loginUserInfo.Password))
             {
                 return ApiResult.Fail("用户名或密码不正确");
             }
 
-            if (user.Password != Md5Util.Md5(loginUserInfo.Password))
-            {
-                return ApiResult.Fail("用户名或密码不正确");
-            }
+            var tokenString = _jwtTokenService.GenerateToken(user.UserName);
 
-            var tokenString = GenerateJwtToken(user.UserName);
-
-            return Ok(new
+            // 与所有其他接口保持统一的 { code, message, data } 响应结构。
+            return ApiResult.Success(new
             {
-                code = 0,
-                erro = "",
                 token = tokenString,
-
-                // 单位：毫秒。与前端 setAuthorization 的 number 参数保持一致。
-                // 7 天 = 604800000 毫秒。
-                expires = 7L * 24 * 60 * 60 * 1000,
-
-                data = user.UserName
+                expires = _jwtTokenService.ExpireMilliseconds,
+                userName = user.UserName
             });
-        }
-
-        private static string GenerateJwtToken(string username)
-        {
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.Name, username),
-                new Claim(
-                    JwtRegisteredClaimNames.Jti,
-                    Guid.NewGuid().ToString())
-            };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.ASCII.GetBytes(Md5Util.JWT_TOKEN_KEY));
-
-            var credentials = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256);
-
-            // JWT 有效期与前端 Cookie 都统一为 7 天。
-            var expires = DateTime.UtcNow.AddDays(7);
-
-            var token = new JwtSecurityToken(
-                issuer: IdGener.GetLong().ToString(),
-                audience: IdGener.GetLong().ToString(),
-                claims: claims,
-                expires: expires,
-                signingCredentials: credentials
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

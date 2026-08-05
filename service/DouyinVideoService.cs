@@ -79,6 +79,9 @@ namespace dy.net.service
                            existingVideo.VideoSavePath = updateData.VideoSavePath;
                            existingVideo.VideoCoverSavePath = updateData.VideoCoverSavePath;
                            existingVideo.ViedoType = updateData.ViedoType;
+                           existingVideo.FileHash = updateData.FileHash;
+                           existingVideo.FileSize = updateData.FileSize;
+                           existingVideo.VideoTitle = updateData.VideoTitle;
                        }
                    }
                    // 批量更新数据库
@@ -295,6 +298,15 @@ namespace dy.net.service
                     Serilog.Log.Error(e, "数据库事务执行失败：Ids={0}", string.Join(",", videoIds));
                 });
 
+
+                if (!transactionResult)
+                {
+                    Serilog.Log.Error(
+                        "数据库事务失败，取消删除磁盘文件"
+                    );
+
+                    return false;
+                }
                 // 5. 文件删除（非事务操作，失败不回滚数据库，可根据业务调整）
                 // 采用异步文件操作，避免同步IO阻塞线程（需.NET 5+支持）
                 foreach (var video in filePathsToDelete)
@@ -311,10 +323,16 @@ namespace dy.net.service
                                 //检查这个路径所在文件夹是否还有其他视频文件，如果没有则删除这个文件夹
                                 var dir = Path.GetDirectoryName(video.path);
 
-                                bool hasMp4File = Directory.EnumerateFiles(dir, "*.mp4", SearchOption.TopDirectoryOnly).Any(); // 只要存在一个MP4文件就返回true；
-                                if (!hasMp4File)
+                                if (!string.IsNullOrWhiteSpace(dir) &&
+                                   Directory.Exists(dir) &&
+                                   !Directory
+                                       .EnumerateFileSystemEntries(dir)
+                                       .Any())
                                 {
-                                    Directory.Delete(dir, true);
+                                    Directory.Delete(
+                                        dir,
+                                        recursive: false
+                                    );
                                 }
                             }
                         }

@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 // 步骤2：声明父组件传递的 showSetting 事件（关键！）
 const emits = defineEmits(['showSetting']);
-import { ref, onMounted } from 'vue'; // 移除 h、VNode 导入
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { StepinHeaderAction } from 'stepin';
 import DayNightSwitch from '@/components/switch/DayNightSwitch.vue';
 import { TagsOutlined, CopyOutlined, GithubOutlined } from '@ant-design/icons-vue';
 import Fullscreen from '../fullscreen/Fullscreen.vue';
 import { useApiStore } from '@/store';
+import { VERSION_CACHE_UPDATED_EVENT } from '@/store/coreapi';
 import { message, Popover, Badge } from 'ant-design-vue'; // 新增：导入 Badge 组件用于气泡提示
 
 // 版本数据和当前版本状态
@@ -16,8 +17,8 @@ const copyLoading = ref<Record<string, boolean>>({});
 const versionPopoverVisible = ref<boolean>(false);
 // 新增：是否有新版本（用于气泡提示）
 const hasNewVersion = ref<boolean>(false);
-// 新增：localStorage 缓存 key（统一命名，方便维护）
-const VERSION_CACHE_KEY = 'dysync_version_cache';
+// 手动获取版本时的加载状态
+const versionLoading = ref<boolean>(false);
 
 // 仓库地址常量
 const gitRepos = ref([
@@ -147,86 +148,82 @@ const handleVersionData = (rawData: string[]) => {
   return newVersions;
 };
 
-// 新增：保存版本数据到 localStorage
-const saveVersionToLocalStorage = (versionData: string[]) => {
-  try {
-    localStorage.setItem(VERSION_CACHE_KEY, JSON.stringify(versionData));
-  } catch (error) {
-    console.warn('版本数据缓存到 localStorage 失败：', error);
+// 将 checktag 的原始响应转换为页面展示数据。
+const applyCheckTagResponse = (
+  response: any
+) => {
+  if (
+    response?.code === 0 &&
+    Array.isArray(response.data)
+  ) {
+    dyVersions.value =
+      handleVersionData(response.data);
+    return true;
   }
+
+  dyVersions.value = [];
+  hasNewVersion.value = false;
+  return false;
 };
 
-// 新增：从 localStorage 获取缓存的版本数据
-const getVersionFromLocalStorage = (): string[] => {
+// 页面挂载和 F5 刷新只读取缓存，绝不访问后台。
+const loadVersionFromCache = () => {
+  const cachedResponse =
+    useApiStore().getCachedCheckTag();
+
+  applyCheckTagResponse(cachedResponse);
+};
+
+// 登录后的后台版本请求完成、或手动刷新完成后更新界面。
+const handleVersionCacheUpdated = () => {
+  loadVersionFromCache();
+};
+
+// 手动点击“获取版本”：强制同时刷新 checktag 和 getver。
+const showVersionNotification = async () => {
+  if (versionLoading.value) {
+    return;
+  }
+
+  versionLoading.value = true;
+
   try {
-    const cacheData = localStorage.getItem(VERSION_CACHE_KEY);
-    if (cacheData) {
-      return JSON.parse(cacheData) as string[];
+    const result =
+      await useApiStore().refreshVersionInfo(true);
+
+    if (
+      result.checkTag &&
+      applyCheckTagResponse(result.checkTag)
+    ) {
+      versionPopoverVisible.value = true;
+
+      if (result.errors.length === 0) {
+        message.success('版本信息已更新');
+      } else {
+        message.warning(
+          '部分版本信息获取失败，已显示可用数据'
+        );
+      }
+    } else {
+      message.error('获取版本列表失败');
     }
   } catch (error) {
-    console.warn('从 localStorage 读取版本缓存失败：', error);
+    message.error('获取版本信息失败');
+    console.error(error);
+  } finally {
+    versionLoading.value = false;
   }
-  return [];
-};
-
-// 改造：版本查看方法（获取数据后更新缓存，控制 popover 显隐）
-const showVersionNotification = () => {
-  useApiStore()
-    .CheckTag()
-    .then((res) => {
-      if (res.code === 0) {
-        // 处理版本数据（添加备注、判断新版）
-        const processedVersions = handleVersionData(res.data);
-        dyVersions.value = processedVersions;
-        // 点击后更新 localStorage 缓存
-        saveVersionToLocalStorage(processedVersions);
-        // 打开版本 popover
-        versionPopoverVisible.value = true;
-      } else {
-        message.error(res.message);
-      }
-    })
-    .catch((err) => {
-      message.error('获取版本列表失败');
-      console.error(err);
-    });
-};
-
-// 新增：页面加载时自动调用接口获取版本并缓存
-const fetchVersionOnMount = () => {
-  useApiStore()
-    .CheckTag()
-    .then((res) => {
-      if (res.code === 0) {
-        // 处理版本数据（添加备注、判断新版）
-        const processedVersions = handleVersionData(res.data);
-        dyVersions.value = processedVersions;
-        // 页面加载时缓存到 localStorage
-        saveVersionToLocalStorage(processedVersions);
-      } else {
-        // 接口失败时，尝试读取本地缓存
-        const cacheVersions = getVersionFromLocalStorage();
-        if (cacheVersions.length > 0) {
-          dyVersions.value = handleVersionData(cacheVersions);
-        }
-        message.error(res.message);
-      }
-    })
-    .catch((err) => {
-      // 接口异常时，尝试读取本地缓存
-      const cacheVersions = getVersionFromLocalStorage();
-      if (cacheVersions.length > 0) {
-        dyVersions.value = handleVersionData(cacheVersions);
-      }
-      message.error('获取版本列表失败，已加载本地缓存');
-      console.error(err);
-    });
 };
 
 // 全局注入加载动画样式
 onMounted(() => {
-  // 页面加载时自动调用版本接口
-  fetchVersionOnMount();
+  // F5 和普通挂载只加载 localStorage 缓存。
+  loadVersionFromCache();
+
+  window.addEventListener(
+    VERSION_CACHE_UPDATED_EVENT,
+    handleVersionCacheUpdated
+  );
 
   if (!document.querySelector('#custom-spin-style')) {
     const style = document.createElement('style');
@@ -239,6 +236,13 @@ onMounted(() => {
     `;
     document.head.appendChild(style);
   }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener(
+    VERSION_CACHE_UPDATED_EVENT,
+    handleVersionCacheUpdated
+  );
 });
 
 // Git 弹窗控制方法
@@ -305,7 +309,16 @@ const showGit = () => {
         </template>
         <!-- 改造：用 Badge 包裹图标，有新版时显示气泡提示 -->
         <a-badge :dot="hasNewVersion">
-          <TagsOutlined class="action-icon" @click="showVersionNotification" />
+          <TagsOutlined
+            class="action-icon"
+            :style="{
+              animation: versionLoading
+                ? 'custom-spin 1s linear infinite'
+                : 'none'
+            }"
+            title="获取版本"
+            @click="showVersionNotification"
+          />
         </a-badge>
         <!-- </a-tooltip> -->
       </a-popover>

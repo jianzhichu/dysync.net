@@ -1,130 +1,558 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/logo.png" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>抖小云</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="color-scheme" content="dark" />
+  <title>抖小云 · 正在启动</title>
+
+  <script>
+    (function resolveLoginStartupMode() {
+      var sessionKey = 'dysync-login-startup-shown-v2';
+      var root = document.documentElement;
+
+      // 清理上一版遗留的会话标记；新版使用 v2 标记。
+      try {
+        window.sessionStorage.removeItem(
+          'dysync-login-startup-shown'
+        );
+      } catch (error) {
+        // sessionStorage 不可用时继续按 Cookie 判断。
+      }
+
+      function hasAuthorizationCookie() {
+        return document.cookie
+          .split(';')
+          .some(function (item) {
+            return item.trim().indexOf('Authorization=') === 0;
+          });
+      }
+
+      function hasShownInCurrentTab() {
+        try {
+          return window.sessionStorage.getItem(sessionKey) === '1';
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function getCachedThemeMode() {
+        try {
+          return window.localStorage.getItem('theme-mode') === 'night'
+            ? 'night'
+            : 'day';
+        } catch (error) {
+          return 'day';
+        }
+      }
+
+      var isLoggedIn = hasAuthorizationCookie();
+      var shouldShowLoginStartup =
+        !isLoggedIn &&
+        !hasShownInCurrentTab();
+
+      var themeMode = getCachedThemeMode();
+
+      root.dataset.loginStartupDelay =
+        shouldShowLoginStartup ? 'true' : 'false';
+
+      if (shouldShowLoginStartup) {
+        root.classList.add('login-startup-active');
+      } else {
+        root.classList.add(
+          themeMode === 'night'
+            ? 'app-preload-dark'
+            : 'app-preload-light'
+        );
+
+        if (themeMode === 'night') {
+          root.classList.add('dark-mode');
+        }
+      }
+
+      var themeColor =
+        document.querySelector('meta[name="theme-color"]');
+
+      if (themeColor) {
+        themeColor.setAttribute(
+          'content',
+          shouldShowLoginStartup
+            ? '#07111f'
+            : themeMode === 'night'
+              ? '#1a1a2e'
+              : '#f5f7fb'
+        );
+      }
+
+      document.title = shouldShowLoginStartup
+        ? '抖小云 · 正在启动'
+        : '抖小云';
+    })();
+  </script>
+
   <style>
+    :root {
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
     * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
     }
 
     html,
     body {
-      background-color: #ffffff;
-      height: 100vh;
+      width: 100%;
+      min-width: 320px;
+      height: 100%;
       overflow: hidden;
-      font-family: "Microsoft YaHei", sans-serif;
+      color: #1f2937;
+      background: #f5f7fb;
     }
 
-    /* ######### 核心修改：区分 #stepin-app 的两个状态 ######### */
-    /* 1. 加载阶段：#stepin-app 仅包含加载动画（或为空），应用 flex 居中，保留原有样式 */
+    html.app-preload-dark,
+    html.app-preload-dark body,
+    html.dark-mode,
+    html.dark-mode body {
+      color: #f8fafc;
+      background: #1a1a2e;
+    }
+
+    html.login-startup-active,
+    html.login-startup-active body {
+      color: #f8fafc;
+      background: #07111f;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
     #stepin-app {
-      /* 加载阶段默认样式：flex 居中，保留呼吸圆环效果 */
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Vue 挂载后恢复为普通应用容器，首屏样式不干扰业务页面。 */
+    #stepin-app[data-v-app] {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      color: inherit;
+      background: transparent;
+    }
+
+    .startup-screen {
+      position: fixed;
+      inset: 0;
+      isolation: isolate;
+      display: none;
+      place-items: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(49, 131, 226, 0.2), transparent 30%),
+        radial-gradient(circle at 12% 82%, rgba(236, 150, 66, 0.12), transparent 28%),
+        radial-gradient(circle at 88% 82%, rgba(41, 111, 201, 0.16), transparent 30%),
+        linear-gradient(180deg, #06101e 0%, #081629 56%, #07111f 100%);
+    }
+
+
+    html.login-startup-active .startup-screen {
+      display: grid;
+    }
+
+    .startup-screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -3;
+      pointer-events: none;
+      opacity: 0.5;
+      background-image:
+        linear-gradient(rgba(119, 161, 211, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(119, 161, 211, 0.045) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 88%);
+    }
+
+    .startup-screen::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -280px;
+      z-index: -2;
+      width: min(980px, 94vw);
+      height: 480px;
+      pointer-events: none;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse at center, rgba(38, 126, 223, 0.2), transparent 68%);
+      filter: blur(12px);
+    }
+
+    .startup-orb {
+      position: absolute;
+      z-index: -1;
+      border-radius: 999px;
+      pointer-events: none;
+      filter: blur(76px);
+      animation: orbFloat 9s ease-in-out infinite;
+    }
+
+    .startup-orb--left {
+      left: -110px;
+      bottom: 14%;
+      width: 310px;
+      height: 230px;
+      background: rgba(228, 145, 61, 0.14);
+    }
+
+    .startup-orb--right {
+      top: 13%;
+      right: -120px;
+      width: 350px;
+      height: 260px;
+      background: rgba(30, 114, 212, 0.17);
+      animation-delay: -4.5s;
+    }
+
+    .startup-shell {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100%;
-      gap: 35px;
+      width: min(440px, 100%);
+      padding: 42px 42px 34px;
+      border: 1px solid rgba(148, 179, 216, 0.15);
+      border-radius: 28px;
+      background: linear-gradient(145deg, rgba(15, 31, 52, 0.82), rgba(9, 20, 36, 0.7));
+      box-shadow:
+        0 28px 90px rgba(0, 0, 0, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.055);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
     }
 
-    /* 2. Vue 挂载后：#stepin-app 非空（包含 Vue 组件），覆盖为普通块级元素，解除约束 */
-    #stepin-app:not(:has(.breath-ring)) {
-      /* 核心：取消 flex 布局，改为普通块级元素 */
-      display: block !important;
-      /* 覆盖原有 flex 相关属性，解除居中约束 */
-      align-items: unset !important;
-      justify-content: unset !important;
-      /* 确保页面撑满横向宽度 */
-      width: 100% !important;
-      /* 保留高度，确保 Vue 页面正常占满视口 */
-      height: 100% !important;
-      /* 移除 gap，避免影响 Vue 页面布局 */
-      gap: 0 !important;
-      /* 恢复页面滚动功能，解除 overflow: hidden 的限制 */
-      overflow: auto !important;
-    }
-
-    /* 核心呼吸圆环容器（原有样式保留，无修改） */
-    .breath-ring {
-      width: 60px;
-      height: 60px;
-      position: relative;
-    }
-
-    /* 圆环基础样式（原有样式保留，无修改） */
-    .breath-ring::before,
-    .breath-ring::after {
+    .startup-shell::before {
       content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(89, 167, 255, 0.08), transparent 42%, rgba(255, 185, 90, 0.035));
+    }
+
+    .startup-logo-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 108px;
+      height: 108px;
+      margin-bottom: 24px;
+    }
+
+    .startup-logo-wrap::before,
+    .startup-logo-wrap::after {
+      content: "";
+      position: absolute;
+      inset: 0;
       border-radius: 50%;
-      opacity: 0.6;
     }
 
-    /* 内层圆环：细圆环 + 渐变（原有样式保留，无修改） */
-    .breath-ring::before {
-      border: 3px solid transparent;
-      border-top-color: #1890ff;
-      border-right-color: #722ed1;
-      animation: ringRotate 1.5s linear infinite;
+    .startup-logo-wrap::before {
+      border: 1px solid rgba(90, 170, 255, 0.25);
+      box-shadow: 0 0 44px rgba(30, 130, 241, 0.14);
+      animation: startupPulse 2.6s ease-in-out infinite;
     }
 
-    /* 外层圆环：呼吸扩散动画（原有样式保留，无修改） */
-    .breath-ring::after {
-      border: 2px solid #1890ff;
-      animation: ringBreath 2s ease-in-out infinite;
+    .startup-logo-wrap::after {
+      inset: 8px;
+      border: 2px solid transparent;
+      border-top-color: rgba(80, 166, 255, 0.92);
+      border-right-color: rgba(95, 115, 255, 0.45);
+      border-bottom-color: rgba(255, 185, 91, 0.45);
+      animation: startupRotate 2.2s linear infinite;
     }
 
-    /* 加载文字：极简高级（原有样式保留，无修改） */
-    .loading-text {
-      color: #222222;
-      font-size: 17px;
-      font-weight: 400;
-      letter-spacing: 0.5px;
+    .startup-logo-surface {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 74px;
+      height: 74px;
+      border: 1px solid rgba(150, 190, 235, 0.16);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(30, 56, 86, 0.96), rgba(11, 25, 43, 0.96));
+      box-shadow:
+        0 16px 34px rgba(0, 0, 0, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
-    .loading-tip {
-      color: #aaaaaa;
+    .startup-logo {
+      display: block;
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.24));
+    }
+
+    .startup-title {
+      position: relative;
+      color: #f8fbff;
+      font-size: clamp(27px, 4.4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    .startup-subtitle {
+      position: relative;
+      margin-top: 10px;
+      color: rgba(190, 207, 228, 0.7);
+      font-size: 14px;
+      line-height: 1.7;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+
+    .startup-progress {
+      position: relative;
+      width: 100%;
+      margin-top: 32px;
+    }
+
+    .startup-progress__track {
+      position: relative;
+      width: 100%;
+      height: 5px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(112, 149, 190, 0.13);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.32);
+    }
+
+    .startup-progress__bar {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 44%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #2f8cff, #6cb7ff 58%, #f2b35e);
+      box-shadow: 0 0 18px rgba(55, 149, 255, 0.48);
+      animation: progressTravel 1.7s cubic-bezier(0.55, 0, 0.25, 1) infinite;
+    }
+
+    .startup-progress__meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 14px;
+      color: rgba(163, 187, 216, 0.62);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .startup-status {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .startup-status::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 10px rgba(74, 222, 128, 0.72);
+      animation: statusBlink 1.8s ease-in-out infinite;
+    }
+
+    #startup-status-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .startup-version {
+      flex: 0 0 auto;
+      color: rgba(156, 180, 208, 0.48);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.08em;
+    }
+
+    .startup-footer {
+      position: absolute;
+      left: 50%;
+      bottom: max(18px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      color: rgba(137, 160, 190, 0.4);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      white-space: nowrap;
+    }
+
+    .startup-noscript {
+      position: fixed;
+      inset: auto 20px 20px;
+      z-index: 10;
+      padding: 12px 16px;
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      border-radius: 12px;
+      color: #fecaca;
       font-size: 13px;
-      margin-top: -10px;
+      text-align: center;
+      background: rgba(127, 29, 29, 0.55);
+      backdrop-filter: blur(12px);
     }
 
-    /* 圆环旋转动画（原有样式保留，无修改） */
-    @keyframes ringRotate {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
+    @keyframes startupRotate {
+      to {
         transform: rotate(360deg);
       }
     }
 
-    /* 圆环呼吸扩散动画（原有样式保留，无修改） */
-    @keyframes ringBreath {
-      0% {
-        transform: scale(0.8);
-        opacity: 0.8;
-      }
-
-      50% {
-        transform: scale(1.2);
-        opacity: 0.2;
-      }
-
+    @keyframes startupPulse {
+      0%,
       100% {
-        transform: scale(0.8);
-        opacity: 0.8;
+        transform: scale(0.94);
+        opacity: 0.5;
+      }
+      50% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
+    }
+
+    @keyframes progressTravel {
+      0% {
+        left: -48%;
+      }
+      100% {
+        left: 104%;
+      }
+    }
+
+    @keyframes statusBlink {
+      0%,
+      100% {
+        opacity: 0.45;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes orbFloat {
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      50% {
+        transform: translate3d(0, -18px, 0) scale(1.08);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .startup-screen {
+        padding-inline: 16px;
+      }
+
+      .startup-shell {
+        padding: 34px 24px 28px;
+        border-radius: 24px;
+      }
+
+      .startup-logo-wrap {
+        width: 96px;
+        height: 96px;
+        margin-bottom: 20px;
+      }
+
+      .startup-logo-surface {
+        width: 66px;
+        height: 66px;
+        border-radius: 20px;
+      }
+
+      .startup-logo {
+        width: 42px;
+        height: 42px;
+      }
+
+      .startup-progress {
+        margin-top: 28px;
+      }
+
+      .startup-footer {
+        display: none;
+      }
+    }
+
+    @media (max-height: 620px) and (min-width: 561px) {
+      .startup-shell {
+        padding-top: 28px;
+        padding-bottom: 26px;
+      }
+
+      .startup-logo-wrap {
+        width: 88px;
+        height: 88px;
+        margin-bottom: 14px;
+      }
+
+      .startup-logo-surface {
+        width: 62px;
+        height: 62px;
+      }
+
+      .startup-logo {
+        width: 40px;
+        height: 40px;
+      }
+
+      .startup-progress {
+        margin-top: 22px;
+      }
+
+      .startup-footer {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .startup-orb,
+      .startup-logo-wrap::before,
+      .startup-logo-wrap::after,
+      .startup-progress__bar,
+      .startup-status::before {
+        animation: none !important;
+      }
+
+      .startup-progress__bar {
+        left: 0;
+        width: 72%;
       }
     }
   </style>
@@ -132,18 +560,123 @@
 
 <body>
   <div id="stepin-app">
-    <!-- <div class="loading-text">正在加载资源，请稍候...</div> -->
-    <!-- 呼吸圆环加载组件 -->
-    <div class="breath-ring"></div>
-    <!-- <div class="loading-tip">首次加载较慢，请耐心等待...</div> -->
+    <main class="startup-screen" aria-label="抖小云正在启动">
+      <span class="startup-orb startup-orb--left" aria-hidden="true"></span>
+      <span class="startup-orb startup-orb--right" aria-hidden="true"></span>
+
+      <section class="startup-shell" aria-live="polite">
+        <div class="startup-logo-wrap" aria-hidden="true">
+          <div class="startup-logo-surface">
+            <img class="startup-logo" src="/logo.png" alt="" />
+          </div>
+        </div>
+
+        <h1 class="startup-title">抖小云</h1>
+        <p class="startup-subtitle">轻松同步你喜欢的抖音视频</p>
+
+        <div class="startup-progress" role="status">
+          <div class="startup-progress__track" aria-hidden="true">
+            <span class="startup-progress__bar"></span>
+          </div>
+          <div class="startup-progress__meta">
+            <span class="startup-status">
+              <span id="startup-status-text">正在加载系统资源</span>
+            </span>
+            <span class="startup-version">WEB APP</span>
+          </div>
+        </div>
+      </section>
+
+      <p class="startup-footer">NAS · DOUYIN SYNC ASSISTANT</p>
+    </main>
   </div>
 
-  <script type="module" src="/src/main.ts"></script>
+  <noscript>
+    <div class="startup-noscript">当前浏览器已禁用 JavaScript，无法启动抖小云。</div>
+  </noscript>
+
+  <script type="module">
+    const shouldDelayBeforeLogin =
+      document.documentElement.dataset.loginStartupDelay === 'true';
+
+    // 仅在当前登录周期内，未登录首次进入时随机等待 1～2 秒。
+    const startupDelayMs = shouldDelayBeforeLogin
+      ? 1000 + Math.floor(Math.random() * 1001)
+      : 0;
+
+    if (shouldDelayBeforeLogin) {
+      try {
+        window.sessionStorage.setItem(
+          'dysync-login-startup-shown-v2',
+          '1'
+        );
+      } catch (error) {
+        console.warn('无法记录启动页状态：', error);
+      }
+    }
+
+    window.setTimeout(async () => {
+      try {
+        await import('/src/main.ts');
+
+        // Vue 已挂载后清理首屏专用状态，避免影响登录后的业务页面。
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            document.documentElement.classList.remove(
+              'login-startup-active',
+              'app-preload-light',
+              'app-preload-dark'
+            );
+          });
+        });
+      } catch (error) {
+        console.error('应用启动失败：', error);
+
+        const statusElement =
+          document.getElementById('startup-status-text');
+
+        if (statusElement) {
+          statusElement.textContent =
+            '应用启动失败，请刷新页面重试';
+        }
+      }
+    }, startupDelayMs);
+  </script>
   <script>
-    if (!global) {
+    if (typeof global === 'undefined') {
       var global = globalThis;
     }
+
+    (function rotateStartupStatus() {
+      if (
+        document.documentElement.dataset.loginStartupDelay !== 'true'
+      ) {
+        return;
+      }
+
+      var statusMessages = [
+        '正在加载系统资源',
+        '正在连接本地服务',
+        '正在准备登录页面',
+        '即将进入抖小云'
+      ];
+      var currentIndex = 0;
+      var timer = window.setInterval(function () {
+        var statusElement =
+          document.getElementById('startup-status-text');
+
+        if (!statusElement) {
+          window.clearInterval(timer);
+          return;
+        }
+
+        currentIndex =
+          (currentIndex + 1) % statusMessages.length;
+
+        statusElement.textContent =
+          statusMessages[currentIndex];
+      }, 650);
+    })();
   </script>
 </body>
-
 </html>

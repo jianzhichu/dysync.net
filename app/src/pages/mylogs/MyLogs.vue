@@ -94,20 +94,15 @@ const formatLogTime = (logContent: string) => {
   return logContent.replace(timeRegex, '$1');
 };
 
-const loadLogs = () => {
-  useApiStore()
-    .apiGetLogs(iframeUrl.value)
-    .then((log) => {
-      log = formatLogTime(log);
-      const lines = log.split('\n');
-      const reversedLines = lines.reverse();
-      const reversedText = reversedLines.join('\n');
-      logs.value = reversedText;
-    })
-    .catch((err) => {
-      console.error('加载日志失败：', err);
-      logs.value = '日志加载失败，请稍后重试';
-    });
+const loadLogs = async () => {
+  try {
+    const rawLog = await useApiStore().apiGetLogs(iframeUrl.value);
+    const formattedLog = formatLogTime(String(rawLog ?? ''));
+    logs.value = formattedLog.split('\n').reverse().join('\n');
+  } catch (err) {
+    console.error('加载日志失败：', err);
+    logs.value = '日志加载失败，请稍后重试';
+  }
 };
 
 // 复制日志内容的核心函数

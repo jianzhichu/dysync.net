@@ -565,7 +565,7 @@ namespace dy.net.service
             {
                 try
                 {
-                    string currentUrl = retryUrls[retryCount];
+                    string currentUrl =retryUrls[retryCount % retryUrls.Count ];
                     return await TryDownloadOnceAsync(currentUrl, savePath, cookie, cancellationToken, streamTimeout.Value);
                 }
                 catch (Exception ex) when (IsRetryableException(ex) && retryCount < maxRetryCount - 1)
