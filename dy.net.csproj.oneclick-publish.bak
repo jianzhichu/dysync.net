@@ -142,7 +142,7 @@
 
 
 	<!-- 发布完成后，在发布目录内执行 Docker 构建脚本 -->
-	<Target Name="RunDockerBuildAfterPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release' and '$(SkipDockerBuild)' != 'true'">
+	<Target Name="RunDockerBuildAfterPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
 		<Message Text="===== 发布完成，开始执行 Docker 构建推送脚本 =====" Importance="high" />
 		<Message Text="执行目录：$(PublishDir)" Importance="high" />
 
