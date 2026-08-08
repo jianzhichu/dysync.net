@@ -1,0 +1,19 @@
+{
+  "JobId": "d51cf44432574a2488d53e1369d6e863",
+  "State": "Succeeded",
+  "SourceDbType": "PostgreSql",
+  "TargetDbType": "MySql",
+  "CurrentTable": "dy_videoup",
+  "TableCount": 9,
+  "CompletedTables": 9,
+  "TotalRows": 64,
+  "MigratedRows": 64,
+  "ProgressPercent": 100,
+  "Message": "迁移完成，共迁移 64 行，服务已重启",
+  "StartedAt": "2026-08-08T03:40:03.8372444Z",
+  "UpdatedAt": "2026-08-08T03:40:19.1289973Z",
+  "CompletedAt": "2026-08-08T03:40:05.19598Z",
+  "Restarting": false,
+  "RefreshIntervalSeconds": 5,
+  "History": []
+}

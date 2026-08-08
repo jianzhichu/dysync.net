@@ -131,7 +131,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 是否统一一个路径(savepath)
         /// </summary>
-        [SugarColumn(Length = 100, IsNullable = true, ColumnName = "useSinglePath")]
+        [SugarColumn(IsNullable = true, ColumnName = "useSinglePath")]
         public bool UseSinglePath { get; set; } = true;//默认true
 
         /// <summary>

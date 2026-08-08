@@ -16,7 +16,7 @@ namespace dy.net.model.entity
         [SugarColumn(IsPrimaryKey = true, Length = 100)]
         public string Id { get; set; }
 
-        [SugarColumn(Length = 200, IsNullable = true)]
+        [SugarColumn(IsNullable = true)]
         public int Cron { get; set; }
 
         /// <summary>

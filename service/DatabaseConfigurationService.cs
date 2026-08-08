@@ -27,6 +27,12 @@ namespace dy.net.service
 
         public string SettingsFilePath => Path.Combine(_databaseDirectory, SettingsFileName);
 
+        public string MigrationStatusFilePath =>
+            Path.Combine(_databaseDirectory, "database-migration-status.json");
+
+        public string MigrationHistoryFilePath =>
+            Path.Combine(_databaseDirectory, "database-migration-history.json");
+
         public bool HasPersistedSelection => File.Exists(SettingsFilePath);
 
         public DatabaseSettings GetActiveSettings()
@@ -171,6 +177,37 @@ namespace dy.net.service
             };
         }
 
+        /// <summary>
+        /// Verifies the configured database with the submitted account. Database creation
+        /// is attempted only when the provider explicitly reports that the database is
+        /// missing, avoiding PostgreSQL maintenance-account substitution for existing DBs.
+        /// </summary>
+        public void EnsureDatabaseAvailable(
+            ISqlSugarClient database,
+            DatabaseSettings settings)
+        {
+            try
+            {
+                OpenAndCloseConnection(database);
+            }
+            catch (Exception connectionException) when (IsDatabaseMissing(connectionException))
+            {
+                try
+                {
+                    database.DbMaintenance.CreateDatabase();
+                    OpenAndCloseConnection(database);
+                }
+                catch (Exception createException)
+                {
+                    throw CreateConnectionException(settings, createException);
+                }
+            }
+            catch (Exception connectionException)
+            {
+                throw CreateConnectionException(settings, connectionException);
+            }
+        }
+
         public string CreateSqliteConnectionString()
         {
             Directory.CreateDirectory(_databaseDirectory);
@@ -209,6 +246,39 @@ namespace dy.net.service
             {
                 throw new ArgumentException("数据库连接字符串不能为空");
             }
+        }
+
+        private static bool IsDatabaseMissing(Exception exception)
+        {
+            for (var current = exception; current != null; current = current.InnerException)
+            {
+                var message = current.Message ?? string.Empty;
+                if (message.Contains("3D000", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("1049", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("database does not exist", StringComparison.OrdinalIgnoreCase) ||
+                    message.Contains("unknown database", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void OpenAndCloseConnection(ISqlSugarClient database)
+        {
+            database.Ado.Connection.Open();
+            database.Ado.Connection.Close();
+        }
+
+        private static InvalidOperationException CreateConnectionException(
+            DatabaseSettings settings,
+            Exception exception)
+        {
+            var message = settings.DbType == DatabaseKinds.Sqlite
+                ? "无法创建或连接 SQLite 数据库，请检查持久化目录的读写权限"
+                : "无法连接数据库，请检查数据库地址、名称、账号、密码及建库/建表权限";
+            return new InvalidOperationException(message, exception);
         }
 
         private static JsonSerializerOptions JsonOptions() => new()

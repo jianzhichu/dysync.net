@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Net;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 namespace dy.net.Controllers
@@ -26,6 +27,7 @@ namespace dy.net.Controllers
         private readonly DouyinCookieService douyinCookieService;
         private readonly DouyinHttpClientService httpClientService;
         private readonly DatabaseMigrationService databaseMigrationService;
+        private readonly DatabaseMigrationJobService databaseMigrationJobService;
         private readonly ApplicationRestartService applicationRestartService;
 
 
@@ -38,6 +40,7 @@ namespace dy.net.Controllers
             DouyinCookieService douyinCookieService,
             DouyinHttpClientService httpClientService,
             DatabaseMigrationService databaseMigrationService,
+            DatabaseMigrationJobService databaseMigrationJobService,
             ApplicationRestartService applicationRestartService)
         {
             this.dyCookieService = dyCookieService;
@@ -47,6 +50,7 @@ namespace dy.net.Controllers
             this.douyinCookieService = douyinCookieService;
             this.httpClientService = httpClientService;
             this.databaseMigrationService = databaseMigrationService;
+            this.databaseMigrationJobService = databaseMigrationJobService;
             this.applicationRestartService = applicationRestartService;
         }
 
@@ -74,22 +78,38 @@ namespace dy.net.Controllers
 
         /// <summary>将当前数据库的业务数据迁移到 SQLite/MySQL/PostgreSQL。</summary>
         [HttpPost("database/migrate")]
-        public async Task<IActionResult> MigrateDatabase(
-            [FromBody] DatabaseMigrationRequest request,
-            CancellationToken cancellationToken)
+        public IActionResult MigrateDatabase([FromBody] DatabaseMigrationRequest request)
         {
             try
             {
-                var result = await databaseMigrationService.MigrateAsync(
-                    request, cancellationToken);
-                applicationRestartService.RestartAfterResponse();
-                return ApiResult.Success(result, "迁移成功，后台服务正在热重启");
+                var status = databaseMigrationJobService.Start(request);
+                return ApiResult.Success(status, "迁移任务已提交，请稍后刷新查看进度");
             }
             catch (Exception ex)
             {
                 Serilog.Log.Error(ex, "数据库迁移失败");
                 return ApiResult.Fail(ex.GetBaseException().Message);
             }
+        }
+
+        /// <summary>查询后台数据库迁移进度；同一用户每 5 秒最多查询一次。</summary>
+        [HttpGet("database/migration/status")]
+        public IActionResult GetDatabaseMigrationStatus()
+        {
+            var clientKey = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.Identity?.Name
+                ?? HttpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "anonymous";
+
+            if (!databaseMigrationJobService.TryGetStatus(
+                clientKey, out var status, out var retryAfterSeconds))
+            {
+                return ApiResult.Fail(
+                    $"刷新过于频繁，请 {retryAfterSeconds} 秒后再试",
+                    data: new { retryAfterSeconds });
+            }
+
+            return ApiResult.Success(status);
         }
 
 

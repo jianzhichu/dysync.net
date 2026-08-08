@@ -299,9 +299,12 @@ namespace dy.net.extension
 
                 using var scope = serviceProvider.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ISqlSugarClient>();
+                var databaseConfiguration = scope.ServiceProvider
+                    .GetRequiredService<DatabaseConfigurationService>();
+                var databaseSettings = databaseConfiguration.GetActiveSettings();
 
                 Log.Information("开始执行数据库初始化和 CodeFirst，共 {EntityCount} 个实体", _entityTypes.Length);
-                db.DbMaintenance.CreateDatabase();
+                databaseConfiguration.EnsureDatabaseAvailable(db, databaseSettings);
                 db.CodeFirst.InitTables(_entityTypes);
                 // Quartz runtime tables use its official ADO schema, not business CodeFirst.
                 QuartzSchemaInitializer.EnsureCreated(db);
@@ -487,9 +490,17 @@ namespace dy.net.extension
             ISqlSugarClient db)
         {
             var isMySql = db.CurrentConnectionConfig.DbType == DbType.MySql;
+            var isPostgreSql = db.CurrentConnectionConfig.DbType == DbType.PostgreSQL;
             var quote = isMySql ? "`" : "\"";
             var ifNotExists = isMySql ? string.Empty : "IF NOT EXISTS ";
-            string Q(string name) => $"{quote}{name}{quote}";
+            // SqlSugar PostgreSQL CodeFirst normalizes unconfigured entity column names
+            // to lower case. Quoted PascalCase identifiers therefore address different,
+            // non-existent columns (for example "AwemeId" instead of "awemeid").
+            string Q(string name)
+            {
+                var identifier = isPostgreSql ? name.ToLowerInvariant() : name;
+                return $"{quote}{identifier}{quote}";
+            }
 
             (string Name, string Sql)[] indexes =
             {

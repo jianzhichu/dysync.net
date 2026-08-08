@@ -56,6 +56,62 @@ namespace dy.net.model.dto
         public bool Restarting { get; set; }
     }
 
+    public static class DatabaseMigrationJobStates
+    {
+        public const string Idle = "Idle";
+        public const string Queued = "Queued";
+        public const string Running = "Running";
+        public const string Succeeded = "Succeeded";
+        public const string Failed = "Failed";
+    }
+
+    public class DatabaseMigrationJobStatusDto
+    {
+        public string JobId { get; set; } = string.Empty;
+        public string State { get; set; } = DatabaseMigrationJobStates.Idle;
+        public string SourceDbType { get; set; } = string.Empty;
+        public string TargetDbType { get; set; } = string.Empty;
+        public string CurrentTable { get; set; } = string.Empty;
+        public int TableCount { get; set; }
+        public int CompletedTables { get; set; }
+        public long TotalRows { get; set; }
+        public long MigratedRows { get; set; }
+        public decimal ProgressPercent { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public DateTime? StartedAt { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CompletedAt { get; set; }
+        public bool Restarting { get; set; }
+        public int RefreshIntervalSeconds { get; set; } = 5;
+        public List<DatabaseMigrationHistoryItemDto> History { get; set; } = new();
+    }
+
+    public class DatabaseMigrationHistoryItemDto
+    {
+        public string JobId { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+        public string SourceDbType { get; set; } = string.Empty;
+        public string TargetDbType { get; set; } = string.Empty;
+        public int TableCount { get; set; }
+        public long TotalRows { get; set; }
+        public long MigratedRows { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public DateTime? StartedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+    }
+
+    public class DatabaseMigrationProgress
+    {
+        public string SourceDbType { get; set; } = string.Empty;
+        public string TargetDbType { get; set; } = string.Empty;
+        public string CurrentTable { get; set; } = string.Empty;
+        public int TableCount { get; set; }
+        public int CompletedTables { get; set; }
+        public long TotalRows { get; set; }
+        public long MigratedRows { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
     public class DeskInitRequest : DouyinCookie
     {
         public string DatabaseType { get; set; } = DatabaseKinds.Sqlite;

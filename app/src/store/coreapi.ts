@@ -192,9 +192,11 @@ export const useApiStore = defineStore('coreapi', () => {
   }
 
   async function MigrateDatabase(param: object) {
-    return http.request<any, Response<any>>('/api/config/database/migrate', 'post_json', param, {
-      timeout: 30 * 60 * 1000,
-    });
+    return http.request<any, Response<any>>('/api/config/database/migrate', 'post_json', param);
+  }
+
+  async function GetDatabaseMigrationStatus() {
+    return http.request<any, Response<any>>('/api/config/database/migration/status', 'get');
   }
 
   async function SelectSqliteDatabase() {
@@ -653,6 +655,7 @@ export const useApiStore = defineStore('coreapi', () => {
     AppisInit,
     GetDatabaseStatus,
     MigrateDatabase,
+    GetDatabaseMigrationStatus,
     SelectSqliteDatabase,
     DeskInitAsync,
     SwitchCookieStatus,

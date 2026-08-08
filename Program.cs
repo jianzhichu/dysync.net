@@ -4,6 +4,8 @@ using dy.net.utils;
 using Serilog;
 using System.Reflection;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 namespace dy.net
 {
@@ -132,7 +134,11 @@ namespace dy.net
             services.AddSnowFlakeId(options => options.WorkId = new Random().Next(1, 100));
 
             // MVC控制器+异常拦截器
-            services.AddControllers().AddGlobalExceptionFilter();
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                    options.JsonSerializerOptions.Encoder =
+                        JavaScriptEncoder.Create(UnicodeRanges.All))
+                .AddGlobalExceptionFilter();
 
             // HTTP客户端
             services.AddHttpClients();
@@ -156,6 +162,9 @@ namespace dy.net
             // 约定扫描会跳过已经注册的具体服务类型。
             services.AddScoped<DatabaseMigrationService>();
             services.AddSingleton<ApplicationRestartService>();
+            services.AddSingleton<DatabaseMigrationJobService>();
+            services.AddHostedService(provider =>
+                provider.GetRequiredService<DatabaseMigrationJobService>());
 
             // 仓储和服务注册
             services.AddServicesFromNamespace("dy.net.repository")

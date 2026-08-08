@@ -139,10 +139,8 @@ async function confirmDatabaseSelection() {
       message.success('已选择 SQLite，后续登录不再提示');
       router.push(postLoginPath);
     } else {
-      message.success('数据库迁移成功，后台服务正在重启', 5);
-      setTimeout(() => {
-        window.location.href = postLoginPath;
-      }, 4000);
+      message.success('数据库迁移任务已提交，可在“数据库切换”页面刷新查看进度', 5);
+      router.push(postLoginPath);
     }
   } catch (error: any) {
     message.error(error?.response?.data?.message || error?.message || '数据库选择失败', 8);

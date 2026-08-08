@@ -1,0 +1,38 @@
+[
+  {
+    "JobId": "d51cf44432574a2488d53e1369d6e863",
+    "State": "Succeeded",
+    "SourceDbType": "PostgreSql",
+    "TargetDbType": "MySql",
+    "TableCount": 9,
+    "TotalRows": 64,
+    "MigratedRows": 64,
+    "Message": "迁移完成，共迁移 64 行，服务已重启",
+    "StartedAt": "2026-08-08T03:40:03.8372444Z",
+    "CompletedAt": "2026-08-08T03:40:05.19598Z"
+  },
+  {
+    "JobId": "57250071f574485e8298e1fc4d9766de",
+    "State": "Failed",
+    "SourceDbType": "PostgreSql",
+    "TargetDbType": "MySql",
+    "TableCount": 0,
+    "TotalRows": 0,
+    "MigratedRows": 0,
+    "Message": "迁移失败：Access denied for user \u0027dysync\u0027@\u0027%\u0027 to database \u0027dysync222\u0027",
+    "StartedAt": "2026-08-08T03:39:19.4940964Z",
+    "CompletedAt": "2026-08-08T03:39:19.8568414Z"
+  },
+  {
+    "JobId": "fd88ccaea1b74c99a8d04e11241188be",
+    "State": "Succeeded",
+    "SourceDbType": "MySql",
+    "TargetDbType": "PostgreSql",
+    "TableCount": 9,
+    "TotalRows": 64,
+    "MigratedRows": 64,
+    "Message": "迁移完成，共迁移 64 行，服务已重启",
+    "StartedAt": "2026-08-08T03:17:43.0078739Z",
+    "CompletedAt": "2026-08-08T03:17:44.2764955Z"
+  }
+]

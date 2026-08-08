@@ -116,7 +116,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 文件大小(字节)
         /// </summary>
-        [SugarColumn(Length = 200, IsNullable = true)]
+        [SugarColumn(IsNullable = true)]
         public long FileSize { get; set; }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 1喜欢的，2收藏的，3关注的 ,4 图片视频
         /// </summary>
-        [SugarColumn(Length = 200, IsNullable = true)]
+        [SugarColumn(IsNullable = true)]
         public VideoTypeEnum ViedoType { get; set; }
 
         /// <summary>

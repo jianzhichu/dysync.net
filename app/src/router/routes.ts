@@ -193,6 +193,18 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@/pages/set/AppSet.vue'),
   },
+  {
+    path: '/database-switch',
+    name: '数据库源',
+    meta: {
+      icon: 'DatabaseOutlined',
+      view: 'self',
+      target: '_self',
+      renderMenu: true,
+      cacheable: false,
+    },
+    component: () => import('@/pages/database/index.vue'),
+  },
   // {
   //   // id: 3,
   //   name: '系统日志',

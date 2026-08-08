@@ -49,7 +49,8 @@ namespace dy.net.service
 
         public async Task<DatabaseMigrationResult> MigrateAsync(
             DatabaseMigrationRequest request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            Action<DatabaseMigrationProgress> reportProgress = null)
         {
             if (!await MigrationLock.WaitAsync(0, cancellationToken))
             {
@@ -63,35 +64,51 @@ namespace dy.net.service
                 using var target = new SqlSugarClient(
                     _configurationService.CreateConnectionConfig(targetSettings));
 
-                try
-                {
-                    // SqlSugar creates the requested database when it does not exist and
-                    // the supplied account has CREATE DATABASE permission.
-                    target.DbMaintenance.CreateDatabase();
-                    target.Ado.CheckConnection();
-                }
-                catch (Exception ex)
-                {
-                    var message = targetSettings.DbType == DatabaseKinds.Sqlite
-                        ? "无法创建或连接目标 SQLite 数据库，请检查持久化目录的读写权限"
-                        : "无法创建或连接目标数据库，请检查数据库名、网络及账号的建库/建表权限";
-                    throw new InvalidOperationException(message, ex);
-                }
+                _configurationService.EnsureDatabaseAvailable(target, targetSettings);
 
                 Log.Information("开始从 {SourceDbType} 迁移到 {TargetDbType}，共 {TableCount} 张业务表",
                     current.DbType, targetSettings.DbType, BusinessEntityTypes.Length);
 
+                reportProgress?.Invoke(new DatabaseMigrationProgress
+                {
+                    SourceDbType = current.DbType,
+                    TargetDbType = targetSettings.DbType,
+                    TableCount = BusinessEntityTypes.Length,
+                    Message = "正在创建并检查目标数据库"
+                });
+
                 target.CodeFirst.InitTables(BusinessEntityTypes);
                 await EnsureTargetIsEmptyAsync(target);
+
+                var tableTotals = new Dictionary<Type, int>();
+                long totalRows = 0;
+                foreach (var entityType in BusinessEntityTypes)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var count = await InvokeCountEntityAsync(entityType);
+                    tableTotals[entityType] = count;
+                    totalRows += count;
+                }
 
                 long migratedRows = 0;
                 target.Ado.BeginTran();
                 try
                 {
-                    foreach (var entityType in BusinessEntityTypes)
+                    for (var tableIndex = 0; tableIndex < BusinessEntityTypes.Length; tableIndex++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        migratedRows += await InvokeMigrateEntityAsync(entityType, target, cancellationToken);
+                        var entityType = BusinessEntityTypes[tableIndex];
+                        migratedRows += await InvokeMigrateEntityAsync(
+                            entityType,
+                            target,
+                            cancellationToken,
+                            tableTotals[entityType],
+                            migratedRows,
+                            totalRows,
+                            tableIndex,
+                            current.DbType,
+                            targetSettings.DbType,
+                            reportProgress);
                     }
                     target.Ado.CommitTran();
                 }
@@ -137,25 +154,58 @@ namespace dy.net.service
         private static Task<bool> HasAnyAsync<TEntity>(ISqlSugarClient target)
             where TEntity : class, new() => target.Queryable<TEntity>().AnyAsync();
 
+        private async Task<int> InvokeCountEntityAsync(Type entityType)
+        {
+            var method = typeof(DatabaseMigrationService)
+                .GetMethod(nameof(CountEntityAsync), BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.MakeGenericMethod(entityType);
+            var task = (Task<int>)method.Invoke(this, Array.Empty<object>());
+            return await task;
+        }
+
+        private Task<int> CountEntityAsync<TEntity>() where TEntity : class, new() =>
+            _source.Queryable<TEntity>().CountAsync();
+
         private async Task<int> InvokeMigrateEntityAsync(
             Type entityType,
             ISqlSugarClient target,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int total,
+            long migratedBeforeTable,
+            long totalRows,
+            int tableIndex,
+            string sourceDbType,
+            string targetDbType,
+            Action<DatabaseMigrationProgress> reportProgress)
         {
             var method = typeof(DatabaseMigrationService)
                 .GetMethod(nameof(MigrateEntityAsync), BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.MakeGenericMethod(entityType);
-            var task = (Task<int>)method.Invoke(this, new object[] { target, cancellationToken });
+            var task = (Task<int>)method.Invoke(this, new object[]
+            {
+                target, cancellationToken, total, migratedBeforeTable, totalRows,
+                tableIndex, sourceDbType, targetDbType, reportProgress
+            });
             return await task;
         }
 
         private async Task<int> MigrateEntityAsync<TEntity>(
             ISqlSugarClient target,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int total,
+            long migratedBeforeTable,
+            long totalRows,
+            int tableIndex,
+            string sourceDbType,
+            string targetDbType,
+            Action<DatabaseMigrationProgress> reportProgress)
             where TEntity : class, new()
         {
-            var total = await _source.Queryable<TEntity>().CountAsync();
             var migrated = 0;
+            var tableName = typeof(TEntity).GetCustomAttribute<SugarTable>()?.TableName
+                ?? typeof(TEntity).Name;
+
+            ReportProgress("正在迁移数据", migrated);
 
             while (migrated < total)
             {
@@ -168,12 +218,26 @@ namespace dy.net.service
 
                 await target.Insertable(rows).ExecuteCommandAsync();
                 migrated += rows.Count;
+                ReportProgress("正在迁移数据", migrated);
             }
 
-            var tableName = typeof(TEntity).GetCustomAttribute<SugarTable>()?.TableName
-                ?? typeof(TEntity).Name;
             Log.Information("迁移数据表 {TableName}：{RowCount} 行", tableName, migrated);
             return migrated;
+
+            void ReportProgress(string message, int tableMigrated)
+            {
+                reportProgress?.Invoke(new DatabaseMigrationProgress
+                {
+                    SourceDbType = sourceDbType,
+                    TargetDbType = targetDbType,
+                    CurrentTable = tableName,
+                    TableCount = BusinessEntityTypes.Length,
+                    CompletedTables = tableIndex + (tableMigrated >= total ? 1 : 0),
+                    TotalRows = totalRows,
+                    MigratedRows = migratedBeforeTable + tableMigrated,
+                    Message = message
+                });
+            }
         }
     }
 }
