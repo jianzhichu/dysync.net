@@ -18,18 +18,20 @@ namespace dy.net.repository
 
         public async Task<List<DouyinFollowGroupDto>> GetDouyinFollowGroup()
         {
-            var data = this.Db.Queryable<DouyinFollowed>()
+            var data = await this.Db.Queryable<DouyinFollowed>()
                         .LeftJoin<DouyinCookie>((f, u) => f.mySelfId == u.MyUserId)
                         .Where((f,u)=>!string.IsNullOrEmpty(u.MyUserId)&&!string.IsNullOrEmpty(f.mySelfId))
                         //.Where((f, u) => u.Status == 1) // 注意：LeftJoin+u.Status==1 等价于 InnerJoin（u必须存在）
-                        .GroupBy((f, u) => f.mySelfId) // 按 mySelfId 分组
+                        // 所有 SELECT 中的非聚合字段都必须出现在 GROUP BY 中，
+                        // 兼容 MySQL ONLY_FULL_GROUP_BY 和 PostgreSQL。
+                        .GroupBy((f, u) => new { f.mySelfId, u.UserName })
                         .Select((f, u) => new DouyinFollowGroupDto
                         {
                             Key = f.mySelfId, // 分组键（mySelfId）
-                            Name = u.UserName, // 取每组的 UserName（因分组唯一，用 First() 兼容 SQL）
+                            Name = u.UserName,
                             Total = SqlFunc.AggregateCount(f.Id) // 统计每组的记录数（用主表主键避免 null 影响）
                         })
-                        .ToList(); // 执行查询
+                        .ToListAsync(); // 执行查询
 
             return data;
         }

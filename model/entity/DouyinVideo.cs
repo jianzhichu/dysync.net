@@ -33,7 +33,7 @@ namespace dy.net.model.entity
         /// <summary>
         /// 视频标题
         /// </summary>
-        [SugarColumn(Length = 2000, IsNullable = true)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1, IsNullable = true)]
         public string VideoTitle { get; set; }
 
         /// <summary>
@@ -70,23 +70,23 @@ namespace dy.net.model.entity
         /// <summary>
         /// 视频地址（解析会有多个取第一个）
         /// </summary>
-        [SugarColumn(Length = 2000, IsNullable = true)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1, IsNullable = true)]
         public string VideoUrl { get; set; }
         /// <summary>
         /// 视频下载后保存路径
         /// </summary>
-        [SugarColumn(Length = 2000, IsNullable = true)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1, IsNullable = true)]
         public string VideoSavePath { get; set; }
         /// <summary>
         /// 视频封面地址
         /// </summary>
 
-        [SugarColumn(Length = 2000, IsNullable = true)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1, IsNullable = true)]
         public string VideoCoverUrl { get; set; }
         /// <summary>
         /// 视频封面保存路径
         /// </summary>
-        [SugarColumn(Length = 2000, IsNullable = true)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1, IsNullable = true)]
         public string VideoCoverSavePath { get; set; }
         /// <summary>
         /// 作者
@@ -101,10 +101,10 @@ namespace dy.net.model.entity
         /// <summary>
         /// 作者头像
         /// </summary>
-        [SugarColumn(Length = 2000, IsNullable = true)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1, IsNullable = true)]
         public string AuthorAvatar { get; set; }
 
-        [SugarColumn(Length = 2000, IsNullable = true)]
+        [SugarColumn(ColumnDataType = "TEXT", Length = -1, IsNullable = true)]
         public string AuthorAvatarUrl { get; set; }
 
         /// <summary>

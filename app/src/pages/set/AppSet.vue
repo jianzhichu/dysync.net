@@ -229,6 +229,8 @@
     </a-form>
   </a-card>
 
+  <DatabaseMigrationPanel />
+
   <div class="config-float-btn-container">
     <!-- 主按钮 -->
     <a-tooltip title="配置导出导入" placement="left">
@@ -274,6 +276,7 @@ import { useApiStore } from '@/store';
 import { message, Modal } from 'ant-design-vue';
 import { Sortable } from 'sortablejs';
 import type { UploadProps } from 'ant-design-vue/es/upload/interface';
+import DatabaseMigrationPanel from '@/components/setting/DatabaseMigrationPanel.vue';
 
 import {
   InfoCircleOutlined,

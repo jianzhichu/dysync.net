@@ -20,13 +20,26 @@ import http from '@/store/http';
 
 <style lang="less" scoped>
 .front-view {
-  height: 100vh;
-  width: 100vw;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: auto;
+  height: auto;
   overflow: hidden;
 
   .front-content {
-    height: 100vh;
-    overflow: auto; // 防止mobile页面内容溢出
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto; // 内容较高时仅允许纵向滚动，避免联动产生横向滚动条
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
   }
 
   // 原样式保留（无冲突）

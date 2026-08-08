@@ -138,10 +138,24 @@ namespace dy.net
             services.AddHttpClients();
 
             // 数据库
-            services.AddSqlsugar(dbPath);
+            if (!string.IsNullOrWhiteSpace(dbPath))
+            {
+                // 飞牛的数据目录与数据库类型无关；切换到 MySQL/PostgreSQL 后
+                // 仍需把自定义音频保存在原持久化目录。
+                ServiceExtension.FnDataFolder = Path.Combine(dbPath, "mp3");
+                Directory.CreateDirectory(ServiceExtension.FnDataFolder);
+            }
+            var databaseConfiguration = new DatabaseConfigurationService(config, dbPath);
+            services.AddSingleton(databaseConfiguration);
+            services.AddSqlsugar(databaseConfiguration);
 
             // 定时任务
-            services.AddQuartzService(dbPath);
+            services.AddQuartzService(databaseConfiguration);
+
+            // 需要明确生命周期或运行时构造参数的服务先手动注册；
+            // 约定扫描会跳过已经注册的具体服务类型。
+            services.AddScoped<DatabaseMigrationService>();
+            services.AddSingleton<ApplicationRestartService>();
 
             // 仓储和服务注册
             services.AddServicesFromNamespace("dy.net.repository")

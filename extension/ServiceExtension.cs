@@ -1,4 +1,6 @@
 ﻿using dy.net.job;
+using dy.net.model.dto;
+using dy.net.model.entity;
 using dy.net.service;
 using dy.net.utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -50,11 +52,8 @@ namespace dy.net.extension
         #region 静态构造函数（仅执行一次，初始化所有缓存）
         static ServiceExtension()
         {
-            // 初始化实体类型（仅一次反射，缓存结果）
-            Assembly entityAssembly = Assembly.GetExecutingAssembly();
-            _entityTypes = entityAssembly.GetTypes()
-                .Where(t => t.Namespace != null && t.Namespace.StartsWith("dy.net.model.entity"))
-                .ToArray();
+            // 业务表使用显式白名单，绝不把 Qrtz* 实体交给 SqlSugar CodeFirst。
+            _entityTypes = BusinessEntityRegistry.Types;
             // 初始化响应压缩MIME类型（仅一次拼接，缓存结果）
             //_compressionMimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
             //{
@@ -259,19 +258,16 @@ namespace dy.net.extension
         /// 注册 SqlSugar。这里只创建请求级客户端，不再执行 CodeFirst。
         /// CodeFirst 由 InitializeDatabaseAsync 在应用启动时统一执行一次。
         /// </summary>
-        public static void AddSqlsugar(this IServiceCollection services, string dbpath)
+        public static void AddSqlsugar(
+            this IServiceCollection services,
+            DatabaseConfigurationService databaseConfiguration)
         {
-            string sqliteConn = CreateSqliteDBConn(dbpath);
+            var settings = databaseConfiguration.GetActiveSettings();
 
             services.AddScoped<ISqlSugarClient>(_ =>
             {
-                return new SqlSugarClient(new ConnectionConfig
-                {
-                    ConnectionString = sqliteConn,
-                    InitKeyType = InitKeyType.Attribute,
-                    DbType = DbType.Sqlite,
-                    IsAutoCloseConnection = true
-                }, db =>
+                return new SqlSugarClient(
+                    databaseConfiguration.CreateConnectionConfig(settings), db =>
                 {
                     db.Aop.OnError = e =>
                     {
@@ -307,6 +303,8 @@ namespace dy.net.extension
                 Log.Information("开始执行数据库初始化和 CodeFirst，共 {EntityCount} 个实体", _entityTypes.Length);
                 db.DbMaintenance.CreateDatabase();
                 db.CodeFirst.InitTables(_entityTypes);
+                // Quartz runtime tables use its official ADO schema, not business CodeFirst.
+                QuartzSchemaInitializer.EnsureCreated(db);
                 // CodeFirst 完成后补建业务索引。
                 // 使用 IF NOT EXISTS，已有数据库和重复启动都安全。
                 EnsureDouyinVideoIndexes(db);
@@ -325,9 +323,11 @@ namespace dy.net.extension
         }
 
         /// <summary>
-        /// Quartz服务注册：核心优化-提前创建连接字符串+合理的线程池配置
+        /// Quartz服务注册：按当前业务数据库选择对应的持久化驱动。
         /// </summary>
-        public static void AddQuartzService(this IServiceCollection services, string dbPath)
+        public static void AddQuartzService(
+            this IServiceCollection services,
+            DatabaseConfigurationService databaseConfiguration)
         {
             // 注册Job（原有逻辑，保留Scoped生命周期，符合Quartz特性）
             services.AddScoped<DouyinCollectSyncJob>();
@@ -338,8 +338,7 @@ namespace dy.net.extension
             services.AddScoped<DouyinMixSyncJob>();
             services.AddScoped<DouyinSeriesSyncJob>();
 
-            // 提前创建Quartz的SQLite连接字符串，避免重复调用
-            string quartzConn = CreateSqliteDBConn(dbPath);
+            var databaseSettings = databaseConfiguration.GetActiveSettings();
             services.AddQuartz(q =>
             {
                 q.SchedulerId = "DouyinQuartzScheduler";
@@ -348,15 +347,38 @@ namespace dy.net.extension
                 q.UseDedicatedThreadPool(5);
                 q.MisfireThreshold = TimeSpan.FromMinutes(2);
 
-                q.UsePersistentStore(s =>
+                q.UsePersistentStore(store =>
                 {
-                    s.UseMicrosoftSQLite(config =>
+                    store.UseProperties = false;
+                    store.PerformSchemaValidation = true;
+                    store.UseBinarySerializer();
+
+                    switch (databaseSettings.DbType)
                     {
-                        config.ConnectionString = quartzConn; // 使用提前创建的连接字符串
-                        config.TablePrefix = "QRTZ_";
-                    });
-                    s.UseProperties = false;
-                    s.UseBinarySerializer();
+                        case DatabaseKinds.MySql:
+                            store.UseMySqlConnector(options =>
+                            {
+                                options.ConnectionString = databaseSettings.ConnectionString;
+                                options.TablePrefix = "QRTZ_";
+                            });
+                            break;
+
+                        case DatabaseKinds.PostgreSql:
+                            store.UsePostgres(options =>
+                            {
+                                options.ConnectionString = databaseSettings.ConnectionString;
+                                options.TablePrefix = "QRTZ_";
+                            });
+                            break;
+
+                        default:
+                            store.UseMicrosoftSQLite(options =>
+                            {
+                                options.ConnectionString = databaseSettings.ConnectionString;
+                                options.TablePrefix = "QRTZ_";
+                            });
+                            break;
+                    }
                 });
             });
 
@@ -426,6 +448,8 @@ namespace dy.net.extension
                     type.IsClass &&
                     !type.IsAbstract &&
                     !type.IsGenericTypeDefinition &&
+                    // 尊重显式注册，避免把带运行时构造参数的服务再次注册为 Transient。
+                    !services.Any(descriptor => descriptor.ServiceType == type) &&
                     type.Namespace != null &&
                     (includeSubNamespaces
                         ? type.Namespace.StartsWith(@namespace, StringComparison.Ordinal)
@@ -462,71 +486,62 @@ namespace dy.net.extension
         private static void EnsureDouyinVideoIndexes(
             ISqlSugarClient db)
         {
-            string[] indexSqlStatements =
+            var isMySql = db.CurrentConnectionConfig.DbType == DbType.MySql;
+            var quote = isMySql ? "`" : "\"";
+            var ifNotExists = isMySql ? string.Empty : "IF NOT EXISTS ";
+            string Q(string name) => $"{quote}{name}{quote}";
+
+            (string Name, string Sql)[] indexes =
             {
                 // 按作品 ID 查询、去重和批量存在性判断。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_aweme_id""
-                  ON ""dy_collect_video"" (""AwemeId"")",
+                ("idx_dy_collect_video_aweme_id", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_aweme_id")} ON {Q("dy_collect_video")} ({Q("AwemeId")})"),
 
                 // 默认分页、最近记录和同步日期范围查询。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_sync_time""
-                  ON ""dy_collect_video"" (""SyncTime"" DESC)",
+                ("idx_dy_collect_video_sync_time", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_sync_time")} ON {Q("dy_collect_video")} ({Q("SyncTime")} DESC)"),
 
                 // 按视频类型筛选并按同步时间倒序。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_type_sync""
-                  ON ""dy_collect_video""
-                     (""ViedoType"", ""SyncTime"" DESC)",
+                ("idx_dy_collect_video_type_sync", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_type_sync")} ON {Q("dy_collect_video")} ({Q("ViedoType")}, {Q("SyncTime")} DESC)"),
 
                 // 按账号筛选并按同步时间倒序。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_cookie_sync""
-                  ON ""dy_collect_video""
-                     (""CookieId"", ""SyncTime"" DESC)",
+                ("idx_dy_collect_video_cookie_sync", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_cookie_sync")} ON {Q("dy_collect_video")} ({Q("CookieId")}, {Q("SyncTime")} DESC)"),
 
                 // 同时按视频类型、账号筛选。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_type_cookie_sync""
-                  ON ""dy_collect_video""
-                     (""ViedoType"", ""CookieId"", ""SyncTime"" DESC)",
+                ("idx_dy_collect_video_type_cookie_sync", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_type_cookie_sync")} ON {Q("dy_collect_video")} ({Q("ViedoType")}, {Q("CookieId")}, {Q("SyncTime")} DESC)"),
 
                 // 收藏夹、合集、短剧的记录数量统计。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_category""
-                  ON ""dy_collect_video""
-                     (""CateId"", ""CateXId"", ""ViedoType"")",
+                ("idx_dy_collect_video_category", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_category")} ON {Q("dy_collect_video")} ({Q("CateId")}, {Q("CateXId")}, {Q("ViedoType")})"),
 
                 // 关注视频重复标题编号查询。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_author_title_time""
-                  ON ""dy_collect_video""
-                     (
-                         ""AuthorId"",
-                         ""ViedoType"",
-                         ""VideoTitleSimplify"",
-                         ""CreateTime"" DESC
-                     )",
+                ("idx_dy_collect_video_author_title_time", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_author_title_time")} ON {Q("dy_collect_video")} ({Q("AuthorId")}, {Q("ViedoType")}, {Q("VideoTitleSimplify")}, {Q("CreateTime")} DESC)"),
 
                 // 按博主用户 ID 查询视频。
-                @"CREATE INDEX IF NOT EXISTS
-                  ""idx_dy_collect_video_dy_user_id""
-                  ON ""dy_collect_video"" (""DyUserId"")"
+                ("idx_dy_collect_video_dy_user_id", $"CREATE INDEX {ifNotExists}{Q("idx_dy_collect_video_dy_user_id")} ON {Q("dy_collect_video")} ({Q("DyUserId")})")
             };
 
-            foreach (string indexSql in indexSqlStatements)
+            foreach (var index in indexes)
             {
-                db.Ado.ExecuteCommand(indexSql);
+                if (isMySql &&
+                    DatabaseIndexHelper.MySqlIndexExists(
+                        db,
+                        "dy_collect_video",
+                        index.Name))
+                {
+                    continue;
+                }
+
+                db.Ado.ExecuteCommand(index.Sql);
             }
 
-            // 更新 SQLite 查询优化器统计信息。
-            db.Ado.ExecuteCommand(
-                @"ANALYZE ""dy_collect_video""");
+            // 更新查询优化器统计信息。MySQL 的 ANALYZE 语法与
+            // SQLite/PostgreSQL 不同，不能使用双引号表名。
+            var analyzeSql = isMySql
+                ? $"ANALYZE TABLE {Q("dy_collect_video")}"
+                : $"ANALYZE {Q("dy_collect_video")}";
+            db.Ado.ExecuteCommand(analyzeSql);
 
             Log.Information(
                 "dy_collect_video 索引检查完成，索引数量={IndexCount}",
-                indexSqlStatements.Length);
+                indexes.Length);
         }
 
 

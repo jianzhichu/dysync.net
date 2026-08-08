@@ -114,7 +114,7 @@
 
         <div class="stats-content">
           <div class="authors-grid">
-            <div class="author-card" v-for="(author, index) in authors" :key="index" @dblclick="handleDeleteItem(author)">
+            <div class="author-card" v-for="author in authors" :key="`${author.uperId || ''}-${author.name}`" @dblclick="handleDeleteItem(author)">
               <div class="author-info-row">
                 <div class="author-avatar">
                   <img :src="author.icon" alt="作者头像" />
@@ -128,6 +128,12 @@
                 <div class="progress-bar" :style="{ width: `${totalVideos > 0 ? (author.count / totalVideos) * 100 : 0}%` }"></div>
               </div>
             </div>
+          </div>
+          <div ref="authorLoadMoreRef" class="author-load-more">
+            <a-spin v-if="authorLoading" size="small" />
+            <span v-else-if="authorHasMore">继续向下滚动加载更多作者</span>
+            <span v-else-if="authors.length">已加载全部 {{ totalAuthors }} 位作者</span>
+            <span v-else>暂无作者数据</span>
           </div>
         </div>
       </section>
@@ -186,6 +192,12 @@ const videoMixSize = ref<string>('0.00');
 const videoSeriesSize = ref<string>('0.00');
 
 const authors = ref<Author[]>([]);
+const AUTHOR_PAGE_SIZE = 30;
+const authorPageIndex = ref(0);
+const authorLoading = ref(false);
+const authorHasMore = ref(true);
+const authorLoadMoreRef = ref<HTMLDivElement | null>(null);
+let authorObserver: IntersectionObserver | null = null;
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
@@ -487,15 +499,50 @@ watch(
 );
 
 // 加载数据 - 调用7天方法
-onMounted(() => {
+onMounted(async () => {
   generateSyncData();
-  loadDashboardData();
+  await Promise.all([loadDashboardData(), loadAuthors(true)]);
+  await nextTick();
+  authorObserver = new IntersectionObserver(
+    entries => {
+      if (entries[0]?.isIntersecting) loadAuthors();
+    },
+    { rootMargin: '240px 0px' }
+  );
+  if (authorLoadMoreRef.value) authorObserver.observe(authorLoadMoreRef.value);
 });
 
 // 新增：窗口关闭时销毁全屏图表
 onUnmounted(() => {
+  authorObserver?.disconnect();
+  authorObserver = null;
   destroyFullChart();
 });
+
+async function loadAuthors(reset = false) {
+  if (authorLoading.value || (!reset && !authorHasMore.value)) return;
+
+  const nextPage = reset ? 1 : authorPageIndex.value + 1;
+  authorLoading.value = true;
+  try {
+    const res = await useApiStore().VideoAuthorStatics(nextPage, AUTHOR_PAGE_SIZE);
+    if (res?.code !== 0 || !res?.data) {
+      message.warning(res?.message || '获取视频作者失败');
+      return;
+    }
+
+    const pageAuthors = (res.data.data ?? []) as Author[];
+    authors.value = reset ? pageAuthors : [...authors.value, ...pageAuthors];
+    authorPageIndex.value = nextPage;
+    totalAuthors.value = res.data.total ?? authors.value.length;
+    authorHasMore.value = authors.value.length < totalAuthors.value;
+  } catch (err: any) {
+    console.error('加载视频作者失败：', err);
+    message.error(err?.message || err?.msg || '加载视频作者失败');
+  } finally {
+    authorLoading.value = false;
+  }
+}
 
 const loadDashboardData = async () => {
   try {
@@ -510,7 +557,6 @@ const loadDashboardData = async () => {
     const data = res.data;
 
     // 使用可选链 + 默认值，逐个字段安全赋值
-    totalAuthors.value = data.authorCount ?? 0;
     totalVideos.value = data.videoCount ?? 0;
     fileSizeTotal.value = data.videoSizeTotal ?? '0.00';
     totalDiskSize.value = data.totalDiskSize ?? '0.00';
@@ -529,7 +575,6 @@ const loadDashboardData = async () => {
     videoMixSize.value = data.videoMixSize ?? '0.00';
     videoSeriesSize.value = data.videoSeriesSize ?? '0.00';
 
-    authors.value = data.authors ?? [];
   } catch (err) {
     console.error('加载仪表盘数据失败：', err);
     message.error('加载仪表盘数据异常，请刷新重试');
@@ -778,6 +823,15 @@ const handleDeleteItem = (item: Author) => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 15px;
+}
+.author-load-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 12px;
+  color: #8a94a6;
+  font-size: 13px;
 }
 @media (min-width: 576px) {
   .authors-grid {

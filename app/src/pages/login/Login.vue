@@ -24,6 +24,35 @@
 
     <login-box class="login-panel" @success="onLoginSuccess" @failure="onLoginFail" />
 
+    <a-modal
+      v-model:visible="databaseGuideVisible"
+      title="选择数据持久化类型"
+      ok-text="确认并继续"
+      :confirm-loading="databaseSelecting"
+      :closable="false"
+      :mask-closable="false"
+      :keyboard="false"
+      :cancel-button-props="{ style: { display: 'none' } }"
+      @ok="confirmDatabaseSelection"
+    >
+      <a-alert
+        type="info"
+        show-icon
+        message="这是首次登录数据库引导。SQLite 适合直接使用；数据量较大或多人访问时可选择 MySQL/PostgreSQL。"
+        style="margin-bottom: 18px"
+      />
+      <a-form layout="vertical">
+        <DatabaseConfigFields
+          v-model:database-type="databaseSelection.databaseType"
+          v-model:host="databaseSelection.host"
+          v-model:port="databaseSelection.port"
+          v-model:user-name="databaseSelection.userName"
+          v-model:password="databaseSelection.password"
+          v-model:database-name="databaseSelection.databaseName"
+        />
+      </a-form>
+    </a-modal>
+
     <div class="login-page-tip">NAS · 抖音同步助手</div>
   </div>
 </template>
@@ -32,10 +61,22 @@
 import LoginBox from './LoginBox.vue';
 import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import { onMounted } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useApiStore } from '@/store';
+import DatabaseConfigFields from '@/components/setting/DatabaseConfigFields.vue';
 
 const router = useRouter();
+const databaseGuideVisible = ref(false);
+const databaseSelecting = ref(false);
+const databaseSelection = reactive({
+  databaseType: 'Sqlite',
+  host: '',
+  port: 3306,
+  userName: '',
+  password: '',
+  databaseName: '',
+});
+let postLoginPath = '/dashboard';
 
 onMounted(() => {
   useApiStore()
@@ -49,9 +90,65 @@ onMounted(() => {
 
 });
 
-function onLoginSuccess() {
-  if (isMobileBrowser()) router.push('/mobile');
-  else router.push('/dashboard');
+async function onLoginSuccess() {
+  postLoginPath = isMobileBrowser() ? '/mobile' : '/dashboard';
+
+  try {
+    const response = await useApiStore().GetDatabaseStatus();
+    if (response.code === 0 && response.data?.requiresSelection) {
+      databaseSelection.databaseType = 'Sqlite';
+      Object.assign(databaseSelection, { host: '', port: 3306, userName: '', password: '', databaseName: '' });
+      databaseGuideVisible.value = true;
+      return;
+    }
+  } catch (error) {
+    console.warn('获取首次登录数据库引导状态失败：', error);
+  }
+
+  router.push(postLoginPath);
+}
+
+async function confirmDatabaseSelection() {
+  const useSqlite = databaseSelection.databaseType === 'Sqlite';
+  if (!useSqlite && (!databaseSelection.host.trim() || !databaseSelection.userName.trim() || !databaseSelection.password)) {
+    message.warning('请完整填写 Host、端口、账号和密码');
+    return;
+  }
+
+  databaseSelecting.value = true;
+  try {
+    const apiStore = useApiStore();
+    const response = useSqlite
+      ? await apiStore.SelectSqliteDatabase()
+      : await apiStore.MigrateDatabase({
+          dbType: databaseSelection.databaseType,
+          host: databaseSelection.host,
+          port: databaseSelection.port,
+          userName: databaseSelection.userName,
+          password: databaseSelection.password,
+          databaseName: databaseSelection.databaseName,
+        });
+
+    if (response.code !== 0) {
+      message.error(response.message || '数据库选择失败', 8);
+      return;
+    }
+
+    databaseGuideVisible.value = false;
+    if (useSqlite) {
+      message.success('已选择 SQLite，后续登录不再提示');
+      router.push(postLoginPath);
+    } else {
+      message.success('数据库迁移成功，后台服务正在重启', 5);
+      setTimeout(() => {
+        window.location.href = postLoginPath;
+      }, 4000);
+    }
+  } catch (error: any) {
+    message.error(error?.response?.data?.message || error?.message || '数据库选择失败', 8);
+  } finally {
+    databaseSelecting.value = false;
+  }
 }
 
 const isMobileBrowser = (): boolean => {

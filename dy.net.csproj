@@ -142,13 +142,13 @@
 
 
 	<!-- 发布完成后，在发布目录内执行 Docker 构建脚本 -->
-	<Target Name="RunDockerBuildAfterPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release' and '$(SkipDockerBuild)' != 'true'">
+	<!--<Target Name="RunDockerBuildAfterPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release' and '$(SkipDockerBuild)' != 'true'">
 		<Message Text="===== 发布完成，开始执行 Docker 构建推送脚本 =====" Importance="high" />
 		<Message Text="执行目录：$(PublishDir)" Importance="high" />
 
 		<Exec WorkingDirectory="$(PublishDir)" Command="powershell.exe -ExecutionPolicy Bypass -NoProfile -File &quot;$(PublishDir)build-all.ps1&quot;" ContinueOnError="false" EchoOff="false" />
 
 		<Message Text="===== Docker 构建推送脚本执行完成 =====" Importance="high" />
-	</Target>
+	</Target>-->
 
 </Project>

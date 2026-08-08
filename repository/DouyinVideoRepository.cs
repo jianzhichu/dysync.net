@@ -77,6 +77,37 @@ namespace dy.net.repository
             return (list, totalCount);
         }
 
+        /// <summary>
+        /// 按作者聚合视频数量并分页。聚合与分页均在数据库中完成，
+        /// 避免仪表盘一次性加载全部视频和作者。
+        /// </summary>
+        public async Task<(List<VideoStaticsItemDto> list, int totalCount)> GetAuthorStaticsPagedAsync(
+            int pageIndex,
+            int pageSize)
+        {
+            ISugarQueryable<VideoStaticsItemDto> BuildQuery() => Db.Queryable<DouyinVideo>()
+                .Where(x => !string.IsNullOrEmpty(x.Author))
+                .GroupBy(x => x.Author)
+                .Select(x => new VideoStaticsItemDto
+                {
+                    Name = x.Author,
+                    Count = SqlFunc.AggregateCount(x.Id),
+                    Icon = SqlFunc.AggregateMax(x.AuthorAvatarUrl),
+                    UperId = SqlFunc.AggregateMax(x.AuthorId)
+                })
+                .MergeTable();
+
+            var totalCount = await BuildQuery().CountAsync();
+            var list = await BuildQuery()
+                .OrderBy(x => x.Count, OrderByType.Desc)
+                .OrderBy(x => x.Name, OrderByType.Asc)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (list, totalCount);
+        }
+
         private static void GetDateBetween(List<string> dates, out DateTime? start, out DateTime? end)
         {
             start = null;

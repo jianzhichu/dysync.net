@@ -123,14 +123,25 @@ onMounted(() => {
 }
 
 html {
+  width: 100%;
+  max-width: 100%;
   height: 100vh;
-  overflow-y: hidden;
+  overflow: hidden !important;
 }
 
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
   height: 100vh;
-  overflow-y: hidden;
+  overflow: hidden !important;
+}
+
+#stepin-app {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  overflow: hidden !important;
 }
 .stepin-img-checkbox {
   @apply transition-transform;

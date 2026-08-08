@@ -165,14 +165,16 @@ namespace dy.net.service
             {
                 data.VideoSeriesSize = "<0.01";//避免显示0.00误导用户
             }
-            data.Authors = list.GroupBy(x => x.Author).Select(x => new VideoStaticsItemDto
-            {
-                Name = x.Key,
-                Count = x.LongCount(),
-                Icon = x.LastOrDefault()?.AuthorAvatarUrl,
-                UperId = x.LastOrDefault()?.AuthorId ?? x.LastOrDefault()?.DyUserId
-            }).OrderByDescending(d => d.Count).ToList();
             return data;
+        }
+
+        public async Task<(List<VideoStaticsItemDto> list, int totalCount)> GetAuthorStaticsPagedAsync(
+            int pageIndex,
+            int pageSize)
+        {
+            pageIndex = Math.Max(1, pageIndex);
+            pageSize = Math.Clamp(pageSize, 10, 100);
+            return await _dyCollectVideoRepository.GetAuthorStaticsPagedAsync(pageIndex, pageSize);
         }
 
         /// <summary>

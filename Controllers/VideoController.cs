@@ -48,6 +48,23 @@ namespace dy.net.Controllers
             return ApiResult.Success(await douyinVideoService.GetStatics());
         }
 
+        /// <summary>分页查询视频作者统计，按视频数量倒序。</summary>
+        [HttpGet("statics/authors")]
+        public async Task<IActionResult> GetAuthorStaticsAsync(
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 30)
+        {
+            var (list, totalCount) = await douyinVideoService.GetAuthorStaticsPagedAsync(
+                pageIndex, pageSize);
+            return ApiResult.Success(new
+            {
+                data = list,
+                total = totalCount,
+                pageIndex = Math.Max(1, pageIndex),
+                pageSize = Math.Clamp(pageSize, 10, 100)
+            });
+        }
+
         /// <summary>
         /// 播放视频
         /// </summary>

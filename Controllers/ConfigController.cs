@@ -25,10 +25,20 @@ namespace dy.net.Controllers
         private readonly DouyinFollowService douyinFollowService;
         private readonly DouyinCookieService douyinCookieService;
         private readonly DouyinHttpClientService httpClientService;
+        private readonly DatabaseMigrationService databaseMigrationService;
+        private readonly ApplicationRestartService applicationRestartService;
 
 
 
-        public ConfigController(DouyinCookieService dyCookieService, DouyinCommonService commonService, DouyinQuartzJobService quartzJobService, DouyinFollowService douyinFollowService, DouyinCookieService douyinCookieService, DouyinHttpClientService httpClientService)
+        public ConfigController(
+            DouyinCookieService dyCookieService,
+            DouyinCommonService commonService,
+            DouyinQuartzJobService quartzJobService,
+            DouyinFollowService douyinFollowService,
+            DouyinCookieService douyinCookieService,
+            DouyinHttpClientService httpClientService,
+            DatabaseMigrationService databaseMigrationService,
+            ApplicationRestartService applicationRestartService)
         {
             this.dyCookieService = dyCookieService;
             this.commonService = commonService;
@@ -36,6 +46,50 @@ namespace dy.net.Controllers
             this.douyinFollowService = douyinFollowService;
             this.douyinCookieService = douyinCookieService;
             this.httpClientService = httpClientService;
+            this.databaseMigrationService = databaseMigrationService;
+            this.applicationRestartService = applicationRestartService;
+        }
+
+        /// <summary>当前持久化数据库状态。连接字符串不会返回前端。</summary>
+        [HttpGet("database/status")]
+        public IActionResult GetDatabaseStatus()
+        {
+            return ApiResult.Success(databaseMigrationService.GetStatus());
+        }
+
+        /// <summary>首次登录时确认继续使用 SQLite，并持久化用户选择。</summary>
+        [HttpPost("database/select-sqlite")]
+        public IActionResult SelectSqliteDatabase()
+        {
+            try
+            {
+                databaseMigrationService.ConfirmSqliteSelection();
+                return ApiResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return ApiResult.Fail(ex.GetBaseException().Message);
+            }
+        }
+
+        /// <summary>将当前数据库的业务数据迁移到 SQLite/MySQL/PostgreSQL。</summary>
+        [HttpPost("database/migrate")]
+        public async Task<IActionResult> MigrateDatabase(
+            [FromBody] DatabaseMigrationRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await databaseMigrationService.MigrateAsync(
+                    request, cancellationToken);
+                applicationRestartService.RestartAfterResponse();
+                return ApiResult.Success(result, "迁移成功，后台服务正在热重启");
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "数据库迁移失败");
+                return ApiResult.Fail(ex.GetBaseException().Message);
+            }
         }
 
 
@@ -188,7 +242,9 @@ namespace dy.net.Controllers
         /// </summary>
         [HttpPost("deskinit")]
         [AllowAnonymous]
-        public async Task<IActionResult> DeskInitAsync([FromBody] DouyinCookie dyUserCookies)
+        public async Task<IActionResult> DeskInitAsync(
+            [FromBody] DeskInitRequest dyUserCookies,
+            CancellationToken cancellationToken)
         {
             // 1. 基础赋值
             dyUserCookies.Id = IdGener.GetLong().ToString();
@@ -209,7 +265,40 @@ namespace dy.net.Controllers
             dyUserCookies.StatusMsg = "正常";
             // 4. 保存到数据库
             var saved = await dyCookieService.Add(dyUserCookies);
-            return saved ? ApiResult.Success() : ApiResult.Fail("添加失败");
+            if (!saved)
+            {
+                return ApiResult.Fail("添加失败");
+            }
+
+            if (!string.Equals(
+                DatabaseKinds.Normalize(dyUserCookies.DatabaseType),
+                DatabaseKinds.Sqlite,
+                StringComparison.Ordinal))
+            {
+                try
+                {
+                    var migration = await databaseMigrationService.MigrateAsync(
+                        new DatabaseMigrationRequest
+                        {
+                            DbType = dyUserCookies.DatabaseType,
+                            ConnectionString = dyUserCookies.DatabaseConnectionString,
+                            Host = dyUserCookies.DatabaseHost,
+                            Port = dyUserCookies.DatabasePort,
+                            UserName = dyUserCookies.DatabaseUserName,
+                            Password = dyUserCookies.DatabasePassword,
+                            DatabaseName = dyUserCookies.DatabaseName
+                        }, cancellationToken);
+                    applicationRestartService.RestartAfterResponse();
+                    return ApiResult.Success(migration, "初始化及数据库迁移成功，后台服务正在热重启");
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Error(ex, "初始化阶段数据库迁移失败");
+                    return ApiResult.Fail($"Cookie 配置已保存，但数据库迁移失败：{ex.GetBaseException().Message}");
+                }
+            }
+
+            return ApiResult.Success();
         }
 
         private static (bool Success, string Message) ValidatePaths(DouyinCookie cookie)

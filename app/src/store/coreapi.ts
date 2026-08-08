@@ -123,6 +123,13 @@ export const useApiStore = defineStore('coreapi', () => {
 
     });
   }
+  // 视频作者统计分页
+  async function VideoAuthorStatics(pageIndex: number, pageSize: number) {
+    return http.request<any, Response<any>>(
+      `/api/video/statics/authors?pageIndex=${pageIndex}&pageSize=${pageSize}`,
+      'get'
+    );
+  }
   //视频曲线
   async function VideoChart(day: number) {
     return http.request<any, Response<any>>(`/api/video/chart/${day}`, 'get').then(r => {
@@ -178,6 +185,20 @@ export const useApiStore = defineStore('coreapi', () => {
     }).finally(() => {
 
     });
+  }
+
+  async function GetDatabaseStatus() {
+    return http.request<any, Response<any>>('/api/config/database/status', 'get');
+  }
+
+  async function MigrateDatabase(param: object) {
+    return http.request<any, Response<any>>('/api/config/database/migrate', 'post_json', param, {
+      timeout: 30 * 60 * 1000,
+    });
+  }
+
+  async function SelectSqliteDatabase() {
+    return http.request<any, Response<any>>('/api/config/database/select-sqlite', 'post_json', {});
   }
 
 
@@ -630,6 +651,9 @@ export const useApiStore = defineStore('coreapi', () => {
     Renfo,
     // apiUploadAudio,
     AppisInit,
+    GetDatabaseStatus,
+    MigrateDatabase,
+    SelectSqliteDatabase,
     DeskInitAsync,
     SwitchCookieStatus,
     TopVideo,
@@ -650,6 +674,7 @@ export const useApiStore = defineStore('coreapi', () => {
     apiChangePwd,
     StartJobNow,
     VideoStatics,
+    VideoAuthorStatics,
     VideoPageList,
     CookiePageList,
     CookieList,
