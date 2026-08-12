@@ -229,7 +229,7 @@ namespace dy.net.service
             var exist = await sqlSugarClient.Queryable<DouyinVideo>().Where(x => x.IsMergeVideo == 1 && x.VideoSavePath.EndsWith("-poster.jpg")).AnyAsync();
             if (exist)
             {
-                // 执行更新操作
+                // 这里只修正保存路径，不改变任何统计字段，因此无需产生统计差量。
                 var updateCount = sqlSugarClient.Updateable<DouyinVideo>()
                     .SetColumns(it => new DouyinVideo
                     {

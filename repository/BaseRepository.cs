@@ -106,12 +106,17 @@ namespace dy.net.repository
         /// <returns></returns>
         public async Task<bool> UseTranAsync(Func<Task> action, Action<Exception> errorCallBack)
         {
-            var res = Db.Ado.UseTranAsync(async () =>
-              {
-                  await action();
-              }, errorCallBack: errorCallBack);
+            var succeeded = true;
+            await Db.Ado.UseTranAsync(async () =>
+            {
+                await action();
+            }, errorCallBack: ex =>
+            {
+                succeeded = false;
+                errorCallBack?.Invoke(ex);
+            });
 
-            return res.IsCompletedSuccessfully;
+            return succeeded;
         }
 
         /// <summary>

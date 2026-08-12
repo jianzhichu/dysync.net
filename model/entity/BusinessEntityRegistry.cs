@@ -15,6 +15,9 @@ namespace dy.net.model.entity
             typeof(DouyinFollowed),
             typeof(DouyinReDownload),
             typeof(DouyinVideo),
+            typeof(DouyinVideoStatistic),
+            typeof(DouyinVideoCategoryStatistic),
+            typeof(DouyinVideoAuthorStatistic),
             typeof(DouyinVideoDelete),
             typeof(DouyinVideoUp)
         };

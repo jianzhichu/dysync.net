@@ -216,7 +216,17 @@ namespace dy.net.service
                     .ToListAsync();
                 if (rows.Count == 0) break;
 
-                await target.Insertable(rows).ExecuteCommandAsync();
+                try
+                {
+                    await target.Insertable(rows).ExecuteCommandAsync();
+                }
+                catch (Exception ex)
+                {
+                    var firstRow = migrated + 1;
+                    var lastRow = migrated + rows.Count;
+                    throw new InvalidOperationException(
+                        $"迁移表 {tableName} 第 {firstRow}-{lastRow} 行失败：{ex.GetBaseException().Message}", ex);
+                }
                 migrated += rows.Count;
                 ReportProgress("正在迁移数据", migrated);
             }

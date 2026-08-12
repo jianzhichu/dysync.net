@@ -21,9 +21,9 @@ namespace dy.net.model.entity
 
         public DateTime DeleteTime { get; set; }
 
-        [SugarColumn(IsNullable = true, Length = 1000)]
+        [SugarColumn(IsNullable = true, Length = -1, ColumnDataType = "TEXT")]
         public string VideoTitle { get; set; }
-        [SugarColumn(IsNullable = true, Length = 1000)]
+        [SugarColumn(IsNullable = true, Length = -1, ColumnDataType = "TEXT")]
         public string VideoSavePath { get; set; }
     }
 }

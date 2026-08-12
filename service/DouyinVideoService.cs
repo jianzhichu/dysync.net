@@ -15,18 +15,37 @@ namespace dy.net.service
 
         private readonly DouyinVideoRepository _dyCollectVideoRepository;
         private readonly DouyinCookieRepository douyinCookieRepository;
+        private readonly DouyinVideoStatisticsService videoStatisticsService;
+        private static readonly SemaphoreSlim VideoMutationLock = new(1, 1);
 
-        public DouyinVideoService(DouyinVideoRepository dyCollectVideoRepository, DouyinCookieRepository douyinCookieRepository, ISqlSugarClient sqlSugarClient)
+        public DouyinVideoService(
+            DouyinVideoRepository dyCollectVideoRepository,
+            DouyinCookieRepository douyinCookieRepository,
+            ISqlSugarClient sqlSugarClient,
+            DouyinVideoStatisticsService videoStatisticsService)
         {
             _dyCollectVideoRepository = dyCollectVideoRepository;
             this.douyinCookieRepository = douyinCookieRepository;
             this.sqlSugarClient = sqlSugarClient;
+            this.videoStatisticsService = videoStatisticsService;
         }
 
 
         public async Task<bool> DeleteById(string Id)
         {
-            return await _dyCollectVideoRepository.DeleteByIdAsync(Id);
+            return await WithVideoMutationLockAsync(async () =>
+            {
+                var video = await _dyCollectVideoRepository.GetByIdAsync(Id);
+                if (video == null)
+                    return false;
+
+                return await _dyCollectVideoRepository.UseTranAsync(async () =>
+                {
+                    if (!await _dyCollectVideoRepository.DeleteByIdAsync(Id))
+                        throw new InvalidOperationException($"视频删除失败：{Id}");
+                    await videoStatisticsService.ApplyChangesAsync(new[] { video }, Array.Empty<DouyinVideo>());
+                }, ex => Log.Error(ex, "删除视频及更新统计失败：VideoId={VideoId}", Id));
+            });
         }
 
         public async Task<bool> BatchInsertOrUpdate(List<DouyinVideo> videos)
@@ -35,137 +54,97 @@ namespace dy.net.service
             if (videos == null || !videos.Any())
                 return true;
 
-            // 1. 提取所有AwemeId（无需去重，用户保证无重复）
-            var allAwemeIds = videos.Select(v => v.AwemeId).ToList();
+            return await WithVideoMutationLockAsync(async () =>
+            {
+                // 1. 提取所有AwemeId（无需去重，用户保证无重复）
+                var allAwemeIds = videos.Select(v => v.AwemeId).ToList();
 
             // 2. 查询数据库中已存在的视频记录（用于后续更新）
-            var existingVideos = await _dyCollectVideoRepository
-                .Query(x => allAwemeIds.Contains(x.AwemeId))
-                .ToListAsync();
+                var existingVideos = await _dyCollectVideoRepository
+                    .Query(x => allAwemeIds.Contains(x.AwemeId))
+                    .ToListAsync();
+                var oldStatisticSnapshots = existingVideos.Select(CloneStatisticFields).ToList();
 
             // 3. 分拆数据集：不存在的（插入）、已存在的（更新）
-            var existingAwemeIdSet = existingVideos.Select(v => v.AwemeId).ToHashSet();
-            var videosToInsert = videos
-                .Where(v => !existingAwemeIdSet.Contains(v.AwemeId))
-                .ToList();
-            var videosToUpdate = videos
-                .Where(v => existingAwemeIdSet.Contains(v.AwemeId))
-                .ToList();
+                var existingAwemeIdSet = existingVideos.Select(v => v.AwemeId).ToHashSet();
+                var videosToInsert = videos
+                    .Where(v => !existingAwemeIdSet.Contains(v.AwemeId))
+                    .ToList();
+                var videosToUpdate = videos
+                    .Where(v => existingAwemeIdSet.Contains(v.AwemeId))
+                    .ToList();
 
             // 4. 事务包裹：确保插入/更新原子性
-            var transaction = await _dyCollectVideoRepository.UseTranAsync(async () =>
-           {
-               int insertedCount = 0;
-               int updatedCount = 0;
+                var transaction = await _dyCollectVideoRepository.UseTranAsync(async () =>
+                {
+                    int insertedCount = 0;
+                    int updatedCount = 0;
 
                // 5. 批量插入新记录
-               if (videosToInsert.Any())
-               {
-                   insertedCount = await _dyCollectVideoRepository.InsertRangeAsync(videosToInsert);
-               }
+                    if (videosToInsert.Any())
+                    {
+                        insertedCount = await _dyCollectVideoRepository.InsertRangeAsync(videosToInsert);
+                        if (insertedCount != videosToInsert.Count)
+                            throw new InvalidOperationException($"视频批量新增数量不一致：期望 {videosToInsert.Count}，实际 {insertedCount}");
+                    }
 
                // 6. 批量更新已存在记录（核心逻辑）
-               if (videosToUpdate.Any())
-               {
+                    if (videosToUpdate.Any())
+                    {
                    // 建立AwemeId与待更新数据的映射（O(1)匹配效率）
-                   var updateMap = videosToUpdate.ToDictionary(v => v.AwemeId);
+                        var updateMap = videosToUpdate.ToDictionary(v => v.AwemeId);
 
                    // 遍历已存在实体，赋值需要更新的字段
-                   List<DouyinVideo> updates = new List<DouyinVideo>();
-                   foreach (var existingVideo in existingVideos)
-                   {
-                       if (updateMap.TryGetValue(existingVideo.AwemeId, out var updateData))
-                       {
-                           existingVideo.VideoSavePath = updateData.VideoSavePath;
-                           existingVideo.VideoCoverSavePath = updateData.VideoCoverSavePath;
-                           existingVideo.ViedoType = updateData.ViedoType;
-                           existingVideo.FileHash = updateData.FileHash;
-                           existingVideo.FileSize = updateData.FileSize;
-                           existingVideo.VideoTitle = updateData.VideoTitle;
-                       }
-                   }
-                   // 批量更新数据库
-                   updatedCount = await _dyCollectVideoRepository.UpdateRangeAsync(existingVideos);
-               }
+                        foreach (var existingVideo in existingVideos)
+                        {
+                            if (updateMap.TryGetValue(existingVideo.AwemeId, out var updateData))
+                            {
+                                existingVideo.VideoSavePath = updateData.VideoSavePath;
+                                existingVideo.VideoCoverSavePath = updateData.VideoCoverSavePath;
+                                existingVideo.ViedoType = updateData.ViedoType;
+                                existingVideo.FileHash = updateData.FileHash;
+                                existingVideo.FileSize = updateData.FileSize;
+                                existingVideo.VideoTitle = updateData.VideoTitle;
+                            }
+                        }
+                    // 批量更新数据库
+                        updatedCount = await _dyCollectVideoRepository.UpdateRangeAsync(existingVideos);
+                    }
 
-
-               //foreach (var item in videos.Where(x=>x.ViedoType==VideoTypeEnum.dy_collects||x.ViedoType == VideoTypeEnum.dy_favorite).GroupBy(x => x.AuthorId))
-               //{
-                   
-               //}
-
-           }, ex =>
-           {
-               Serilog.Log.Error(ex, "批量插入/更新抖音视频失败，AwemeIds：{AwemeIds}", string.Join(",", allAwemeIds));
-           });
-            return transaction;
+                    await videoStatisticsService.ApplyChangesAsync(
+                        oldStatisticSnapshots,
+                        videosToInsert.Concat(existingVideos));
+                }, ex =>
+                {
+                    Serilog.Log.Error(ex, "批量插入/更新抖音视频失败，AwemeIds：{AwemeIds}", string.Join(",", allAwemeIds));
+                });
+                return transaction;
+            });
         }
 
         public async Task<bool> UpdateOne(DouyinVideo video)
         {
-            return await _dyCollectVideoRepository.UpdateAsync(video);
+            if (video == null)
+                return false;
+
+            return await WithVideoMutationLockAsync(async () =>
+            {
+                var oldVideo = await _dyCollectVideoRepository.GetByIdAsync(video.Id);
+                if (oldVideo == null)
+                    return false;
+
+                return await _dyCollectVideoRepository.UseTranAsync(async () =>
+                {
+                    // MySQL 对“值未变化”的 UPDATE 可能返回 0，不能据此判断事务失败。
+                    await _dyCollectVideoRepository.UpdateAsync(video);
+                    await videoStatisticsService.ApplyChangesAsync(new[] { oldVideo }, new[] { video });
+                }, ex => Log.Error(ex, "更新视频及统计失败：VideoId={VideoId}", video.Id));
+            });
         }
 
         public async Task<VideoStaticsDto> GetStatics()
         {
-
-            List<DouyinVideo> list = await this._dyCollectVideoRepository.GetAllAsync();
-            if (!list.Any())
-                return new VideoStaticsDto();
-            var Categories = list.GroupBy(x => x.Tag1).Select(x => new VideoStaticsItemDto { Name = x.Key, Count = x.LongCount() }).OrderByDescending(p => p.Count).ToList();
-            Categories.Where(x => string.IsNullOrWhiteSpace(x.Name)).ToList().ForEach(x => x.Name = "其他");
-            var data = new VideoStaticsDto
-            {
-                AuthorCount = list.Select(x => x.AuthorId).Distinct().Count(),
-                CategoryCount = list.Select(x => x.Tag1).Distinct().Count(),
-                VideoCount = list.Count,
-                Categories = Categories,
-                FavoriteCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_favorite),
-                CollectCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_collects || x.ViedoType == VideoTypeEnum.dy_custom_collect),
-                FollowCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_follows),
-                GraphicVideoCount = list.Count(x => x.IsMergeVideo == 1),
-                MixCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_mix),
-                SeriesCount = list.Count(x => x.ViedoType == VideoTypeEnum.dy_series),
-                VideoSizeTotal = DouyinFileUtils.ConvertBytesToGb(list.Sum(x => x.FileSize)),
-                VideoFavoriteSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_favorite).Sum(x => x.FileSize)),
-                VideoCollectSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_collects || x.ViedoType == VideoTypeEnum.dy_custom_collect).Sum(x => x.FileSize)),
-                VideoFollowSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_follows).Sum(x => x.FileSize)),
-                VideoMixSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_mix).Sum(x => x.FileSize)),
-                VideoSeriesSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.ViedoType == VideoTypeEnum.dy_series).Sum(x => x.FileSize)),
-                GraphicVideoSize = DouyinFileUtils.ConvertBytesToGb(list.Where(x => x.IsMergeVideo == 1).Sum(x => x.FileSize)),
-
-                //TotalDiskSize= ByteToGbConverter.GetHostTotalDiskSpaceGB(),
-            };
-            if (data.GraphicVideoSize == "0.00")
-            {
-                if (list.Where(x => x.IsMergeVideo == 1).Sum(x => x.FileSize) > 0)
-                {
-                    data.GraphicVideoSize = "<0.01";//避免显示0.00误导用户
-                }
-            }
-            if (data.VideoFavoriteSize == "0.00")
-            {
-                data.VideoFavoriteSize = "<0.01";//避免显示0.00误导用户
-            }
-
-            if (data.VideoCollectSize == "0.00")
-            {
-                data.VideoCollectSize = "<0.01";//避免显示0.00误导用户
-            }
-            if (data.VideoFollowSize == "0.00")
-            {
-                data.VideoFollowSize = "<0.01";//避免显示0.00误导用户
-            }
-            if (data.VideoMixSize == "0.00")
-            {
-                data.VideoMixSize = "<0.01";//避免显示0.00误导用户
-            }
-
-            if (data.VideoSeriesSize == "0.00")
-            {
-                data.VideoSeriesSize = "<0.01";//避免显示0.00误导用户
-            }
-            return data;
+            return await videoStatisticsService.GetStaticsAsync();
         }
 
         public async Task<(List<VideoStaticsItemDto> list, int totalCount)> GetAuthorStaticsPagedAsync(
@@ -174,7 +153,7 @@ namespace dy.net.service
         {
             pageIndex = Math.Max(1, pageIndex);
             pageSize = Math.Clamp(pageSize, 10, 100);
-            return await _dyCollectVideoRepository.GetAuthorStaticsPagedAsync(pageIndex, pageSize);
+            return await videoStatisticsService.GetAuthorsPagedAsync(pageIndex, pageSize);
         }
 
         /// <summary>
@@ -288,17 +267,21 @@ namespace dy.net.service
             try
             {
                 // 4. 数据库操作（事务保证一致性：创建重新下载记录 + 删除原视频记录必须同时成功/失败）
-                var transactionResult = await _dyCollectVideoRepository.UseTranAsync(async () =>
-                {
-                    // 4.1 批量插入重新下载记录（SqlSugar批量插入效率更高）
-                    _dyCollectVideoRepository.InsertReDowns(reDownList);
-                    // 4.2 批量删除原视频记录（使用视频实际存在的ID，避免无效删除）
-                    var actualDeleteIds = videos.Select(v => v.Id).ToList();
-                    var deleteCount = await _dyCollectVideoRepository.DeleteByIdsAsync(actualDeleteIds); // 建议仓储层提供异步删除方法
-                }, e =>
-                {
-                    Serilog.Log.Error(e, "数据库事务执行失败：Ids={0}", string.Join(",", videoIds));
-                });
+                var transactionResult = await WithVideoMutationLockAsync(() =>
+                    _dyCollectVideoRepository.UseTranAsync(async () =>
+                    {
+                        // 4.1 批量插入重新下载记录（SqlSugar批量插入效率更高）
+                        _dyCollectVideoRepository.InsertReDowns(reDownList);
+                        // 4.2 批量删除原视频记录并同步扣减统计
+                        var actualDeleteIds = videos.Select(v => v.Id).ToList();
+                        var deletedCount = await _dyCollectVideoRepository.DeleteByIdsAsync(actualDeleteIds);
+                        if (deletedCount != videos.Count)
+                            throw new InvalidOperationException($"视频批量删除数量不一致：期望 {videos.Count}，实际 {deletedCount}");
+                        await videoStatisticsService.ApplyChangesAsync(videos, Array.Empty<DouyinVideo>());
+                    }, e =>
+                    {
+                        Serilog.Log.Error(e, "数据库事务执行失败：Ids={0}", string.Join(",", videoIds));
+                    }));
 
 
                 if (!transactionResult)
@@ -433,18 +416,27 @@ namespace dy.net.service
             List<DeleteInvalidVideoDto> vList = new List<DeleteInvalidVideoDto>();
 
             List<string> douyinVideoIds = new List<string>();
+            List<DouyinVideo> videosToDelete = new List<DouyinVideo>();
             foreach (var v in videos)
             {
                 if (!File.Exists(v.VideoSavePath))
                 {
                     douyinVideoIds.Add(v.Id);
+                    videosToDelete.Add(v);
                     vList.Add(new DeleteInvalidVideoDto { AwId = v.AwemeId, Title = v.VideoTitle, Path = v.VideoSavePath });
                 }
             }
 
             if (douyinVideoIds.Any())
             {
-                await _dyCollectVideoRepository.DeleteByIdsAsync(douyinVideoIds);
+                await WithVideoMutationLockAsync(() =>
+                    _dyCollectVideoRepository.UseTranAsync(async () =>
+                    {
+                        var deletedCount = await _dyCollectVideoRepository.DeleteByIdsAsync(douyinVideoIds);
+                        if (deletedCount != videosToDelete.Count)
+                            throw new InvalidOperationException($"无效视频删除数量不一致：期望 {videosToDelete.Count}，实际 {deletedCount}");
+                        await videoStatisticsService.ApplyChangesAsync(videosToDelete, Array.Empty<DouyinVideo>());
+                    }, ex => Log.Error(ex, "删除无效视频及更新统计失败，数量={Count}", videosToDelete.Count)));
             }
 
             return vList;
@@ -672,6 +664,34 @@ namespace dy.net.service
             }
 
             return true;
+        }
+
+        private static DouyinVideo CloneStatisticFields(DouyinVideo video)
+        {
+            return new DouyinVideo
+            {
+                Id = video.Id,
+                AuthorId = video.AuthorId,
+                Author = video.Author,
+                AuthorAvatarUrl = video.AuthorAvatarUrl,
+                Tag1 = video.Tag1,
+                ViedoType = video.ViedoType,
+                IsMergeVideo = video.IsMergeVideo,
+                FileSize = video.FileSize
+            };
+        }
+
+        private static async Task<T> WithVideoMutationLockAsync<T>(Func<Task<T>> action)
+        {
+            await VideoMutationLock.WaitAsync();
+            try
+            {
+                return await action();
+            }
+            finally
+            {
+                VideoMutationLock.Release();
+            }
         }
 
     }

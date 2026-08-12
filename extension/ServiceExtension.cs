@@ -311,6 +311,10 @@ namespace dy.net.extension
                 // CodeFirst 完成后补建业务索引。
                 // 使用 IF NOT EXISTS，已有数据库和重复启动都安全。
                 EnsureDouyinVideoIndexes(db);
+                // 首次升级时从视频表聚合一次；之后所有视频写入均事务性维护统计表。
+                var videoStatisticsService = scope.ServiceProvider
+                    .GetRequiredService<DouyinVideoStatisticsService>();
+                await videoStatisticsService.EnsureInitializedAsync();
                 Volatile.Write(ref _databaseInitialized, 1);
                 Log.Information("数据库初始化和 CodeFirst 执行完成");
             }

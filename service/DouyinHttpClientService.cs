@@ -9,6 +9,7 @@ using Serilog;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,11 +18,11 @@ namespace dy.net.service
     public class DouyinHttpClientService : IDisposable
     {
         private readonly IHttpClientFactory _clientFactory;
-        private readonly JsonSerializerSettings _jsonSettings=new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore,
-                MissingMemberHandling = MissingMemberHandling.Ignore
-            };
+        private readonly JsonSerializerSettings _jsonSettings = new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            MissingMemberHandling = MissingMemberHandling.Ignore
+        };
         private bool _disposedValue;
 
         public DouyinHttpClientService(IHttpClientFactory clientFactory)
@@ -97,7 +98,7 @@ namespace dy.net.service
                     if (model == null)
                         Log.Error($"SyncCollectVideos fail, data is null");
                     return model;
-                    
+
                 }
                 else
                 {
@@ -563,16 +564,36 @@ namespace dy.net.service
 
             while (retryCount < maxRetryCount)
             {
+                string currentUrl = retryUrls[retryCount % retryUrls.Count];
                 try
                 {
-                    string currentUrl =retryUrls[retryCount % retryUrls.Count ];
                     return await TryDownloadOnceAsync(currentUrl, savePath, cookie, cancellationToken, streamTimeout.Value);
                 }
-                catch (Exception ex) when (IsRetryableException(ex) && retryCount < maxRetryCount - 1)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
+                    Log.Information($"下载被取消：{videoUrl}");
+                    return (false, savePath);
+                }
+                catch (Exception ex) when (IsRetryableException(ex, cancellationToken))
+                {
+                    var attempt = retryCount + 1;
+                    var hasMoreAttempts = attempt < maxRetryCount;
+                    var isNetworkFailure = IsNetworkFailure(ex);
+                    if (isNetworkFailure)
+                        LogNetworkFailure(ex, currentUrl, attempt, maxRetryCount, hasMoreAttempts);
+
+                    if (!hasMoreAttempts)
+                    {
+                        if (!isNetworkFailure)
+                            Log.Error(ex, $"下载失败：已达最大尝试次数 {maxRetryCount}，URL={videoUrl}");
+                        CleanupIncompleteFile(savePath);
+                        return (false, savePath);
+                    }
+
                     retryCount++;
                     var delay = TimeSpan.FromMilliseconds(retryDelay.TotalMilliseconds * Math.Pow(2, retryCount - 1));
-                    Log.Warning(ex, $"下载失败（第{retryCount}/{maxRetryCount}次重试）：{videoUrl}，将在{delay.TotalSeconds:F1}秒后重试");
+                    if (!isNetworkFailure)
+                        Log.Warning(ex, $"下载失败（第{attempt}/{maxRetryCount}次尝试）：{currentUrl}，将在{delay.TotalSeconds:F1}秒后重试");
 
                     try
                     {
@@ -583,11 +604,6 @@ namespace dy.net.service
                         Log.Information($"重试等待被取消：{videoUrl}");
                         return (false, savePath);
                     }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    Log.Information($"下载被取消：{videoUrl}");
-                    return (false, savePath);
                 }
                 catch (Exception ex)
                 {
@@ -709,12 +725,66 @@ namespace dy.net.service
             }
         }
 
-        private bool IsRetryableException(Exception ex)
+        private static bool IsRetryableException(Exception ex, CancellationToken cancellationToken)
         {
-            return ex is HttpRequestException
-                || ex is TimeoutException
-                || ex is IOException
-                || (ex is AggregateException aggEx && aggEx.InnerExceptions.Any(IsRetryableException));
+            if (ex is OperationCanceledException)
+                return !cancellationToken.IsCancellationRequested;
+
+            if (ex is HttpRequestException || ex is TimeoutException || ex is IOException)
+                return true;
+
+            if (ex is AggregateException aggregateException)
+                return aggregateException.InnerExceptions.Any(inner => IsRetryableException(inner, cancellationToken));
+
+            return ex.InnerException != null && IsRetryableException(ex.InnerException, cancellationToken);
+        }
+
+        private static void LogNetworkFailure(Exception ex, string url, int attempt, int maxAttempts, bool willRetry)
+        {
+            var host = Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                ? $"{uri.Host}:{(uri.IsDefaultPort ? (uri.Scheme == Uri.UriSchemeHttps ? 443 : 80) : uri.Port)}"
+                : "未知主机";
+            var action = willRetry ? "稍后重试" : "不再重试";
+            var socketException = FindException<SocketException>(ex);
+            var socketDetail = socketException == null
+                ? "连接或请求超时"
+                : $"SocketError={socketException.SocketErrorCode}";
+
+            var message = $"下载网络连接异常：本机网络不通或目标主机不可达，目标={host}，{socketDetail}，尝试={attempt}/{maxAttempts}，{action}";
+            if (willRetry)
+                Log.Warning(ex, message);
+            else
+                Log.Error(ex, message);
+        }
+
+        private static bool IsNetworkFailure(Exception ex)
+        {
+            if (FindException<SocketException>(ex) != null)
+                return true;
+
+            var httpException = FindException<HttpRequestException>(ex);
+            if (httpException != null && httpException.StatusCode == null)
+                return true;
+
+            return ex is OperationCanceledException && FindException<TimeoutException>(ex) != null;
+        }
+
+        private static TException FindException<TException>(Exception ex) where TException : Exception
+        {
+            if (ex is TException match)
+                return match;
+
+            if (ex is AggregateException aggregateException)
+            {
+                foreach (var inner in aggregateException.InnerExceptions)
+                {
+                    var aggregateMatch = FindException<TException>(inner);
+                    if (aggregateMatch != null)
+                        return aggregateMatch;
+                }
+            }
+
+            return ex.InnerException == null ? null : FindException<TException>(ex.InnerException);
         }
 
         private static void CleanupIncompleteFile(string savePath)
