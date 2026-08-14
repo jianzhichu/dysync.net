@@ -9,6 +9,8 @@ namespace dy.net.Controllers
     [ApiController]
     public class LogsController : ControllerBase
     {
+        // JSON 日志接口保持兼容，但最多缓冲最后 4 MiB，避免大日志产生无界字符串分配。
+        private const long MaxBufferedLogBytes = 4L * 1024 * 1024;
         private readonly IWebHostEnvironment webHostEnvironment;
         private readonly LogInfoService logInfoService;
 
@@ -36,6 +38,13 @@ namespace dy.net.Controllers
                 await using var stream =
                     logInfoService.GetLogFileStream(logDirectory, type, date);
 
+                var truncated = false;
+                if (stream.CanSeek && stream.Length > MaxBufferedLogBytes)
+                {
+                    stream.Seek(-MaxBufferedLogBytes, SeekOrigin.End);
+                    truncated = true;
+                }
+
                 using var reader = new StreamReader(
                     stream,
                     Encoding.UTF8,
@@ -44,6 +53,17 @@ namespace dy.net.Controllers
                     leaveOpen: false);
 
                 var content = await reader.ReadToEndAsync();
+
+                if (truncated)
+                {
+                    // 从下一行开始，避免截断点落在 UTF-8 字符或半条日志中间。
+                    var firstLineEnd = content.IndexOf('\n');
+                    if (firstLineEnd >= 0 && firstLineEnd + 1 < content.Length)
+                    {
+                        content = content[(firstLineEnd + 1)..];
+                    }
+                    content = "[日志文件过大，仅显示最后 4 MiB]" + Environment.NewLine + content;
+                }
 
                 // 使用统一响应结构，避免前端响应拦截器把纯文本判为异常。
                 return ApiResult.Success<string>(content);

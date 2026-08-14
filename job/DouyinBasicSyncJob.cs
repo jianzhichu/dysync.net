@@ -1043,25 +1043,17 @@ namespace dy.net.job
 
         private static VideoBitRate GetBestMatchedVideoUrl(Aweme item, AppConfig config)
         {
-            VideoBitRate v;
-            if (config.VideoEncoder.HasValue && config.VideoEncoder.Value == 265)
-            {
-                v = item.Video.BitRate.Where(v => v.IsH265 == 1 && v.PlayAddr?.UrlList != null && v.PlayAddr.UrlList.Any())
-                                .OrderByDescending(v => v.BitRateValue)
-                                .FirstOrDefault();
-                v ??= item.Video.BitRate.Where(v => v.IsH265 == 0 && v.PlayAddr?.UrlList != null && v.PlayAddr.UrlList.Any())
-                                .OrderByDescending(v => v.BitRateValue)
-                                .FirstOrDefault();
-            }
+            var preferredH265 = config?.VideoEncoder == 265;
 
-            else
-            {
-                v = item.Video.BitRate.Where(v => v.IsH265 == 0 && v.PlayAddr?.UrlList != null && v.PlayAddr.UrlList.Any())
-                                  .OrderByDescending(v => v.BitRateValue)
-                                  .FirstOrDefault();
-            }
+            VideoBitRate FindBest(bool useH265) => item.Video.BitRate
+                .Where(v => v != null &&
+                            v.IsH265 == (useH265 ? 1 : 0) &&
+                            v.PlayAddr?.UrlList?.Any(url => !string.IsNullOrWhiteSpace(url)) == true)
+                .OrderByDescending(v => v.BitRateValue)
+                .FirstOrDefault();
 
-            return v;
+            // 优先使用配置的编码；当前编码没有可用地址时，自动回退到另一种编码。
+            return FindBest(preferredH265) ?? FindBest(!preferredH265);
         }
 
         /// <summary>

@@ -18,11 +18,11 @@ namespace dy.net.service
     public class DouyinHttpClientService : IDisposable
     {
         private readonly IHttpClientFactory _clientFactory;
-        private readonly JsonSerializerSettings _jsonSettings = new JsonSerializerSettings
-        {
-            NullValueHandling = NullValueHandling.Ignore,
-            MissingMemberHandling = MissingMemberHandling.Ignore
-        };
+        private readonly JsonSerializerSettings _jsonSettings=new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
         private bool _disposedValue;
 
         public DouyinHttpClientService(IHttpClientFactory clientFactory)
@@ -66,7 +66,9 @@ namespace dy.net.service
 
             // 优化：移除using，由IHttpClientFactory管理生命周期
             var httpClient = _clientFactory.CreateClient(DouyinRequestParamManager.DY_HTTP_CLIENT);
-            return await httpClient.SendAsync(requestMessage);
+            return await httpClient.SendAsync(
+                requestMessage,
+                HttpCompletionOption.ResponseHeadersRead);
         }
 
         #region 收藏夹相关方法（保留原有逻辑，仅优化资源释放）
@@ -84,9 +86,7 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/aweme/listcollection";
                 var refererValue = "https://www.douyin.com";
 
-                var requestParameters = DouyinRequestParamManager.DouyinCollectParams;
-                requestParameters["cursor"] = cursor;
-                requestParameters["count"] = count;
+                var requestParameters = DouyinRequestParamManager.CreateCollectParams(cursor, count);
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Post, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -98,7 +98,7 @@ namespace dy.net.service
                     if (model == null)
                         Log.Error($"SyncCollectVideos fail, data is null");
                     return model;
-
+                    
                 }
                 else
                 {
@@ -126,9 +126,7 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/collects/list";
                 var refererValue = "https://www.douyin.com/user/self?from_tab_name=main&showSubTab=favorite_folder&showTab=favorite_collection";
 
-                var requestParameters = DouyinRequestParamManager.DouyinCollectListParams;
-                requestParameters["count"] = "10";
-                requestParameters["cursor"] = cursor;
+                var requestParameters = DouyinRequestParamManager.CreateCollectListParams(cursor, "10");
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -170,10 +168,8 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/collects/video/list";
                 var refererValue = "https://www.douyin.com/user/self?from_tab_name=main&showSubTab=favorite_folder&showTab=favorite_collection";
 
-                var requestParameters = DouyinRequestParamManager.DouyinFolderCollectParams;
-                requestParameters["cursor"] = cursor;
-                requestParameters["count"] = "15";
-                requestParameters["collects_id"] = collectsId;
+                var requestParameters = DouyinRequestParamManager.CreateFolderCollectParams(
+                    collectsId, cursor, "15");
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -214,9 +210,7 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/mix/listcollection";
                 var refererValue = "https://www.douyin.com/user/self?";
 
-                var requestParameters = DouyinRequestParamManager.DouyinMixListParams;
-                requestParameters["count"] = "10";
-                requestParameters["cursor"] = cursor;
+                var requestParameters = DouyinRequestParamManager.CreateMixListParams(cursor, "10");
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -258,10 +252,8 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/mix/aweme";
                 var refererValue = "https://www.douyin.com/user/self?";
 
-                var requestParameters = DouyinRequestParamManager.DouyinMixVideoParams;
-                requestParameters["cursor"] = cursor;
-                requestParameters["count"] = "15";
-                requestParameters["mix_id"] = mixId;
+                var requestParameters = DouyinRequestParamManager.CreateMixVideoParams(
+                    mixId, cursor, "15");
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -302,9 +294,7 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/series/collections";
                 var refererValue = "https://www.douyin.com/user/self?";
 
-                var requestParameters = DouyinRequestParamManager.DouyinSeriesListParams;
-                requestParameters["count"] = "15";
-                requestParameters["cursor"] = cursor;
+                var requestParameters = DouyinRequestParamManager.CreateSeriesListParams(cursor, "15");
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -346,10 +336,8 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/series/aweme";
                 var refererValue = "https://www.douyin.com/user/self?";
 
-                var requestParameters = DouyinRequestParamManager.DouyinSeriesVideosParams;
-                requestParameters["cursor"] = cursor;
-                requestParameters["count"] = count;
-                requestParameters["series_id"] = seriesId;
+                var requestParameters = DouyinRequestParamManager.CreateSeriesVideoParams(
+                    seriesId, cursor, count);
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -393,10 +381,8 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/aweme/favorite";
                 var refererValue = "https://www.douyin.com/user/self?showTab=like";
 
-                var requestParameters = DouyinRequestParamManager.DouyinFavoriteParams;
-                requestParameters["max_cursor"] = cursor;
-                requestParameters["sec_user_id"] = secUserId;
-                requestParameters["count"] = count;
+                var requestParameters = DouyinRequestParamManager.CreateFavoriteParams(
+                    secUserId, cursor, count);
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -438,10 +424,8 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/aweme/post";
                 var refererValue = "https://www.douyin.com/user/";
 
-                var requestParameters = DouyinRequestParamManager.DouyinUpderPostParams;
-                requestParameters["max_cursor"] = cursor;
-                requestParameters["sec_user_id"] = secUserId;
-                requestParameters["count"] = count;
+                var requestParameters = DouyinRequestParamManager.CreatePostParams(
+                    secUserId, cursor, count);
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)
@@ -483,10 +467,8 @@ namespace dy.net.service
                 var requestUrl = "/aweme/v1/web/user/following/list";
                 var refererValue = "https://www.douyin.com/user/self?showTab=like";
 
-                var requestParameters = DouyinRequestParamManager.DouyinMyFollowParams;
-                requestParameters["sec_user_id"] = secUserId;
-                requestParameters["count"] = count;
-                requestParameters["offset"] = offset;
+                var requestParameters = DouyinRequestParamManager.CreateMyFollowParams(
+                    secUserId, offset, count);
 
                 using var response = await GetHttpResponseMessage(HttpMethod.Get, requestUrl, requestParameters, refererValue, cookie);
                 if (response.IsSuccessStatusCode)

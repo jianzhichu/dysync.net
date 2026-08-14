@@ -4,7 +4,7 @@ namespace dy.net.utils
 {
     /// <summary>
     /// 抖音网页端请求参数字典管理类
-    /// 统一管理各类接口的标准化参数字典，提供全局常量和静态只读参数属性
+    /// 统一管理各类接口的私有参数模板，并为每次请求创建独立参数字典
     /// </summary>
     public static class DouyinRequestParamManager
     {
@@ -52,7 +52,7 @@ namespace dy.net.utils
         /// <summary>
         /// 抖音全局域名
         /// </summary>
-        public static readonly string DouyinHost = "https://www.douyin.com";
+        public const string DouyinHost = "https://www.douyin.com";
 
         /// <summary>
         /// 数据请求客户端标识
@@ -70,56 +70,121 @@ namespace dy.net.utils
         public const string DY_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
         #endregion
 
-        #region 静态只读参数属性（对外暴露的标准化参数字典）
+        #region 私有参数模板和请求工厂
         /// <summary>
         /// 收藏列表参数（用户收藏的内容）
         /// </summary>
-        public static Dictionary<string, string> DouyinCollectParams { get; } = InitUserCollectParams();
+        private static readonly Dictionary<string, string> DouyinCollectTemplate = InitUserCollectParams();
 
         /// <summary>
         /// 用户喜欢参数（用户点赞的内容）
         /// </summary>
-        public static Dictionary<string, string> DouyinFavoriteParams { get; } = InitUserFavoriteParams();
+        private static readonly Dictionary<string, string> DouyinFavoriteTemplate = InitUserFavoriteParams();
 
         /// <summary>
         /// 博主发布作品参数
         /// </summary>
-        public static Dictionary<string, string> DouyinUpderPostParams { get; } = InitDouyinPostParams();
+        private static readonly Dictionary<string, string> DouyinPostTemplate = InitDouyinPostParams();
 
         /// <summary>
         /// 我的关注列表参数
         /// </summary>
-        public static Dictionary<string, string> DouyinMyFollowParams { get; } = InitMyFollowParams();
+        private static readonly Dictionary<string, string> DouyinMyFollowTemplate = InitMyFollowParams();
 
         /// <summary>
         /// 收藏夹按收藏文件夹名称获取作品列表完整请求参数字典
         /// </summary>
-        public static Dictionary<string, string> DouyinFolderCollectParams { get; } = InitCollectFolderParams();
+        private static readonly Dictionary<string, string> DouyinFolderCollectTemplate = InitCollectFolderParams();
 
         /// <summary>
         /// 抖音收藏列表接口完整参数字典（对应目标URL）
         /// </summary>
-        public static Dictionary<string, string> DouyinCollectListParams { get; } = InitCollectListParams();
+        private static readonly Dictionary<string, string> DouyinCollectListTemplate = InitCollectListParams();
 
         /// <summary>
         /// 抖音合集列表参数
         /// </summary>
-        public static Dictionary<string, string> DouyinMixListParams { get; } = InitMixListParams();
+        private static readonly Dictionary<string, string> DouyinMixListTemplate = InitMixListParams();
 
         /// <summary>
         /// 合集视频请求参数字典
         /// </summary>
-        public static Dictionary<string, string> DouyinMixVideoParams { get; } = InitMixVideoParams();
+        private static readonly Dictionary<string, string> DouyinMixVideoTemplate = InitMixVideoParams();
 
         /// <summary>
         /// 抖音短剧列表参数
         /// </summary>
-        public static Dictionary<string, string> DouyinSeriesListParams { get; } = InitSeriesListParams();
+        private static readonly Dictionary<string, string> DouyinSeriesListTemplate = InitSeriesListParams();
 
         /// <summary>
         /// 抖音短剧视频参数（修正拼写：Viedos→Videos）
         /// </summary>
-        public static Dictionary<string, string> DouyinSeriesVideosParams { get; } = InitSeriesVideosParams();
+        private static readonly Dictionary<string, string> DouyinSeriesVideoTemplate = InitSeriesVideosParams();
+
+        /// <summary>创建默认收藏作品请求参数。</summary>
+        public static Dictionary<string, string> CreateCollectParams(string cursor, string count) =>
+            Create(DouyinCollectTemplate, ("cursor", cursor), ("count", count));
+
+        /// <summary>创建收藏夹列表请求参数。</summary>
+        public static Dictionary<string, string> CreateCollectListParams(string cursor, string count) =>
+            Create(DouyinCollectListTemplate, ("cursor", cursor), ("count", count));
+
+        /// <summary>创建指定收藏夹作品请求参数。</summary>
+        public static Dictionary<string, string> CreateFolderCollectParams(
+            string collectsId, string cursor, string count) =>
+            Create(DouyinFolderCollectTemplate,
+                ("collects_id", collectsId), ("cursor", cursor), ("count", count));
+
+        /// <summary>创建合集列表请求参数。</summary>
+        public static Dictionary<string, string> CreateMixListParams(string cursor, string count) =>
+            Create(DouyinMixListTemplate, ("cursor", cursor), ("count", count));
+
+        /// <summary>创建指定合集作品请求参数。</summary>
+        public static Dictionary<string, string> CreateMixVideoParams(
+            string mixId, string cursor, string count) =>
+            Create(DouyinMixVideoTemplate,
+                ("mix_id", mixId), ("cursor", cursor), ("count", count));
+
+        /// <summary>创建短剧列表请求参数。</summary>
+        public static Dictionary<string, string> CreateSeriesListParams(string cursor, string count) =>
+            Create(DouyinSeriesListTemplate, ("cursor", cursor), ("count", count));
+
+        /// <summary>创建指定短剧作品请求参数。</summary>
+        public static Dictionary<string, string> CreateSeriesVideoParams(
+            string seriesId, string cursor, string count) =>
+            Create(DouyinSeriesVideoTemplate,
+                ("series_id", seriesId), ("cursor", cursor), ("count", count));
+
+        /// <summary>创建喜欢作品请求参数。</summary>
+        public static Dictionary<string, string> CreateFavoriteParams(
+            string secUserId, string cursor, string count) =>
+            Create(DouyinFavoriteTemplate,
+                ("sec_user_id", secUserId), ("max_cursor", cursor), ("count", count));
+
+        /// <summary>创建博主发布作品请求参数。</summary>
+        public static Dictionary<string, string> CreatePostParams(
+            string secUserId, string cursor, string count) =>
+            Create(DouyinPostTemplate,
+                ("sec_user_id", secUserId), ("max_cursor", cursor), ("count", count));
+
+        /// <summary>创建关注博主列表请求参数。</summary>
+        public static Dictionary<string, string> CreateMyFollowParams(
+            string secUserId, string offset, string count) =>
+            Create(DouyinMyFollowTemplate,
+                ("sec_user_id", secUserId), ("offset", offset), ("count", count));
+
+        private static Dictionary<string, string> Create(
+            Dictionary<string, string> template,
+            params (string Key, string Value)[] values)
+        {
+            var parameters = new Dictionary<string, string>(template);
+            foreach (var (key, value) in values)
+            {
+                parameters[key] = value;
+            }
+
+            return parameters;
+        }
         #endregion
 
         #region 私有初始化方法（短剧相关）

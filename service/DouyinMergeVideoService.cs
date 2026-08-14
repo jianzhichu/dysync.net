@@ -20,7 +20,8 @@ namespace dy.net.service
         }
 
         // 1. 并发控制：限制同时运行的 FFmpeg 进程数（建议设为 1，FFmpeg 单进程更稳定）
-        private readonly SemaphoreSlim _ffmpegSemaphore = new SemaphoreSlim(1, 1);
+        // 全进程只允许一个 FFmpeg。服务是 Transient，实例信号量无法限制不同 Quartz 任务。
+        private static readonly SemaphoreSlim FfmpegSemaphore = new SemaphoreSlim(1, 1);
         // 重试次数配置
         private const int RetryCount = 3;
         // 重试间隔（毫秒）
@@ -52,9 +53,17 @@ namespace dy.net.service
                     mp3Path = SuccessPaths.FirstOrDefault()?.Path;
                 }
             }
-            var ffmpeg = new FFmpegHelper();
-            var mp4Path = await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mergMusicPath, savePath);
-            return (mp4Path, mp3Path);
+            await FfmpegSemaphore.WaitAsync();
+            try
+            {
+                using var ffmpeg = new FFmpegHelper();
+                var mp4Path = await ffmpeg.MergeMultipleVideosAsync(videoFilePaths, mergMusicPath, savePath);
+                return (mp4Path, mp3Path);
+            }
+            finally
+            {
+                FfmpegSemaphore.Release();
+            }
         }
 
 
@@ -171,11 +180,11 @@ namespace dy.net.service
                 bool mergeSuccess = await RetryOnFfmpegConflictAsync(async () =>
                 {
                     // 并发控制：等待前一个 FFmpeg 进程完成
-                    await _ffmpegSemaphore.WaitAsync();
+                    await FfmpegSemaphore.WaitAsync();
                     try
                     {
                         // 每次合成创建独立的 FFmpegHelper 实例（避免状态共享）
-                        var ffmpegHelper = new FFmpegHelper();
+                        using var ffmpegHelper = new FFmpegHelper();
                         // 配置视频参数（独立实例，无共享冲突）
                         ffmpegHelper.VideoWidth = request.VideoWidth > 0 ? request.VideoWidth : 1080;
                         ffmpegHelper.VideoHeight = request.VideoHeight > 0 ? request.VideoHeight : 1920;
@@ -214,7 +223,7 @@ namespace dy.net.service
                     finally
                     {
                         // 释放信号量，允许下一个任务执行
-                        _ffmpegSemaphore.Release();
+                        FfmpegSemaphore.Release();
                     }
                 });
 

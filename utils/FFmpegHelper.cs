@@ -326,19 +326,38 @@ namespace dy.net.utils
                 // pad={VideoWidth}:{VideoHeight}:(ow-iw)/2:(oh-ih)/2:black 居中填充黑色背景
                 string fitFilter = $"scale=iw*min({VideoWidth}/iw\\,{VideoHeight}/ih):ih*min({VideoWidth}/iw\\,{VideoHeight}/ih),pad={VideoWidth}:{VideoHeight}:(ow-iw)/2:(oh-ih)/2:black";
 
-                // 组合最终滤镜：先适配尺寸，再循环
-                string filterComplex = $"[0:v]{fitFilter},loop=loop={loopCount - 1}:size={imageCount}[v]";
+                // 单图不使用 loop 滤镜。loop 滤镜会缓存解码后的大尺寸帧，
+                // 对高分辨率单图容易造成 FFmpeg 内存占用过高并被容器以 137 退出码杀死。
+                bool isSingleImage = imageCount == 1;
+                string filterComplex = isSingleImage
+                    ? $"[0:v]{fitFilter}[v]"
+                    : $"[0:v]{fitFilter},loop=loop={loopCount - 1}:size={imageCount}[v]";
 
-                var arguments = new List<string>
+                var arguments = new List<string> { "-y" };
+
+                if (isSingleImage)
+                {
+                    // 由 image2 输入层持续输出同一张静态图，直到音频结束。
+                    arguments.AddRange(new[]
+                    {
+                        "-loop", "1",
+                        "-framerate", OutputFrameRate.ToString(CultureInfo.InvariantCulture),
+                        "-i", imageList[0].Path
+                    });
+                }
+                else
+                {
+                    arguments.AddRange(new[]
+                    {
+                        "-f", "image2",
+                        "-framerate", imageFps.ToString(CultureInfo.InvariantCulture),
+                        "-start_number", "1",
+                        "-i", imageSequencePattern
+                    });
+                }
+
+                arguments.AddRange(new[]
             {
-                "-y", // 覆盖输出文件
-
-                // 图片序列输入
-                "-f", "image2",
-                "-framerate", imageFps.ToString(CultureInfo.InvariantCulture),
-                "-start_number", "1", // 修正：临时文件是 temp_001、temp_002... 所以起始编号为1
-                "-i", imageSequencePattern,
-
                 // 音频输入
                 "-i", audioFilePath,
 
@@ -372,7 +391,7 @@ namespace dy.net.utils
 
                 // 输出路径
                 outputVideoPath
-            };
+            });
 
                 // 执行FFmpeg命令
                 await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
@@ -717,6 +736,7 @@ namespace dy.net.utils
                 throw new InvalidOperationException("已有一个FFmpeg进程正在运行。");
             }
 
+            _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             var startInfo = new ProcessStartInfo
@@ -772,6 +792,8 @@ namespace dy.net.utils
             {
                 _ffmpegProcess?.Dispose();
                 _ffmpegProcess = null;
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
             }
         }
 

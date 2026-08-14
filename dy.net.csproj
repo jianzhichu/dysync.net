@@ -8,9 +8,9 @@
 	  <SpaRoot>app\</SpaRoot>
 	  <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
 	  <GenerateDocumentationFile>True</GenerateDocumentationFile>
-	  <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+	  <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
 	  <ServerGarbageCollection>false</ServerGarbageCollection>
-	  <RetainVMGarbageCollection>true</RetainVMGarbageCollection>
+	  <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
 	  <ThreadPoolMinThreads>1</ThreadPoolMinThreads>
 	  <ThreadPoolMaxThreads>100</ThreadPoolMaxThreads>
 	  <!-- Supported as of .NET Core SDK 3.0 Preview 1 -->
