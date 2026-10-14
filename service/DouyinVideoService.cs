@@ -537,7 +537,7 @@ namespace dy.net.service
                 Graphic = g.Count(x => string.IsNullOrEmpty(x.FileHash)),
                 Mix = g.Count(x => x.ViedoType == VideoTypeEnum.dy_mix),
                 Series = g.Count(x => x.ViedoType == VideoTypeEnum.dy_series),
-            })
+            }).OrderBy(x=>x.Date)
               .ToList();
             return resultData;
         }
