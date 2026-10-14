@@ -189,16 +189,16 @@ const confirmFastResetCookie = async () => {
   try {
     const res = await useApiStore().FastResetCookie({ id: record.id, cookie });
     if (res.code === 0) {
-      message.success(`已覆盖【${record.userName || '该账号'}】的 Cookie`);
+      message.success(`已更新【${record.userName || '该账号'}】的 Cookie`);
       showCookiePreview.value = false;
       pendingCookieRecord.value = null;
       pendingQrResult.value = null;
       GetRecords();
     } else {
-      message.error(res.message || 'Cookie 覆盖失败');
+      message.error(res.message || 'Cookie 更新失败');
     }
   } catch (err: any) {
-    message.error(err?.message || 'Cookie 覆盖失败，请稍后重试');
+    message.error(err?.message || 'Cookie 更新失败，请稍后重试');
   } finally {
     resetCookieLoading.value = false;
   }

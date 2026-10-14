@@ -6,9 +6,7 @@ using dy.net.service;
 using dy.net.utils;
 using Newtonsoft.Json;
 using Quartz;
-using Quartz.Util;
 using Serilog;
-using System.Net;
 
 namespace dy.net.job
 {
