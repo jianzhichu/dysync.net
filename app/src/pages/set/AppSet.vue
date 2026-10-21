@@ -73,11 +73,22 @@
                   鼠标放到≡，点击鼠标左键即可拖拽调整优先级，</span>
               </div>
             </a-form-item>
+            <a-form-item label="视频画质" name="VideoQuality">
+              <a-radio-group v-model:value="formState.VideoQuality" button-style="solid">
+                <a-radio-button :value="0">原画 (302直链/极清)</a-radio-button>
+                <a-radio-button :value="1080">1080P 超清</a-radio-button>
+                <a-radio-button :value="720">720P 高清</a-radio-button>
+              </a-radio-group>
+            </a-form-item>
             <a-form-item label="视频编码" name="VideoEncoder">
               <a-radio-group v-model:value="formState.VideoEncoder" button-style="solid">
-                <a-radio-button :value="264">H264</a-radio-button>
-                <a-radio-button :value="265">H265</a-radio-button>
+                <a-radio-button :value="265">H265 (优先)</a-radio-button>
+                <a-radio-button :value="264">H264 (兼容)</a-radio-button>
               </a-radio-group>
+              <div class="flex items-start mt-1 text-sm text-gray-500">
+                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                <span>开启 H265 优先时，若该作品服务端未转码出 H265 流，系统会自动降级匹配同档位 H264，保证 100% 下载成功。</span>
+              </div>
             </a-form-item>
             <a-form-item label="关闭刮削" name="CloseNfo">
               <a-switch v-model:checked="formState.CloseNfo" />
@@ -420,6 +431,7 @@ interface FormState {
   MegDynamicVideo: boolean; // 补充原有缺失字段
   KeepDynamicVideo: boolean; // 补充原有缺失字段
   OnlySyncNew: boolean;
+  VideoQuality: number;
   VideoEncoder: number;
   CloseNfo: boolean;
   SkipFileExistenceCheck: boolean;
@@ -453,7 +465,8 @@ const formState: UnwrapRef<FormState> = reactive({
   MegDynamicVideo: false, // 初始化缺失字段
   KeepDynamicVideo: false, // 初始化缺失字段
   OnlySyncNew: false,
-  VideoEncoder: 264,
+  VideoQuality: 0,
+  VideoEncoder: 265,
   CloseNfo: false,
   SkipFileExistenceCheck: false,
   StorageExpansionRootsText: '',
@@ -567,7 +580,8 @@ const getConfig = () => {
           MegDynamicVideo: res.data.megDynamicVideo || false, // 补充赋值
           KeepDynamicVideo: res.data.keepDynamicVideo || false, // 补充赋值
           OnlySyncNew: res.data.onlySyncNew,
-          VideoEncoder: res.data.videoEncoder,
+          VideoQuality: res.data.videoQuality ?? 0,
+          VideoEncoder: res.data.videoEncoder ?? 265,
           CloseNfo: res.data.closeNfo,
           SkipFileExistenceCheck: res.data.skipFileExistenceCheck || false,
           StorageExpansionRootsText: (() => {
