@@ -1,169 +1,69 @@
 <template>
   <a-card class="system-config-page" :bordered="false" :body-style="{ padding: '10px' }">
     <a-form class="system-config-form" :model="formState" :label-col="labelCol" :rules="rules" :wrapper-col="wrapperCol" ref="formRef" label-align="right">
-      <div class="config-columns">
-        <div class="config-column config-column-left">
-          <!-- 任务调度配置 -->
-          <div class="form-section">
-            <h3 class="section-title">任务调度</h3>
+      <a-tabs class="settings-tabs" default-active-key="sync">
+        <a-tab-pane key="sync" tab="同步配置">
+          <div class="settings-tab-panel settings-tab-panel--narrow">
+            <div class="form-section">
+              <h3 class="section-title">任务调度</h3>
+              <div class="sync-settings-grid">
+                <a-form-item has-feedback label="同步周期" name="Cron" :wrapper-col="{ span: 20 }">
+                  <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="15" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>间隔单位为分钟，最短 15 分钟。</span>
+                  </div>
+                </a-form-item>
 
-            <a-form-item has-feedback label="同步周期" name="Cron" :wrapper-col="{ span: 20 }">
-              <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="15" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>同步任务执行间隔（分钟），最小15分钟，建议使用默认值</span>
-              </div>
-            </a-form-item>
+                <a-form-item has-feedback label="单次最多" name="BatchCount" :wrapper-col="{ span: 20 }">
+                  <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大40)" :min="10" :max="40" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>每次下载 10–40 条；超出部分下次继续。</span>
+                  </div>
+                </a-form-item>
 
-            <a-form-item has-feedback label="单次最多" name="BatchCount" :wrapper-col="{ span: 20 }">
-              <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大40)" :min="10" :max="40" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>每次任务最多下载数量：10-40，拉取视频数据超出该值将会等待下次任务执行。</span>
+                <a-form-item class="sync-only-new" has-feedback label="仅新视频" name="OnlySyncNew" :wrapper-col="{ span: 20 }">
+                  <a-switch v-model:checked="formState.OnlySyncNew" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>仅同步最近一页（限点赞和默认收藏），减少集中下载。</span>
+                  </div>
+                </a-form-item>
               </div>
-            </a-form-item>
-
-            <a-form-item has-feedback label="仅新视频" name="OnlySyncNew" :wrapper-col="{ span: 20 }">
-              <a-switch v-model:checked="formState.OnlySyncNew" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启后，仅同步最近的一页数据（仅对默认收藏夹和点赞视频有效），避免突然大量下载，导致风控</span>
-              </div>
-            </a-form-item>
+            </div>
           </div>
-
-          <div class="form-section">
-            <h3 class="section-title">动态视频</h3>
-
-            <a-form-item has-feedback label="下载动态视频" name="DownDynamicVideo" :wrapper-col="{ span: 20 }">
-              <a-switch v-model:checked="formState.DownDynamicVideo" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启后，将下载动态视频（多个短的小视频拼接-合成）</span>
+        </a-tab-pane>
+        <a-tab-pane key="download" tab="下载策略">
+          <div class="settings-tab-panel settings-tab-panel--download">
+            <div class="form-section media-download-settings">
+              <h3 class="section-title">&#35270;&#39057;&#19979;&#36733;</h3>
+              <div class="media-switch-grid">
+                <a-form-item has-feedback label="动态视频" name="DownDynamicVideo" :wrapper-col="{ span: 20 }">
+                  <a-switch v-model:checked="formState.DownDynamicVideo" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>下载动态片段并合成为一个视频。</span>
+                  </div>
+                </a-form-item>
+                <a-form-item v-if="formState.DownDynamicVideo" has-feedback label="保留原视频" name="KeepDynamicVideo" :wrapper-col="{ span: 20 }">
+                  <a-switch v-model:checked="formState.KeepDynamicVideo" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>保留合成前的片段文件；媒体库中可能显示为多个独立视频。</span>
+                  </div>
+                </a-form-item>
               </div>
-            </a-form-item>
-            <a-form-item v-if="formState.DownDynamicVideo" has-feedback label="保留原视频" name="KeepDynamicVideo" :wrapper-col="{ span: 20 }">
-              <a-switch v-model:checked="formState.KeepDynamicVideo" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启后，将保留合成视频之前的每个短视频（动态视频会有多个独立的短视频文件，可以选择保留-但不建议，否则emby会出现很多没有封面的视频...）</span>
-              </div>
-            </a-form-item>
-          </div>
+              <div v-if="downImgVideo">
 
-          <!-- 系统配置 -->
-          <div class="form-section">
-            <h3 class="section-title">其他配置</h3>
-
-            <a-form-item v-show="formState.AutoDistinct" has-feedback label="去重优先级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
-              <!-- Tag 拖拽容器 -->
-              <div class="tag-drag-container">
-                <!-- Tag 拖拽容器（绑定 ref 供 Sortable 初始化） -->
-                <div ref="tagContainer" class="tag-list">
-                  <a-tag v-for="(item, index) in tagData" :key="item.id" class="sortable-tag" color="blue">
-                    <!-- 用 "≡" 符号替代 a-icon 作为拖拽手柄 -->
-                    <span class="drag-handle" style="margin-right: 6px; cursor: move;">≡</span>
-                    {{ item.name }}
-                  </a-tag>
-                </div>
-              </div>
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>同一个视频同时存在在多个类型的视频分类时，按照优先级保优先级最高的一个。
-                  鼠标放到≡，点击鼠标左键即可拖拽调整优先级，</span>
-              </div>
-            </a-form-item>
-            <a-form-item label="视频画质" name="VideoQuality">
-              <a-radio-group v-model:value="formState.VideoQuality" button-style="solid">
-                <a-radio-button :value="0">原画 (302直链/极清)</a-radio-button>
-                <a-radio-button :value="1080">1080P 超清</a-radio-button>
-                <a-radio-button :value="720">720P 高清</a-radio-button>
-              </a-radio-group>
-            </a-form-item>
-            <a-form-item label="视频编码" name="VideoEncoder">
-              <a-radio-group v-model:value="formState.VideoEncoder" button-style="solid">
-                <a-radio-button :value="265">H265 (优先)</a-radio-button>
-                <a-radio-button :value="264">H264 (兼容)</a-radio-button>
-              </a-radio-group>
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启 H265 优先时，若该作品服务端未转码出 H265 流，系统会自动降级匹配同档位 H264，保证 100% 下载成功。</span>
-              </div>
-            </a-form-item>
-            <a-form-item label="关闭刮削" name="CloseNfo">
-              <a-switch v-model:checked="formState.CloseNfo" />
-
-            </a-form-item>
-            <a-form-item label="忽略文件存在检查" name="SkipFileExistenceCheck">
-              <a-switch v-model:checked="formState.SkipFileExistenceCheck" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启后，同步只按数据库记录判断是否已下载。即使文件被移动或原路径不可用，也不会重新下载；同步记录和海报墙将无法播放这些文件。</span>
-              </div>
-            </a-form-item>
-          </div>
-        </div>
-
-        <div class="config-column config-column-right">
-          <!-- 文件保存配置 -->
-          <div class="form-section">
-            <h3 class="section-title">博主视频</h3>
-
-            <!-- <a-form-item has-feedback label="默认规则" name="UperUseViedoTitle" :wrapper-col="{ span: 20 }">
-          <a-switch v-model:checked="formState.UperUseViedoTitle" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>开启后，将使用原标题作为文件名，未开启且未设置标题规则模板，则默认用视频id命名</span>
-          </div>
-        </a-form-item> -->
-
-            <!-- <a-form-item has-feedback label="统一存储" name="UperSaveTogether" :wrapper-col="{ span: 20 }">
-          <a-switch v-model:checked="formState.UperSaveTogether" />
-          <div class="flex items-start mt-1 text-sm text-gray-500">
-            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-            <span>开启后，所有博主视频直接都存一个根目录；关闭后，按博主名称创建文件夹单独存储。</span>
-          </div>
-        </a-form-item> -->
-
-            <!-- 模板相关配置：只有关闭"标题当文件名"时才显示 -->
-            <a-form-item class="title-template-item" has-feedback label="标题模板" name="FollowedTitleTemplate" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
-              <a-select v-model:value="formState.FollowedTitleTemplate" :options="template_options" mode="multiple" size="middle" placeholder="请选择占位符组合"></a-select>
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <p></p>
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span style="color: red">
-                  请选择文件名占位符和模板分隔符（文件名命名规则配置仅博主视频有效，不配置默认使用视频id作为文件名）
-                </span>
-              </div>
-            </a-form-item>
-
-            <a-form-item class="title-separator-item" has-feedback label="分隔符" name="FollowedTitleSeparator" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
-              <a-input v-model:value="formState.FollowedTitleSeparator" placeholder="请输入分隔符（如 - _ 或空）" style="width: 200px" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>
-                  占位符之间的连接符（如“-”“_”“.”），为空则直接拼接,不要使用无法用来作为文件名得特殊字符
-                </span>
-              </div>
-            </a-form-item>
-
-            <!-- 完整模板预览：只有关闭"标题当文件名"时才显示 -->
-            <a-form-item class="title-preview-item" label="标题预览" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
-              <a-input v-model:value="formState.FullFollowedTitleTemplate" placeholder="自定义标题预览" disabled style="background: #f5f5f5" />
-            </a-form-item>
-          </div>
-
-          <div class="form-section" v-if="downImgVideo">
-            <h3 class="section-title">图文视频</h3>
-
-            <a-form-item has-feedback label="下载图文视频" name="DownImageVideo" :wrapper-col="{ span: 20 }">
-              <a-switch v-model:checked="formState.DownImageVideo" @change="downImageVideoHandler" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启后，将图片文件和音频文件合成为视频文件</span>
-              </div>
-            </a-form-item>
-            <!-- <a-form-item v-if="formState.DownImageVideo" has-feedback label="单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
+                <a-form-item has-feedback label="图文视频" name="DownImageVideo" :wrapper-col="{ span: 20 }">
+                  <a-switch v-model:checked="formState.DownImageVideo" @change="downImageVideoHandler" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>将图文中的图片和音频合成为视频。</span>
+                  </div>
+                </a-form-item>
+                <!-- <a-form-item v-if="formState.DownImageVideo" has-feedback label="单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
           <a-switch v-model:checked="formState.ImageViedoSaveAlone" />
           <div class="flex items-start mt-1 text-sm text-gray-500">
             <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
@@ -172,145 +72,240 @@
             </span>
           </div>
         </a-form-item> -->
-            <a-form-item has-feedback label="保留音频" name="DownMp3" :wrapper-col="{ span: 20 }">
-              <a-switch v-model:checked="formState.DownMp3" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启后，将保留音频文件</span>
-              </div>
-            </a-form-item>
+                <div class="media-switch-grid">
+                  <a-form-item has-feedback label="保留音频" name="DownMp3" :wrapper-col="{ span: 20 }">
+                    <a-switch v-model:checked="formState.DownMp3" />
+                    <div class="flex items-start mt-1 text-sm text-gray-500">
+                      <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                      <span>同时保留原音频文件。</span>
+                    </div>
+                  </a-form-item>
 
-            <a-form-item has-feedback label="保留图片" name="DownImage" :wrapper-col="{ span: 20 }">
-              <a-switch v-model:checked="formState.DownImage" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>开启后，将保留图片文件</span>
-              </div>
-            </a-form-item>
-
-            <a-form-item has-feedback label="默认音频" name="AudioFile" :wrapper-col="{ span: 20 }">
-              <!-- 仅保留检测按钮 -->
-              <div class="audio-check-wrapper" style="display: flex; align-items: center; gap: 16px;">
-                <a-button type="primary" @click="checkAudioList">
-                  <play-circle-outlined /> 音频列表
-                </a-button>
-              </div>
-
-              <!-- 提示文本调整 -->
-              <div class="flex items-start mt-1 text-sm text-gray-500" style="color:red">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>当下载图文视频时，音频因版权原因无法下载时，将用该音频文件作为合成视频的音频(仅支持mp3、wav)</span>
-              </div>
-            </a-form-item>
-
-            <a-modal v-model:visible="audioListModalVisible" title="发现音频" width="666px" destroyOnClose @ok="closeAudioListModal" @cancel="closeAudioListModal">
-              <div class="audio-list-container" style="max-height: 500px; overflow-y: auto; padding: 10px 0;">
-                <!-- 空列表提示 -->
-                <div v-if="audioList.length === 0" style="text-align: center; padding: 40px; color: #999;">
-                  暂无可用音频文件
+                  <a-form-item has-feedback label="保留图片" name="DownImage" :wrapper-col="{ span: 20 }">
+                    <a-switch v-model:checked="formState.DownImage" />
+                    <div class="flex items-start mt-1 text-sm text-gray-500">
+                      <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                      <span>同时保留原图片文件。</span>
+                    </div>
+                  </a-form-item>
                 </div>
 
-                <!-- 音频列表（嵌入原生audio播放器） -->
-                <a-list v-else bordered :data-source="audioList" item-layout="horizontal">
-                  <template #renderItem="{item}">
-                    <a-list-item>
-                      <a-list-item-meta :title="item.filename " />
-                      <template #actions>
-                        <!-- 替换原播放按钮，嵌入原生HTML音频播放器 -->
-                        <audio class="native-audio-player" controls :src="'/api/config/getmp3?name='+item.filename" preload="none" @play="handleAudioPlay($event.target)">
-                          您的浏览器不支持HTML5音频播放器，请升级浏览器后重试。
-                        </audio>
-                      </template>
-                    </a-list-item>
-                  </template>
-                </a-list>
-              </div>
-            </a-modal>
-          </div>
+                <a-form-item has-feedback label="默认音频" name="AudioFile" :wrapper-col="{ span: 20 }">
+                  <!-- 仅保留检测按钮 -->
+                  <div class="audio-check-wrapper" style="display: flex; align-items: center; gap: 16px;">
+                    <a-button class="audio-list-button" type="primary" size="small" @click="checkAudioList">
+                      <play-circle-outlined /> 音频
+                    </a-button>
+                  </div>
 
-        </div>
-      </div>
-      <div class="form-section storage-config-section">
-        <h3 class="section-title">扩展存储</h3>
-        <div class="storage-root-settings-grid">
-          <div class="storage-setting">
-            <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
-            <a-select
-              v-if="isDockerDeployment"
-              id="storage-expansion-roots"
-              v-model:value="selectedDockerExpansionRoots"
-              mode="multiple"
-              :loading="storageRootsLoading"
-              :max-tag-count="'responsive'"
-              placeholder="请选择已在 Docker Compose 中挂载的扩展目录"
-              style="width: 100%"
-            >
-              <a-select-option v-for="path in dockerExpansionRoots" :key="path" :value="path">{{ path }}</a-select-option>
-            </a-select>
-            <a-input
-              v-else
-              id="storage-expansion-roots"
-              v-model:value="formState.StorageExpansionRootsText"
-              :disabled="componentDisabled"
-              placeholder="多个根目录用英文分号 ; 隔开，例如 D:\\DouyinStorage1; D:\\DouyinStorage2"
-            />
-            <div class="storage-setting-help">
-              <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-              <span v-if="isDockerDeployment">选项来自 Docker Compose 中已挂载且容器目录名以 dyapp_ 开头的目录。新增挂载后需重建容器。</span>
-              <span v-else>多个本机根目录用英文分号 ; 分隔，程序会在根目录下自动创建子目录。</span>
+                  <!-- 提示文本调整 -->
+                  <div class="flex items-start mt-1 text-sm text-gray-500" style="color:red">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>图文音频无法下载时用此文件替代；仅支持 MP3、WAV。</span>
+                  </div>
+                </a-form-item>
+
+                <a-modal v-model:visible="audioListModalVisible" title="发现音频" width="666px" destroyOnClose @ok="closeAudioListModal" @cancel="closeAudioListModal">
+                  <div class="audio-list-container" style="max-height: 500px; overflow-y: auto; padding: 10px 0;">
+                    <!-- 空列表提示 -->
+                    <div v-if="audioList.length === 0" style="text-align: center; padding: 40px; color: #999;">
+                      暂无可用音频文件
+                    </div>
+
+                    <!-- 音频列表（嵌入原生audio播放器） -->
+                    <a-list v-else bordered :data-source="audioList" item-layout="horizontal">
+                      <template #renderItem="{item}">
+                        <a-list-item>
+                          <a-list-item-meta :title="item.filename " />
+                          <template #actions>
+                            <!-- 替换原播放按钮，嵌入原生HTML音频播放器 -->
+                            <audio class="native-audio-player" controls :src="'/api/config/getmp3?name='+item.filename" preload="none" @play="handleAudioPlay($event.target)">
+                              您的浏览器不支持HTML5音频播放器，请升级浏览器后重试。
+                            </audio>
+                          </template>
+                        </a-list-item>
+                      </template>
+                    </a-list>
+                  </div>
+                </a-modal>
+              </div>
+            </div>
+            <div class="form-section download-preferences">
+              <h3 class="section-title">下载偏好</h3>
+              <div class="download-preference-grid">
+                <a-form-item class="preference-priority" v-show="formState.AutoDistinct" has-feedback label="去重优先级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
+                  <!-- Tag 拖拽容器 -->
+                  <div class="tag-drag-container">
+                    <!-- Tag 拖拽容器（绑定 ref 供 Sortable 初始化） -->
+                    <div ref="tagContainer" class="tag-list">
+                      <a-tag v-for="(item, index) in tagData" :key="item.id" class="sortable-tag" color="blue">
+                        <!-- 用 "≡" 符号替代 a-icon 作为拖拽手柄 -->
+                        <span class="drag-handle" style="margin-right: 6px; cursor: move;">≡</span>
+                        {{ item.name }}
+                      </a-tag>
+                    </div>
+                  </div>
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>同一视频仅保留优先级最高的一份；拖动标签可调整顺序。</span>
+                  </div>
+                </a-form-item>
+                <a-form-item label="视频画质" name="VideoQuality">
+                  <a-radio-group v-model:value="formState.VideoQuality" button-style="solid" size="small">
+                    <a-radio-button :value="0">原画 (302直链/极清)</a-radio-button>
+                    <a-radio-button :value="1080">1080P 超清</a-radio-button>
+                    <a-radio-button :value="720">720P 高清</a-radio-button>
+                  </a-radio-group>
+                </a-form-item>
+                <a-form-item label="视频编码" name="VideoEncoder">
+                  <a-radio-group v-model:value="formState.VideoEncoder" button-style="solid" size="small">
+                    <a-radio-button :value="265">H265 (优先)</a-radio-button>
+                    <a-radio-button :value="264">H264 (兼容)</a-radio-button>
+                  </a-radio-group>
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>优先下载 H.265；无对应码流时自动回退到同画质 H.264。</span>
+                  </div>
+                </a-form-item>
+                <a-form-item label="关闭刮削" name="CloseNfo">
+                  <a-switch v-model:checked="formState.CloseNfo" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>关闭后不生成 NFO，也不下载视频封面和作者头像，Emby、Jellyfin 等媒体库可能无法完整刮削和展示视频信息。</span>
+                  </div>
+                </a-form-item>
+                <a-form-item label="忽略检查文件存在" name="SkipFileExistenceCheck">
+                  <a-switch v-model:checked="formState.SkipFileExistenceCheck" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>仅按数据库记录判断是否已下载；文件移动或丢失后不会重下，记录中的路径也可能无法播放。</span>
+                  </div>
+                </a-form-item>
+              </div>
             </div>
           </div>
-          <div class="storage-setting">
-            <label class="storage-setting-label" for="storage-min-free-space">切换阈值（GB）</label>
-            <a-input-number id="storage-min-free-space" v-model:value="formState.StorageMinFreeSpaceGb" :min="0" :max="100000" />
-            <div class="storage-setting-help">
-              <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-              <span>当前存储位置剩余容量达到此值时，自动切到其他可用根目录。</span>
+        </a-tab-pane>
+        <a-tab-pane key="naming" tab="命名规则">
+          <div class="settings-tab-panel settings-tab-panel--narrow">
+            <div class="form-section filename-settings">
+              <h3 class="section-title">视频文件命名规则</h3>
+
+              <!-- <a-form-item has-feedback label="默认规则" name="UperUseViedoTitle" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.UperUseViedoTitle" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>开启后，将使用原标题作为文件名，未开启且未设置标题规则模板，则默认用视频id命名</span>
+          </div>
+        </a-form-item> -->
+
+              <!-- <a-form-item has-feedback label="统一存储" name="UperSaveTogether" :wrapper-col="{ span: 20 }">
+          <a-switch v-model:checked="formState.UperSaveTogether" />
+          <div class="flex items-start mt-1 text-sm text-gray-500">
+            <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+            <span>开启后，所有博主视频直接都存一个根目录；关闭后，按博主名称创建文件夹单独存储。</span>
+          </div>
+        </a-form-item> -->
+
+              <!-- 模板相关配置：只有关闭"标题当文件名"时才显示 -->
+              <div class="filename-settings-grid">
+                <a-form-item class="title-template-item" has-feedback label="标题模板" name="FollowedTitleTemplate" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
+                  <a-select v-model:value="formState.FollowedTitleTemplate" :options="template_options" mode="multiple" size="middle" placeholder="请选择占位符组合"></a-select>
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <p></p>
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span style="color: red">适用于点赞、收藏、关注和自定义收藏夹；合集、短剧仍按集数命名。留空时使用视频 ID。</span>
+                  </div>
+                </a-form-item>
+
+                <div class="filename-preview-grid">
+                  <a-form-item class="title-separator-item" has-feedback label="分隔字符" name="FollowedTitleSeparator" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
+                    <a-input v-model:value="formState.FollowedTitleSeparator" placeholder="请输入分隔符（如 - _ 或空）" style="width: 200px" />
+                    <div class="flex items-start mt-1 text-sm text-gray-500">
+                      <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                      <span>占位符之间的连接符，可留空；请勿使用文件名禁用字符。</span>
+                    </div>
+                  </a-form-item>
+
+                  <!-- 完整模板预览：只有关闭"标题当文件名"时才显示 -->
+                  <a-form-item class="title-preview-item" label="标题预览" :wrapper-col="{ span: 12 }" v-if="!formState.UperUseViedoTitle">
+                    <a-input v-model:value="formState.FullFollowedTitleTemplate" placeholder="自定义标题预览" disabled style="background: #f5f5f5" />
+                  </a-form-item>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="storage-active-roots-grid">
-          <div class="storage-setting">
-            <label class="storage-setting-label">收藏视频</label>
-            <a-select v-model:value="formState.ActiveCollectStorageRootIndex" style="width: 100%">
-              <a-select-option :value="0">原收藏路径</a-select-option>
-              <a-select-option v-for="(path, index) in expansionRoots" :key="`collect-${path}`" :value="index + 1">{{ path }}</a-select-option>
-            </a-select>
+        </a-tab-pane>
+        <a-tab-pane key="storage" tab="存储位置">
+          <div class="settings-tab-panel">
+            <div class="form-section storage-config-section">
+              <h3 class="section-title">扩展存储</h3>
+              <div class="storage-root-settings-grid">
+                <div class="storage-setting">
+                  <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
+                  <a-select v-if="isDockerDeployment" id="storage-expansion-roots" v-model:value="selectedDockerExpansionRoots" mode="multiple" :loading="storageRootsLoading" :max-tag-count="'responsive'" placeholder="请选择已在 Docker Compose 中挂载的扩展目录" style="width: 100%">
+                    <a-select-option v-for="path in dockerExpansionRoots" :key="path" :value="path">{{ path }}</a-select-option>
+                  </a-select>
+                  <a-input v-else id="storage-expansion-roots" v-model:value="formState.StorageExpansionRootsText" :disabled="componentDisabled" placeholder="多个根目录用英文分号 ; 隔开，例如 D:\\DouyinStorage1; D:\\DouyinStorage2" />
+                  <div class="storage-setting-help">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span v-if="isDockerDeployment">仅显示已挂载且容器目录名以 dyapp_ 开头的路径；新增挂载后需重建容器。</span>
+                    <span v-else>多个路径用英文分号分隔；程序会自动创建子目录。</span>
+                  </div>
+                </div>
+                <div class="storage-setting">
+                  <label class="storage-setting-label" for="storage-min-free-space">切换阈值（GB）</label>
+                  <a-input-number id="storage-min-free-space" v-model:value="formState.StorageMinFreeSpaceGb" :min="0" :max="100000" />
+                  <div class="storage-setting-help">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>剩余空间低于此值时，自动切换到其他可用根目录。</span>
+                  </div>
+                </div>
+              </div>
+              <div class="storage-active-roots-grid">
+                <div class="storage-setting">
+                  <label class="storage-setting-label">收藏视频</label>
+                  <a-select v-model:value="formState.ActiveCollectStorageRootIndex" style="width: 100%">
+                    <a-select-option :value="0">原收藏路径</a-select-option>
+                    <a-select-option v-for="(path, index) in expansionRoots" :key="`collect-${path}`" :value="index + 1">{{ path }}</a-select-option>
+                  </a-select>
+                </div>
+                <div class="storage-setting">
+                  <label class="storage-setting-label">喜欢视频</label>
+                  <a-select v-model:value="formState.ActiveFavoriteStorageRootIndex" style="width: 100%">
+                    <a-select-option :value="0">原喜欢路径</a-select-option>
+                    <a-select-option v-for="(path, index) in expansionRoots" :key="`favorite-${path}`" :value="index + 1">{{ path }}</a-select-option>
+                  </a-select>
+                </div>
+                <div class="storage-setting">
+                  <label class="storage-setting-label">博主视频</label>
+                  <a-select v-model:value="formState.ActiveFollowedStorageRootIndex" style="width: 100%">
+                    <a-select-option :value="0">原博主路径</a-select-option>
+                    <a-select-option v-for="(path, index) in expansionRoots" :key="`followed-${path}`" :value="index + 1">{{ path }}</a-select-option>
+                  </a-select>
+                </div>
+                <div class="storage-setting">
+                  <label class="storage-setting-label">合集视频</label>
+                  <a-select v-model:value="formState.ActiveMixStorageRootIndex" style="width: 100%">
+                    <a-select-option :value="0">原合集路径</a-select-option>
+                    <a-select-option v-for="(path, index) in expansionRoots" :key="`mix-${path}`" :value="index + 1">{{ path }}</a-select-option>
+                  </a-select>
+                </div>
+                <div class="storage-setting">
+                  <label class="storage-setting-label">短剧视频</label>
+                  <a-select v-model:value="formState.ActiveSeriesStorageRootIndex" style="width: 100%">
+                    <a-select-option :value="0">原短剧路径</a-select-option>
+                    <a-select-option v-for="(path, index) in expansionRoots" :key="`series-${path}`" :value="index + 1">{{ path }}</a-select-option>
+                  </a-select>
+                </div>
+              </div>
+              <div class="storage-setting-help storage-setting-footer-help">
+                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                <span>仅影响后续新视频，不会移动已下载文件。</span>
+              </div>
+            </div>
           </div>
-          <div class="storage-setting">
-            <label class="storage-setting-label">喜欢视频</label>
-            <a-select v-model:value="formState.ActiveFavoriteStorageRootIndex" style="width: 100%">
-              <a-select-option :value="0">原喜欢路径</a-select-option>
-              <a-select-option v-for="(path, index) in expansionRoots" :key="`favorite-${path}`" :value="index + 1">{{ path }}</a-select-option>
-            </a-select>
-          </div>
-          <div class="storage-setting">
-            <label class="storage-setting-label">博主视频</label>
-            <a-select v-model:value="formState.ActiveFollowedStorageRootIndex" style="width: 100%">
-              <a-select-option :value="0">原博主路径</a-select-option>
-              <a-select-option v-for="(path, index) in expansionRoots" :key="`followed-${path}`" :value="index + 1">{{ path }}</a-select-option>
-            </a-select>
-          </div>
-          <div class="storage-setting">
-            <label class="storage-setting-label">合集视频</label>
-            <a-select v-model:value="formState.ActiveMixStorageRootIndex" style="width: 100%">
-              <a-select-option :value="0">原合集路径</a-select-option>
-              <a-select-option v-for="(path, index) in expansionRoots" :key="`mix-${path}`" :value="index + 1">{{ path }}</a-select-option>
-            </a-select>
-          </div>
-          <div class="storage-setting">
-            <label class="storage-setting-label">短剧视频</label>
-            <a-select v-model:value="formState.ActiveSeriesStorageRootIndex" style="width: 100%">
-              <a-select-option :value="0">原短剧路径</a-select-option>
-              <a-select-option v-for="(path, index) in expansionRoots" :key="`series-${path}`" :value="index + 1">{{ path }}</a-select-option>
-            </a-select>
-          </div>
-        </div>
-        <div class="storage-setting-help storage-setting-footer-help">
-          <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-          <span>可分别手动切换各类型后续新视频的存储根目录，已下载文件不会移动。</span>
-        </div>
-      </div>
+        </a-tab-pane>
+      </a-tabs>
       <div class="bottom-config-actions">
         <a-space size="middle">
           <a-button type="primary" @click="onUpdate" v-if="componentDisabled">
@@ -478,11 +473,13 @@ const formState: UnwrapRef<FormState> = reactive({
   ActiveSeriesStorageRootIndex: 0,
 });
 
-const expansionRoots = computed(() => isDockerDeployment.value
-  ? selectedDockerExpansionRoots.value
-  : formState.StorageExpansionRootsText.split(';')
-    .map((path) => path.trim())
-    .filter((path) => path.length > 0));
+const expansionRoots = computed(() =>
+  isDockerDeployment.value
+    ? selectedDockerExpansionRoots.value
+    : formState.StorageExpansionRootsText.split(';')
+        .map((path) => path.trim())
+        .filter((path) => path.length > 0)
+);
 
 const loadStorageDeploymentSettings = async () => {
   const api = useApiStore();
@@ -496,8 +493,9 @@ const loadStorageDeploymentSettings = async () => {
       const response = await api.apiGetDockerStorageExpansionRoots();
       if (response.code === 0) {
         dockerExpansionRoots.value = response.data || [];
-        selectedDockerExpansionRoots.value = selectedDockerExpansionRoots.value
-          .filter((path) => dockerExpansionRoots.value.includes(path));
+        selectedDockerExpansionRoots.value = selectedDockerExpansionRoots.value.filter((path) =>
+          dockerExpansionRoots.value.includes(path)
+        );
       } else {
         message.error(response.message || '获取 Docker 扩展目录失败');
       }
@@ -1321,6 +1319,13 @@ const renfo = () => {
   line-height: 32px;
 }
 
+.system-config-form :deep(.ant-radio-group-small .ant-radio-button-wrapper) {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 13px;
+  line-height: 26px;
+}
+
 .system-config-form :deep(.ant-radio-button-wrapper:first-child) {
   border-radius: 8px 0 0 8px;
 }
@@ -1397,6 +1402,15 @@ const renfo = () => {
   border-radius: 8px;
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
   box-shadow: 0 5px 13px rgba(109, 40, 217, 0.18);
+}
+
+.audio-check-wrapper :deep(.ant-btn-primary.audio-list-button) {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 22px;
+  box-shadow: 0 2px 6px rgba(109, 40, 217, 0.16);
 }
 
 /* 操作区横跨两列 */
@@ -1798,7 +1812,7 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 
 /*
  * 只改变视觉排列：
- * 左列：任务调度、动态视频、其他配置
+ * 左列：任务调度、动态视频、下载偏好
  * 右列：博主视频、图文视频
  * 右列略宽，给标题模板和说明文字更多空间。
  */
@@ -1840,10 +1854,29 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 }
 
 .storage-root-settings-grid {
+  display: block;
+}
+
+.storage-root-settings-grid .storage-setting {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  gap: 18px;
-  align-items: start;
+  grid-template-columns: 180px minmax(180px, 280px) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  margin-bottom: 14px;
+}
+
+.storage-root-settings-grid .storage-setting-label {
+  margin: 0;
+}
+
+.storage-root-settings-grid .storage-setting-help {
+  grid-column: 3;
+  margin-top: 0;
+}
+
+.storage-root-settings-grid #storage-min-free-space {
+  width: 60px;
+  max-width: 100%;
 }
 
 .storage-active-roots-grid {
@@ -1894,16 +1927,16 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 }
 
 @media (max-width: 1380px) {
-  .storage-root-settings-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .storage-active-roots-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
+  .storage-root-settings-grid .storage-setting {
+    grid-template-columns: 110px minmax(140px, 200px) minmax(160px, 1fr);
+  }
+
   .storage-active-roots-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1942,7 +1975,7 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
   margin-bottom: 11px !important;
 }
 
-/* 其他配置区域的提示文字更紧凑 */
+/* 下载偏好区域的提示文字更紧凑 */
 .config-column-left .form-section:last-child :deep(.flex.items-start.mt-1.text-sm.text-gray-500) {
   padding-top: 6px;
   padding-bottom: 6px;
@@ -2110,7 +2143,7 @@ html.dark-mode .right-column-actions {
 
 /*
  * 两列由同一个 Grid 行承载，强制左右列占满同一高度。
- * 左侧最后一个“其他配置”卡片自动吸收少量剩余高度，
+ * 左侧最后一个“下载偏好”卡片自动吸收少量剩余高度，
  * 与右侧保存按钮区域的底边严格对齐。
  */
 .config-columns {
@@ -2150,6 +2183,187 @@ html.dark-mode .right-column-actions {
 
   .config-column-left .form-section:last-child {
     flex: 0 0 auto;
+  }
+}
+
+/* Settings are grouped by task; keep each tab compact and easy to scan. */
+.settings-tabs :deep(.ant-tabs-nav) {
+  margin-bottom: 14px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f0f3f8;
+}
+.settings-tabs :deep(.ant-tabs-nav::before) {
+  border-bottom: 0;
+}
+.settings-tabs :deep(.ant-tabs-tab) {
+  flex: 1 1 0;
+  justify-content: center;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-weight: 600;
+}
+.settings-tabs :deep(.ant-tabs-nav-list) {
+  display: flex;
+  width: 100%;
+}
+.settings-tabs :deep(.ant-tabs-tab-active) {
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(30, 41, 59, 0.12);
+}
+.settings-tabs :deep(.ant-tabs-ink-bar) {
+  display: none;
+}
+.settings-tab-panel {
+  display: block;
+  align-items: start;
+}
+.settings-tab-panel--narrow {
+  display: block;
+}
+.sync-settings-grid,
+.download-preference-grid,
+.filename-settings-grid {
+  display: block;
+}
+.sync-settings-grid {
+  display: block;
+}
+.settings-tab-panel :deep(.ant-form-item-row) {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: flex-start;
+  width: 100%;
+}
+.settings-tab-panel :deep(.ant-form-item-label) {
+  width: 150px !important;
+  max-width: 150px !important;
+  flex: 0 0 150px !important;
+  padding: 0 12px 0 0 !important;
+  text-align: left !important;
+}
+.settings-tab-panel :deep(.ant-form-item-control) {
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0;
+  flex: 1 1 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.settings-tab-panel :deep(.ant-form-item-control-input) {
+  width: 100%;
+  min-width: 0;
+}
+.settings-tab-panel :deep(.ant-form-item-control-input-content) {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .flex.items-start.mt-1.text-sm.text-gray-500) {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-top: 0 !important;
+  white-space: normal;
+}
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .ant-input) {
+  max-width: 360px;
+  flex: 0 1 360px;
+}
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .ant-select) {
+  width: min(360px, 45%) !important;
+  max-width: 360px;
+  flex: 0 1 360px;
+}
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .ant-input-number) {
+  width: 60px;
+  flex: 0 0 60px;
+}
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .ant-radio-group),
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .ant-switch),
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .audio-check-wrapper),
+.settings-tab-panel :deep(.ant-form-item-control-input-content > .tag-drag-container) {
+  flex: 0 1 auto;
+}
+.filename-settings :deep(.title-template-item .ant-form-item-control-input-content),
+.filename-settings :deep(.title-separator-item .ant-form-item-control-input-content) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 80%) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 10px;
+}
+.filename-settings :deep(.title-separator-item .ant-form-item-control-input-content) {
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+}
+.filename-settings :deep(.title-template-item .ant-form-item-control-input-content > .ant-select),
+.filename-settings :deep(.title-separator-item .ant-form-item-control-input-content > .ant-input) {
+  grid-column: 1;
+  width: 100% !important;
+  max-width: 100%;
+  flex: none;
+}
+.filename-settings :deep(.title-preview-item .ant-form-item-control-input-content > .ant-input) {
+  width: 80% !important;
+  max-width: 80%;
+  flex: 0 0 80%;
+}
+.filename-settings
+  :deep(.title-template-item .ant-form-item-control-input-content > .flex.items-start.mt-1.text-sm.text-gray-500),
+.filename-settings
+  :deep(.title-separator-item .ant-form-item-control-input-content > .flex.items-start.mt-1.text-sm.text-gray-500) {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 0 !important;
+}
+.sync-only-new,
+.preference-priority,
+.title-template-item {
+  grid-column: 1 / -1;
+}
+.settings-tab-panel--download {
+  display: block;
+}
+.media-switch-grid {
+  display: block;
+}
+.filename-preview-grid {
+  display: block;
+}
+.settings-tab-panel > .form-section {
+  width: 100%;
+  min-width: 0;
+  margin: 0 !important;
+}
+.settings-tab-panel > .storage-config-section {
+  width: 100%;
+}
+.bottom-config-actions {
+  justify-content: center;
+}
+@media (max-width: 980px) {
+  .settings-tab-panel {
+    display: block;
+  }
+}
+@media (max-width: 680px) {
+  .settings-tabs :deep(.ant-tabs-tab) {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  .sync-only-new,
+  .preference-priority,
+  .title-template-item {
+    width: 100%;
+  }
+  .settings-tab-panel :deep(.ant-form-item-row) {
+    display: flex !important;
+    flex-flow: row nowrap !important;
+  }
+  .settings-tab-panel :deep(.ant-form-item-label) {
+    width: 112px !important;
+    max-width: 112px !important;
+    flex-basis: 112px !important;
   }
 }
 </style>

@@ -397,85 +397,76 @@ namespace dy.net.job
         /// <returns>生成的视频文件名</returns>
         protected virtual string GetVideoFileName(DouyinCookie cookie, Aweme item, AppConfig config, DouyinCollectCate cate)
         {
-            if (cate != null && cate.CateType == VideoTypeEnum.dy_custom_collect)
+            if ((VideoType == VideoTypeEnum.dy_series || VideoType == VideoTypeEnum.dy_mix) && item.MixInfo?.Statis?.CurrentEpisode != null)
             {
-                if (item.Video != null && item.Video.BitRate != null)
-                    return $"{item.AwemeId}.{item.Video.BitRate.FirstOrDefault().Format}";
-                return $"{item.AwemeId}.mp4";
+                // 第一步：将 CurrentEpisode 转换为整数（兼容字符串/数字类型）
+                if (int.TryParse(item.MixInfo.Statis.CurrentEpisode.ToString(), out int episodeNum))
+                {
+                    // 第二步：格式化数字，确保 1-9 补 0，10+ 保持原样
+                    string episodeStr = episodeNum.ToString("D2");
+                    return $"S01E{episodeStr}.mp4";
+                }
+                // 容错：如果转换失败，使用原始值（避免程序报错）
+                return $"S01E{item.MixInfo.Statis.CurrentEpisode}.mp4";
             }
             else
             {
-                if ((VideoType == VideoTypeEnum.dy_series || VideoType == VideoTypeEnum.dy_mix) && item.MixInfo?.Statis?.CurrentEpisode != null)
+                string Format = "mp4";
+                string FileHash = "";
+                string Height = "";
+                string Width = "";
+
+                if (item.Video != null && item.Video.BitRate != null)
                 {
-                    // 第一步：将 CurrentEpisode 转换为整数（兼容字符串/数字类型）
-                    if (int.TryParse(item.MixInfo.Statis.CurrentEpisode.ToString(), out int episodeNum))
-                    {
-                        // 第二步：格式化数字，确保 1-9 补 0，10+ 保持原样
-                        string episodeStr = episodeNum.ToString("D2");
-                        return $"S01E{episodeStr}.mp4";
-                    }
-                    // 容错：如果转换失败，使用原始值（避免程序报错）
-                    return $"S01E{item.MixInfo.Statis.CurrentEpisode}.mp4";
+                    var bitrate = item.Video.BitRate.FirstOrDefault();
+                    Format = bitrate.Format;
+                    FileHash = bitrate.PlayAddr.FileHash;
+                    Height = bitrate.PlayAddr.Height.ToString();
+                    Width = bitrate.PlayAddr.Width.ToString();
                 }
                 else
                 {
-                    string Format = "mp4";
-                    string FileHash = "";
-                    string Height = "";
-                    string Width = "";
-
-                    if (item.Video != null && item.Video.BitRate != null)
+                    //图片合成视频，参数要自己写。
+                    var image = item.Images?.FirstOrDefault();
+                    if (image != null)
                     {
-                        var bitrate = item.Video.BitRate.FirstOrDefault();
-                        Format = bitrate.Format;
-                        FileHash = bitrate.PlayAddr.FileHash;
-                        Height = bitrate.PlayAddr.Height.ToString();
-                        Width = bitrate.PlayAddr.Width.ToString();
+                        FileHash = IdGener.GetGuid().ToLower().Replace("-", "");//使用随机值，避免重复
+                        Height = image.Height.ToString();
+                        Width = image.Width.ToString();
                     }
-                    else
-                    {
-                        //图片合成视频，参数要自己写。
-                        var image = item.Images?.FirstOrDefault();
-                        if (image != null)
-                        {
-                            FileHash = IdGener.GetGuid().ToLower().Replace("-", "");//使用随机值，避免重复
-                            Height = image.Height.ToString();
-                            Width = image.Width.ToString();
-                        }
-                    }
-
-
-                    string fileName;
-                    //if (config?.UperUseViedoTitle ?? false)//优先
-                    //{
-                    //    var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
-                    //    var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
-                    //    fileName = string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{Format}" : $"{existingName}.{Format}";
-                    //}
-                    //else
-                    //{
-
-                    if (!string.IsNullOrWhiteSpace(config.FullFollowedTitleTemplate))
-                    {
-                        var fullName = VideoTitleGenerator.Generate(config.FullFollowedTitleTemplate, new VideoTitleDataTemplate
-                        {
-                            FileHash = FileHash,
-                            Id = item.AwemeId,
-                            ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
-                            Resolution = $"{Width}×{Height}",
-                            VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId),
-                            Author = item.Author.Nickname
-                        });
-
-                        fileName = $"{fullName}.{Format}";
-                    }
-                    else
-                    {
-                        fileName = $"{item.AwemeId}.{Format}";
-                    }
-                    //}
-                    return fileName;
                 }
+
+
+                string fileName;
+                //if (config?.UperUseViedoTitle ?? false)//优先
+                //{
+                //    var sampleName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId);
+                //    var (existingName, _) = douyinVideoService.GetUperLastViedoFileName(item.Author.Uid, sampleName);
+                //    fileName = string.IsNullOrWhiteSpace(existingName) ? $"{sampleName}.{Format}" : $"{existingName}.{Format}";
+                //}
+                //else
+                //{
+
+                if (!string.IsNullOrWhiteSpace(config.FullFollowedTitleTemplate))
+                {
+                    var fullName = VideoTitleGenerator.Generate(config.FullFollowedTitleTemplate, new VideoTitleDataTemplate
+                    {
+                        FileHash = FileHash,
+                        Id = item.AwemeId,
+                        ReleaseTime = DateTimeUtil.Convert10BitTimestamp(item.CreateTime),
+                        Resolution = $"{Width}×{Height}",
+                        VideoTitle = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId),
+                        Author = item.Author.Nickname
+                    });
+
+                    fileName = $"{fullName}.{Format}";
+                }
+                else
+                {
+                    fileName = $"{item.AwemeId}.{Format}";
+                }
+                //}
+                return fileName;
             }
         }
         /// <summary>
@@ -907,7 +898,7 @@ namespace dy.net.job
                     itemFollowed ??= uper;
                 }
                 // 处理单个视频
-                var video = await ProcessSingleVideo(cookie, item, config, itemFollowed, cate);
+                var video = await ProcessSingleVideo(cookie, item, config, itemFollowed, cate, exitVideo);
                 if (video != null)
                 {
                     videos.Add(video);
@@ -953,7 +944,7 @@ namespace dy.net.job
                     if (dynamicVideoUrls.Count > 0)
                     {
                         // 处理动态视频
-                        var dynamicVideo = await ProcessDynamicVideo(dynamicVideoUrls, cookie, item, config, itemFollowed, cate);
+                        var dynamicVideo = await ProcessDynamicVideo(dynamicVideoUrls, cookie, item, config, itemFollowed, cate, exitVideo);
                         if (dynamicVideo != null)
                         {
                             if (!string.IsNullOrEmpty(dynamicVideo.DynamicVideos))
@@ -995,7 +986,7 @@ namespace dy.net.job
                             //动态视频生成nfo
                             if (cate != null && (VideoType == VideoTypeEnum.dy_mix || VideoType == VideoTypeEnum.dy_series))
                             {
-                                NfoFileGenerator.GenerateVideoNfoFile(config.CloseNfo,dynamicVideo, cate.Name);
+                                NfoFileGenerator.GenerateVideoNfoFile(config.CloseNfo, dynamicVideo, cate.Name);
                             }
                             else
                             {
@@ -1018,7 +1009,7 @@ namespace dy.net.job
                         // 处理图文视频逻辑
                         if (config.DownImageVideo || config.DownMp3 || config.DownImage)
                         {
-                            var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, config, itemFollowed, cate);
+                            var mergevideo = await ProcessImageSetAndMergeToVideo(cookie, item, config, itemFollowed, cate, exitVideo);
                             if (mergevideo != null)
                             {
                                 videos.Add(mergevideo);
@@ -1209,6 +1200,43 @@ namespace dy.net.job
             }
         }
 
+        protected string ResolveVideoFileNameCollision(string saveFolder, string fileName, string awemeId, DouyinVideo existingVideo = null)
+        {
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+            var extension = Path.GetExtension(fileName);
+            var candidateFileName = fileName;
+            var index = 1;
+
+            while (File.Exists(Path.Combine(saveFolder, candidateFileName)))
+            {
+                var candidatePath = Path.GetFullPath(Path.Combine(saveFolder, candidateFileName));
+                var isSameVideo = existingVideo != null
+                    && string.Equals(existingVideo.AwemeId, awemeId, StringComparison.Ordinal)
+                    && !string.IsNullOrWhiteSpace(existingVideo.VideoSavePath)
+                    && string.Equals(
+                        Path.GetFullPath(existingVideo.VideoSavePath),
+                        candidatePath,
+                        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+
+                if (isSameVideo)
+                    return candidateFileName;
+
+                if (index > 3)
+                {
+                    var uniqueFileName = $"{nameWithoutExtension}_{awemeId}_{Guid.NewGuid():N}{extension}";
+                    if (File.Exists(Path.Combine(saveFolder, uniqueFileName)))
+                        throw new IOException($"无法为视频 {awemeId} 生成唯一文件名");
+                    return uniqueFileName;
+                }
+
+                var suffix = index == 1 ? $"_{awemeId}" : $"_{awemeId}_{index}";
+                candidateFileName = $"{nameWithoutExtension}{suffix}{extension}";
+                index++;
+            }
+
+            return candidateFileName;
+        }
+
         /// <summary>
         /// 处理单个视频--正常的收藏喜欢关注的 视频
         /// 负责下载视频、封面、头像，生成NFO文件，创建视频实体等
@@ -1219,7 +1247,7 @@ namespace dy.net.job
         /// <param name="followed">关注</param>
         /// <param name="cate"></param>
         /// <returns>处理后的视频实体，如果处理失败则为null</returns>
-        protected async Task<DouyinVideo> ProcessSingleVideo(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
+        protected async Task<DouyinVideo> ProcessSingleVideo(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null, DouyinVideo existingVideo = null)
         {
             // 检查视频数据是否有效
             if (!IsAwemeValid(item)) return null;
@@ -1242,6 +1270,7 @@ namespace dy.net.job
                 if (!string.IsNullOrWhiteSpace(uri))
                 {
                     videoUrl = $"https://www.iesdouyin.com/aweme/v1/play/?video_id={uri}&ratio=default&watermark=0&source=PackSourceEnum_PUBLISH";
+                    Log.Debug("原画URL=" + videoUrl);
                 }
             }
 
@@ -1259,7 +1288,7 @@ namespace dy.net.job
             // 创建保存文件夹
             var saveFolder = CreateSaveFolder(cookie, item, config, followed, cate);
             // 获取视频文件名
-            var fileName = GetVideoFileName(cookie, item, config, cate);
+            var fileName = ResolveVideoFileNameCollision(saveFolder, GetVideoFileName(cookie, item, config, cate), item.AwemeId, existingVideo);
             // 拼接视频保存路径
             var savePath = Path.Combine(saveFolder, fileName);
             var savePath2 = Path.Combine(saveFolder, DateTime.Now.Ticks + ".mp4");
@@ -1292,9 +1321,9 @@ namespace dy.net.job
                 Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载完成.");
             }
             // 下载视频封面
-            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate,config);
+            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate, config);
             // 下载作者头像
-            var avatarSavePath = await DownAuthorAvatar(cookie, item,config);
+            var avatarSavePath = await DownAuthorAvatar(cookie, item, config);
 
             // 创建视频实体
             return await CreateVideoEntity(config, cookie, item, v, savePath, coverSavePath, avatarSavePath, null, cate);
@@ -1355,14 +1384,17 @@ namespace dy.net.job
         /// <param name="followed"></param>
         /// <param name="cate"></param>
         /// <returns></returns>
-        protected async Task<DouyinVideo> ProcessDynamicVideo(List<DouyinMergeVideoDto> dynamicUrls, DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
+        protected async Task<DouyinVideo> ProcessDynamicVideo(List<DouyinMergeVideoDto> dynamicUrls, DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null, DouyinVideo existingVideo = null)
         {
             // 创建保存文件夹
             var saveFolder = CreateSaveFolder(cookie, item, config, followed, cate);
             // 获取视频文件名
             //var fileName = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId) + ".mp4";
 
-            var fileName = $"{item.AwemeId}.mp4";
+            var desiredFileName = VideoType == VideoTypeEnum.dy_mix || VideoType == VideoTypeEnum.dy_series
+                ? $"{item.AwemeId}.mp4"
+                : $"{Path.GetFileNameWithoutExtension(GetVideoFileName(cookie, item, config, cate))}.mp4";
+            var fileName = ResolveVideoFileNameCollision(saveFolder, desiredFileName, item.AwemeId, existingVideo);
             // 拼接视频保存路径
             var savePath = Path.Combine(saveFolder, fileName);
 
@@ -1400,7 +1432,7 @@ namespace dy.net.job
 
 
             // 下载视频封面
-            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate,config);
+            var coverSavePath = await DownVideoCover(item, savePath, cookie, cate, config);
             // 下载作者头像
             var avatarSavePath = await DownAuthorAvatar(cookie, item, config);
 
@@ -1484,7 +1516,7 @@ namespace dy.net.job
         /// <param name="followed">应用配置</param>
         /// <param name="cate"></param>
         /// <returns>合成后的视频实体，如果处理失败则为null</returns>
-        protected async Task<DouyinVideo> ProcessImageSetAndMergeToVideo(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
+        protected async Task<DouyinVideo> ProcessImageSetAndMergeToVideo(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate, DouyinVideo existingVideo = null)
         {
             try
             {
@@ -1508,7 +1540,7 @@ namespace dy.net.job
 
                 if (!Directory.Exists(fileNamefolder)) Directory.CreateDirectory(fileNamefolder);
 
-                var fileName = GetVideoFileName(cookie, item, config, cate);
+                var fileName = ResolveVideoFileNameCollision(fileNamefolder, GetVideoFileName(cookie, item, config, cate), item.AwemeId, existingVideo);
                 // 合成视频的保存路径
                 var savePath = Path.Combine(fileNamefolder, fileName);
 
@@ -1668,7 +1700,7 @@ namespace dy.net.job
         /// <param name="cookie">用户Cookie</param>
         /// <param name="cate"></param>
         /// <returns>一个表示异步操作的任务</returns>
-        protected async Task<string> DownVideoCover(Aweme item, string savePath, DouyinCookie cookie, DouyinCollectCate cate,AppConfig config)
+        protected async Task<string> DownVideoCover(Aweme item, string savePath, DouyinCookie cookie, DouyinCollectCate cate, AppConfig config)
         {
             if (config.CloseNfo) return string.Empty;
             // 定义封面URL变量
@@ -1702,7 +1734,7 @@ namespace dy.net.job
         /// <param name="cookie">用户Cookie</param>
         /// <param name="item">视频信息</param>
         /// <returns>一个元组，包含头像保存路径和头像URL</returns>
-        protected async Task<string> DownAuthorAvatar(DouyinCookie cookie, Aweme item,AppConfig config)
+        protected async Task<string> DownAuthorAvatar(DouyinCookie cookie, Aweme item, AppConfig config)
         {
             if (config.CloseNfo) return string.Empty;
             if (item.Author == null) return string.Empty;
@@ -1798,7 +1830,7 @@ namespace dy.net.job
         /// <param name="savePath">封面保存文件夹</param>
         /// <param name="cookie">用户Cookie</param>
         /// <returns>一个表示异步操作的任务</returns>
-        private async Task<string> DownVideoCover(string coverUrl, string savePath, DouyinCookie cookie,AppConfig config)
+        private async Task<string> DownVideoCover(string coverUrl, string savePath, DouyinCookie cookie, AppConfig config)
         {
             if (config.CloseNfo) return string.Empty;
             if (string.IsNullOrWhiteSpace(coverUrl)) return string.Empty;

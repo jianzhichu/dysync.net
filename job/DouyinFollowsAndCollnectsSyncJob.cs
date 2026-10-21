@@ -235,6 +235,7 @@ namespace dy.net.job
             }
 
             var followList = new List<FollowingsItem>(FOLLOW_SYNC_BATCH_SIZE);
+            var isFirstSync = config.IsFirstRunning;
             string offset = "0";
             bool hasMore = true;
             int total = 0;
@@ -296,7 +297,7 @@ namespace dy.net.job
 
                     if (followList.Count >= FOLLOW_SYNC_BATCH_SIZE || !hasMore)
                     {
-                        await PersistFollowBatchAsync(followList, cookie, cancellationToken);
+                        await PersistFollowBatchAsync(followList, cookie, cancellationToken, logBatch: !isFirstSync);
                         followList.Clear();
                     }
                     if (hasMore)
@@ -306,7 +307,10 @@ namespace dy.net.job
                 }
 
                 await _douyinCommonService.SetConfigNotFirstRunning();
-                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]同步完成，接口总关注数:{total}，本轮读取页数:{pageCount}，这是同步关注列表，这不是同步视频！！！");
+                if (isFirstSync)
+                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]首次同步完成，关注总数:{total}");
+                else
+                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]同步完成，接口总关注数:{total}，本轮读取页数:{pageCount}，这是同步关注列表，这不是同步视频！！！");
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -318,7 +322,7 @@ namespace dy.net.job
             }
         }
 
-        private async Task PersistFollowBatchAsync(List<FollowingsItem> followList, DouyinCookie cookie, CancellationToken cancellationToken)
+        private async Task PersistFollowBatchAsync(List<FollowingsItem> followList, DouyinCookie cookie, CancellationToken cancellationToken, bool logBatch = true)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (followList.Count == 0) return;
@@ -328,7 +332,8 @@ namespace dy.net.job
             {
                 throw new InvalidOperationException($"关注列表分批入库失败，当前批次{followList.Count}条");
             }
-            Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]批次同步完成 新增:{add} 更新:{update} 成功:{succ} 批次:{followList.Count}");
+            if (logBatch)
+                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]批次同步完成 新增:{add} 更新:{update} 成功:{succ} 批次:{followList.Count}");
         }
         #endregion
 
