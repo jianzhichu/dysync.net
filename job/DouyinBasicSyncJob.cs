@@ -1,4 +1,4 @@
-﻿using ClockSnowFlake;
+using ClockSnowFlake;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.model.response;
@@ -1231,8 +1231,26 @@ namespace dy.net.job
                 Serilog.Log.Error($"[{cookie.UserName}][{VideoType.GetDesc()}][{item.Desc}]未获取到下载地址");
                 return null;
             }
-            //Serilog.Log.Debug($"{v.QualityType}-{v.BitRateValue}-{v.IsH265}-{v.HdrBit}");
-            var videoUrl = v.PlayAddr.UrlList.Where(x => !string.IsNullOrEmpty(x))?.FirstOrDefault();
+
+            string videoUrl = null;
+            var targetQuality = config?.VideoQuality ?? 0;
+
+            // 1. 若配置为原画优先(0)，优先拼装官方 302 无水印发布原画直链 (方案 A)
+            if (targetQuality == 0)
+            {
+                var uri = item.Video?.PlayAddr?.Uri ?? v?.PlayAddr?.Uri ?? item.Video?.BitRate?.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x?.PlayAddr?.Uri))?.PlayAddr?.Uri;
+                if (!string.IsNullOrWhiteSpace(uri))
+                {
+                    videoUrl = $"https://www.iesdouyin.com/aweme/v1/play/?video_id={uri}&ratio=default&watermark=0&source=PackSourceEnum_PUBLISH";
+                }
+            }
+
+            // 2. 若未走 302 或未获取到 uri，使用按画质和编码档位精准筛选出的直链 (方案 B)
+            if (string.IsNullOrWhiteSpace(videoUrl))
+            {
+                videoUrl = v.PlayAddr?.UrlList?.Where(x => !string.IsNullOrEmpty(x))?.FirstOrDefault();
+            }
+
             if (string.IsNullOrWhiteSpace(videoUrl))
             {
                 Serilog.Log.Error($"[{cookie.UserName}][{VideoType.GetDesc()}]未获取到下载地址");
@@ -1284,17 +1302,47 @@ namespace dy.net.job
 
         private static VideoBitRate GetBestMatchedVideoUrl(Aweme item, AppConfig config)
         {
+            if (item?.Video?.BitRate == null || !item.Video.BitRate.Any())
+                return null;
+
             var preferredH265 = config?.VideoEncoder == 265;
+            var targetQuality = config?.VideoQuality ?? 0; // 0=原画, 1080=1080P超清, 720=720P高清
 
-            VideoBitRate FindBest(bool useH265) => item.Video.BitRate
-                .Where(v => v != null &&
-                            v.IsH265 == (useH265 ? 1 : 0) &&
-                            v.PlayAddr?.UrlList?.Any(url => !string.IsNullOrWhiteSpace(url)) == true)
-                .OrderByDescending(v => v.BitRateValue)
-                .FirstOrDefault();
+            var validStreams = item.Video.BitRate
+                .Where(v => v != null && v.PlayAddr?.UrlList?.Any(url => !string.IsNullOrWhiteSpace(url)) == true)
+                .ToList();
 
-            // 优先使用配置的编码；当前编码没有可用地址时，自动回退到另一种编码。
-            return FindBest(preferredH265) ?? FindBest(!preferredH265);
+            if (!validStreams.Any()) return null;
+
+            VideoBitRate MatchStream(bool useH265, int quality)
+            {
+                var query = validStreams.Where(v => v.IsH265 == (useH265 ? 1 : 0));
+
+                if (quality == 1080)
+                {
+                    var hit = query.Where(v => v.QualityType == 2 || v.PlayAddr.Height >= 1080 || v.PlayAddr.Width >= 1080)
+                                   .OrderByDescending(v => v.BitRateValue)
+                                   .FirstOrDefault();
+                    if (hit != null) return hit;
+                }
+                else if (quality == 720)
+                {
+                    var hit = query.Where(v => v.QualityType == 1 ||
+                                               ((v.PlayAddr.Height >= 720 && v.PlayAddr.Height < 1080) ||
+                                                (v.PlayAddr.Width >= 720 && v.PlayAddr.Width < 1080)))
+                                   .OrderByDescending(v => v.BitRateValue)
+                                   .FirstOrDefault();
+                    if (hit != null) return hit;
+                }
+
+                // 原画或该档位未指定时：返回该编码下码率最高项
+                return query.OrderByDescending(v => v.BitRateValue).FirstOrDefault();
+            }
+
+            // 优先按用户所选编码和画质匹配，若拿不到（例如无265），严格保证自动回退到264
+            return MatchStream(preferredH265, targetQuality)
+                ?? MatchStream(!preferredH265, targetQuality)
+                ?? validStreams.OrderByDescending(v => v.BitRateValue).FirstOrDefault();
         }
 
         /// <summary>

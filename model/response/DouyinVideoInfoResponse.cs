@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 namespace dy.net.model.response
 {
 
@@ -1143,6 +1143,8 @@ namespace dy.net.model.response
         [JsonProperty("bit_rate")]
         public List<VideoBitRate> BitRate { get; set; }
 
+        [JsonProperty("play_addr")]
+        public PlayAddr PlayAddr { get; set; }
 
         // 可能存在的其他封面相关字段（补充完整）
         [JsonProperty("cover")]
@@ -1242,8 +1244,8 @@ namespace dy.net.model.response
         [JsonProperty("height")]
         public int Height { get; set; }
 
-        //[JsonProperty("uri")]
-        //public string Uri { get; set; }
+        [JsonProperty("uri")]
+        public string Uri { get; set; }
 
         //[JsonProperty("url_key")]
         //public string UrlKey { get; set; }

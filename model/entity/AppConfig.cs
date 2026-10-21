@@ -1,4 +1,4 @@
-﻿using SqlSugar;
+using SqlSugar;
 
 namespace dy.net.model.entity
 {
@@ -128,6 +128,12 @@ namespace dy.net.model.entity
         ///// </summary>
         //[SugarColumn(Length = 500, IsNullable = true)]
         //public string SeriesPath { get; set; }
+
+        /// <summary>
+        /// 视频画质档位偏好：0=原画优先(官方302直链/极清), 1080=1080P超清, 720=720P高清
+        /// </summary>
+        [SugarColumn(IsNullable = true)]
+        public int? VideoQuality { get; set; } = 0;
 
         /// <summary>
         /// 264 265 0-默认0=264
