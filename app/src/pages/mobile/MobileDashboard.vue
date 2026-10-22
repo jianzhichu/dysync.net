@@ -140,9 +140,6 @@
 
         <div class="log-filter-shell">
           <div class="log-filter">
-            <button class="filter-btn" :class="{ active: logFilter === 'all' }" @click="logFilter = 'all'">
-              全部 <span>{{ logs.length }}</span>
-            </button>
             <button class="filter-btn" :class="{ active: logFilter === 'info' }" @click="logFilter = 'info'">
               INFO <span>{{ infoLogCount ?? 0 }}</span>
             </button>
@@ -526,7 +523,7 @@ const graphicVideoSize = ref<string>('0.00');
 const videoMixSize = ref<string>('0.00');
 const videoSeriesSize = ref<string>('0.00');
 const activeTab = ref<string>('dashboard');
-const logFilter = ref<string>('all');
+const logFilter = ref<string>('info');
 const logs = ref<LogItem[]>([]);
 const showLogModal = ref<boolean>(false);
 const currentLog = ref<LogItem | null>(null);
