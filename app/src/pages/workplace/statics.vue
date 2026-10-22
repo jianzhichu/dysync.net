@@ -1,9 +1,16 @@
-<template>
+﻿<template>
   <div class="stats-dashboard">
     <div class="dashboard-container">
-      <!-- 核心统计概览 + 7天同步趋势图 - 互换位置：左40%统计 右60%图表 -->
+      <!-- 左侧近10天同步趋势图 + 右侧核心统计概览 -->
       <section class="stats-overview">
-        <!-- 左侧：统计卡片（40%） -->
+        <div class="chart-card secondary-card main-card stats-right">
+          <div class="chart-container" ref="chartRef"></div>
+          <a-button type="text" shape="circle" class="fullscreen-btn" @click="openFullChart">
+            <fullscreen-outlined />
+          </a-button>
+        </div>
+
+        <!-- 右侧统计卡片（33%） -->
         <div class="stat-card primary-card main-card stats-left">
           <div class="stat-header">
             <div class="main-stat-item total-videos-item">
@@ -96,12 +103,6 @@
           </div>
         </div>
 
-        <div class="chart-card secondary-card main-card stats-right">
-          <div class="chart-container" ref="chartRef"></div>
-          <a-button type="text" shape="circle" class="fullscreen-btn" @click="openFullChart">
-            <fullscreen-outlined />
-          </a-button>
-        </div>
       </section>
 
       <!-- 视频作者统计 -->
@@ -205,6 +206,8 @@ const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
 const syncData = ref<SyncDataItem[]>([]);
 const syncFullData = ref<SyncDataItem[]>([]);
+const MAIN_CHART_DAYS = 10;
+const FULL_CHART_DAYS = 30;
 
 // 新增：全屏图表相关变量
 const showFullChartModal = ref<boolean>(false); // 控制模态窗口显示
@@ -218,7 +221,7 @@ defineOptions({
 //获取chart数据
 const generateSyncData = () => {
   useApiStore()
-    .VideoChart(7)
+    .VideoChart(MAIN_CHART_DAYS)
     .then((res) => {
       if (res.code === 0) {
         syncData.value = res.data;
@@ -233,7 +236,7 @@ const generateSyncData = () => {
 //获取chart数据
 const getFullSyncData = () => {
   useApiStore()
-    .VideoChart(30)
+    .VideoChart(FULL_CHART_DAYS)
     .then((res) => {
       if (res.code === 0) {
         syncFullData.value = res.data;
@@ -500,13 +503,13 @@ watch(
   { immediate: false }
 );
 
-// 加载数据 - 调用7天方法
+// 加载主图近10天数据
 onMounted(async () => {
   generateSyncData();
   await Promise.all([loadDashboardData(), loadAuthors(true)]);
   await nextTick();
   authorObserver = new IntersectionObserver(
-    entries => {
+    (entries) => {
       if (entries[0]?.isIntersecting) loadAuthors();
     },
     { rootMargin: '240px 0px' }
@@ -587,7 +590,6 @@ const loadDashboardData = async () => {
     graphicVideoSize.value = data.graphicVideoSize ?? '0.00';
     videoMixSize.value = data.videoMixSize ?? '0.00';
     videoSeriesSize.value = data.videoSeriesSize ?? '0.00';
-
   } catch (err) {
     console.error('加载仪表盘数据失败：', err);
     message.error('加载仪表盘数据异常，请刷新重试');
@@ -622,10 +624,10 @@ const handleDeleteItem = (item: Author) => {
 </script>
 
 <style scoped>
-/* 核心修改：互换网格列比例 + 适配样式 */
+/* 左侧图表约67%，右侧统计约33% */
 .stats-overview {
   display: grid;
-  grid-template-columns: 4fr 6fr; /* 原6fr 4fr → 改为4fr 6fr */
+  grid-template-columns: 2fr 1fr;
   gap: 8px;
   margin-bottom: 20px;
 }
@@ -703,16 +705,17 @@ const handleDeleteItem = (item: Author) => {
   background-color: #ffffff;
   color: #333333;
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  padding: 20px 0;
+  padding: 10px 0;
 }
 .dashboard-container {
-  max-width: 1400px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0;
 }
 @media (max-width: 1700px) {
   .dashboard-container {
-    max-width: 95%;
+    max-width: none;
   }
 }
 @media (max-width: 992px) {
@@ -1261,3 +1264,4 @@ html.dark-mode .fullscreen-btn:hover {
   }
 }
 </style>
+
