@@ -228,6 +228,11 @@ function submit() {
           } else {
             message.error('保存失败' + res.message);
           }
+        })
+        .catch((error: any) => {
+          loading.value = false;
+          const errorMessage = error?.message || error?.msg || error?.error || error?.data?.message;
+          message.error(errorMessage ? `保存失败：${errorMessage}` : '保存失败，请检查网络后重试', 8);
         });
     })
     .catch((e) => {
@@ -525,9 +530,6 @@ const saveDrawerData = () => {
     });
 };
 
-const switchdownCollect = (e: any) => {
-  if (!e) form.useCollectFolder = e;
-};
 </script>
 
 <template>
@@ -555,8 +557,8 @@ const switchdownCollect = (e: any) => {
       <a-form-item label="下载收藏视频" name="downCollect">
         <div style="display: flex; align-items: center; gap: 12px;">
           <div class="form-item-div">
-            <a-switch v-model:checked="form.downCollect" @change="switchdownCollect" :checked-value="true" :un-checked-value="false" size="default" />
-            <a-form-item-rest v-if="form.downCollect">
+            <a-switch v-model:checked="form.downCollect" :checked-value="true" :un-checked-value="false" size="default" />
+            <a-form-item-rest v-show="form.downCollect">
               <a-form-item name="savePath" noStyle>
                 <a-input v-model:value="form.savePath" placeholder='请输入容器路径' class="form-item-div-input" />
               </a-form-item>
@@ -585,7 +587,7 @@ const switchdownCollect = (e: any) => {
         <div style="display: flex; align-items: center; gap: 12px;">
           <div class="form-item-div">
             <a-switch v-model:checked="form.downFavorite" :checked-value="true" :un-checked-value="false" size="default" />
-            <a-form-item-rest v-if="form.downFavorite">
+            <a-form-item-rest v-show="form.downFavorite">
               <a-form-item name="favSavePath" noStyle>
                 <a-input v-model:value="form.favSavePath" placeholder='请输入容器路径' class="form-item-div-input" />
               </a-form-item>
@@ -602,7 +604,7 @@ const switchdownCollect = (e: any) => {
         <div style="display: flex; align-items: center; gap: 12px;">
           <div class="form-item-div">
             <a-switch v-model:checked="form.downFollowd" :checked-value="true" :un-checked-value="false" size="default" />
-            <a-form-item-rest v-if="form.downFollowd">
+            <a-form-item-rest v-show="form.downFollowd">
               <a-form-item name="upSavePath" noStyle>
                 <a-input v-model:value="form.upSavePath" placeholder='请输入容器路径' class="form-item-div-input" />
               </a-form-item>

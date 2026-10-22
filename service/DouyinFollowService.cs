@@ -1,4 +1,4 @@
-﻿using ClockSnowFlake;
+using ClockSnowFlake;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.model.response;
@@ -161,7 +161,7 @@ namespace dy.net.service
             if (followdOpendCount > 20 && dto.FullSync)
             {
                 //throw new Exception("抱歉，为了减少被风控的可能，关注列表最多同时开启20个全量同步");
-                Serilog.Log.Debug("为了减少被风控的可能，尽量不要同时开启这么多，虽然没限制！！！");
+                Serilog.Log.Information("为了减少被风控的可能，尽量不要同时开启这么多，虽然没限制！！！");
             }
 
             var followed = await _followRepository.GetByIdAsync(dto.Id);

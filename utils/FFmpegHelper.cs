@@ -220,14 +220,14 @@ namespace dy.net.utils
                     {
                         try { p.Kill(entireProcessTree: true); } catch { }
                         p.WaitForExit();
-                        //Log.Debug($"硬件编码器 {encoder} 探测超时（5秒）");
+                        //Log.Information($"硬件编码器 {encoder} 探测超时（5秒）");
                         return false;
                     }
 
                     p.WaitForExit(); // Drain asynchronous stderr callbacks.
                     string err = errorBuilder.ToString();
                     if (p.ExitCode == 0) return true;
-                    //Log.Debug($"硬件编码器 {encoder} 探测失败（退出码 {p.ExitCode}）：{err.Trim()}");
+                    //Log.Information($"硬件编码器 {encoder} 探测失败（退出码 {p.ExitCode}）：{err.Trim()}");
                     return false;
                 }
             }
@@ -250,7 +250,7 @@ namespace dy.net.utils
             }
             catch (Exception ex)
             {
-                Log.Debug("查找 VAAPI render device 失败：{Message}", ex.Message);
+                Log.Information("查找 VAAPI render device 失败：{Message}", ex.Message);
                 return null;
             }
         }
@@ -430,7 +430,7 @@ namespace dy.net.utils
        IProgress<double> progress = null,
        CancellationToken cancellationToken = default)
         {
-            Log.Debug("硬件加速类型：" + _hwAccelType.ToString());
+            Log.Information("硬件加速类型：" + _hwAccelType.ToString());
             // 输入验证
             if (imageFilePaths == null || !imageFilePaths.Any())
                 throw new ArgumentException("图片路径列表不能为空。", nameof(imageFilePaths));
@@ -673,7 +673,7 @@ namespace dy.net.utils
             );
 
             // 3. 打印滤镜字符串（用于调试，验证动态尺寸是否正确）
-            //Log.Debug($"待执行的动态滤镜（适配不固定尺寸）：{videoFilter}");
+            //Log.Information($"待执行的动态滤镜（适配不固定尺寸）：{videoFilter}");
 
             // 4. 构建FFmpeg参数（无需对滤镜做任何转义，保留原有编码配置）
             var arguments = new List<string>
@@ -712,7 +712,7 @@ namespace dy.net.utils
 
                 if (File.Exists(tempVideoPath))
                 {
-                    //Log.Debug($"视频转封装为统一参数成功，临时路径：{tempVideoPath}");
+                    //Log.Information($"视频转封装为统一参数成功，临时路径：{tempVideoPath}");
                     return tempVideoPath;
                 }
                 else
@@ -805,7 +805,7 @@ namespace dy.net.utils
             targetWidth = targetWidth % 2 != 0 ? targetWidth + 1 : targetWidth;
             targetHeight = targetHeight % 2 != 0 ? targetHeight + 1 : targetHeight;
 
-            //Log.Debug($"动态计算最优分辨率：{targetWidth}x{targetHeight}（适配所有视频）");
+            //Log.Information($"动态计算最优分辨率：{targetWidth}x{targetHeight}（适配所有视频）");
 
             // 步骤1：创建临时文件列表
             string tempListFile = Path.Combine(AppContext.BaseDirectory, "temp", $"{Guid.NewGuid()}.txt");
@@ -915,7 +915,7 @@ namespace dy.net.utils
                 // 验证输出文件
                 if (File.Exists(savePath))
                 {
-                    Log.Debug($"视频合成成功:{savePath}");
+                    Log.Information($"视频合成成功:{savePath}");
                     return savePath;
                 }
                 else

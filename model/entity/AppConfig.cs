@@ -109,6 +109,9 @@ namespace dy.net.model.entity
         /// 仅同步新视频（github 有人提议增加这个配置项，因为之前收藏了很多烂七八糟的视频。不想同步，又不想一个一个清除）
         /// </summary>
         public bool OnlySyncNew { get; set; } = true;
+        /// <summary>Whether Debug level logs are written. Null means enabled for configurations created before this option.</summary>
+        [SugarColumn(IsNullable = true)]
+        public bool? DebugLogEnabled { get; set; } = true;
         /// <summary>
         /// 是否合并下载动态图视频
         /// </summary>

@@ -1,4 +1,4 @@
-﻿using dy.net.model.dto;
+using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.model.response;
 using dy.net.service;
@@ -46,10 +46,11 @@ namespace dy.net.job
 
         public async Task Execute(IJobExecutionContext context)
         {
+            Log.Information("【job】进入执行：{JobName}", context.JobDetail.Description ?? context.JobDetail.Key.ToString());
             var cookies = await _dyCookieService.GetOpendCookiesAsync();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug("当前无可用的抖音Cookie，同步任务跳过");
+                Log.Information("当前无可用的抖音Cookie，同步任务跳过");
                 return;
             }
 
@@ -139,7 +140,7 @@ namespace dy.net.job
                             context.CancellationToken);
                     }
 
-                    Log.Debug($"[{ck.UserName}][基础数据]同步完成，包括 [收藏列表、关注列表、合集列表、短剧列表],这不是同步视频！！！ ");
+                    Log.Information($"[{ck.UserName}][基础数据]同步完成，包括 [收藏列表、关注列表、合集列表、短剧列表],这不是同步视频！！！ ");
                 }
                 finally
                 {
@@ -194,7 +195,7 @@ namespace dy.net.job
                     if (currentItems?.Any() == true)
                     {
                         collectDataList.AddRange(currentItems.Select(entityConvertFunc));
-                        Log.Debug($"[{cookie.UserName}][{logTag}]：获取{currentItems.Count}条，累计{collectDataList.Count}条");
+                        Log.Information($"[{cookie.UserName}][{logTag}]：获取{currentItems.Count}条，累计{collectDataList.Count}条");
                     }
 
                     if (hasMore)
@@ -207,11 +208,11 @@ namespace dy.net.job
                 if (collectDataList.Any())
                 {
                     var (add, update, delete, succ) = await _douyinCollectCateService.Sync(collectDataList, cookie.Id, cateType);
-                    Log.Debug($"[{cookie.UserName}][{logTag}]：同步完成 新增:{add} 更新:{update} 删除:{delete} 成功:{succ}");
+                    Log.Information($"[{cookie.UserName}][{logTag}]：同步完成 新增:{add} 更新:{update} 删除:{delete} 成功:{succ}");
                 }
                 else
                 {
-                    Log.Debug($"[{cookie.UserName}][{logTag}]：无有效数据");
+                    Log.Information($"[{cookie.UserName}][{logTag}]：无有效数据");
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -230,7 +231,7 @@ namespace dy.net.job
         {
             if (string.IsNullOrWhiteSpace(cookie.SecUserId))
             {
-                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：未设置SecUserId，如果要同步关注列表（你关注的博主）,需要在授权页面填写你的sce_user_id");
+                Log.Information($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：未设置SecUserId，如果要同步关注列表（你关注的博主）,需要在授权页面填写你的sce_user_id");
                 return;
             }
 
@@ -308,9 +309,9 @@ namespace dy.net.job
 
                 await _douyinCommonService.SetConfigNotFirstRunning();
                 if (isFirstSync)
-                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]首次同步完成，关注总数:{total}");
+                    Log.Information($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]首次同步完成，关注总数:{total}");
                 else
-                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]同步完成，接口总关注数:{total}，本轮读取页数:{pageCount}，这是同步关注列表，这不是同步视频！！！");
+                    Log.Information($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]同步完成，接口总关注数:{total}，本轮读取页数:{pageCount}，这是同步关注列表，这不是同步视频！！！");
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -333,7 +334,7 @@ namespace dy.net.job
                 throw new InvalidOperationException($"关注列表分批入库失败，当前批次{followList.Count}条");
             }
             if (logBatch)
-                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]批次同步完成 新增:{add} 更新:{update} 成功:{succ} 批次:{followList.Count}");
+                Log.Information($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]批次同步完成 新增:{add} 更新:{update} 成功:{succ} 批次:{followList.Count}");
         }
         #endregion
 

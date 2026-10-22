@@ -1,4 +1,4 @@
-﻿using ClockSnowFlake;
+using ClockSnowFlake;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.model.response;
@@ -135,7 +135,7 @@ namespace dy.net.repository
                 HashSet<string> currentSecUids = followInfos.Select(x => x.SecUid).ToHashSet(StringComparer.Ordinal);
                 if (!currentSecUids.Any())
                 {
-                    Serilog.Log.Debug($"同步关注列表：当前批次无有效数据（{ck.UserName}），直接返回成功");
+                    Serilog.Log.Information($"同步关注列表：当前批次无有效数据（{ck.UserName}），直接返回成功");
                     return (0, 0, true);
                 }
 
@@ -242,7 +242,7 @@ namespace dy.net.repository
                 // 6. 提交事务
                 await Db.Ado.CommitTranAsync();
                 // 【重要】删除逻辑已移除：增量场景下不能通过批次对比删除，需单独设计取消关注逻辑
-                //Serilog.Log.Debug($"[{ck.UserName}]关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条");
+                //Serilog.Log.Information($"[{ck.UserName}]关注列表同步完成：新增{toAddFollows.Count}条，更新{toUpdateFollows.Count}条");
                 return (toAddFollows.Count, toUpdateFollows.Count, true);
             }
             catch (Exception ex)
@@ -279,7 +279,7 @@ namespace dy.net.repository
                 bool success = await processAction(batch);
                 if (!success)
                 {
-                    Serilog.Log.Debug($"分批处理失败：第{i + 1}批（数据范围：{i * batchSize}-{Math.Min((i + 1) * batchSize - 1, totalCount - 1)}）");
+                    Serilog.Log.Information($"分批处理失败：第{i + 1}批（数据范围：{i * batchSize}-{Math.Min((i + 1) * batchSize - 1, totalCount - 1)}）");
                     return false;
                 }
             }

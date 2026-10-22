@@ -26,6 +26,18 @@ namespace dy.net.service
             {
                 var dateStr = date.ToString("yyyyMMdd");
 
+                // 查找Info日志
+                var infoFile = Path.Combine(logDirectory, $"log-info-{dateStr}.txt");
+                if (File.Exists(infoFile))
+                {
+                    logFiles.Add(new LogFileInfoDto
+                    {
+                        Type = "info",
+                        Date = dateStr,
+                        FileName = Path.GetFileName(infoFile)
+                    });
+                }
+
                 // 查找debug日志
                 var debugFile = Path.Combine(logDirectory, $"log-debug-{dateStr}.txt");
                 if (File.Exists(debugFile))
@@ -65,9 +77,9 @@ namespace dy.net.service
             }
 
             // 验证类型
-            if (type != "debug" && type != "error")
+            if (type != "info" && type != "debug" && type != "error")
             {
-                throw new ArgumentException("日志类型只能是debug或error");
+                throw new ArgumentException("日志类型只能是info、debug或error");
             }
 
             var filePath = Path.Combine(logDirectory, $"log-{type}-{date}.txt");

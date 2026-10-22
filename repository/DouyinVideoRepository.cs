@@ -1,4 +1,4 @@
-﻿using dy.net.extension;
+using dy.net.extension;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.utils;
@@ -349,7 +349,7 @@ namespace dy.net.repository
             // 可选：记录更新结果日志
             if (affectedRows <= 0)
             {
-                Serilog.Log.Debug("更新重新下载状态无匹配数据：videoId={0}, status={1}", videoId, status);
+                Serilog.Log.Information("更新重新下载状态无匹配数据：videoId={0}, status={1}", videoId, status);
             }
 
             return affectedRows > 0;

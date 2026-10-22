@@ -1,4 +1,4 @@
-﻿using ClockSnowFlake;
+using ClockSnowFlake;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.utils;
@@ -158,7 +158,7 @@ namespace dy.net.repository
                 Serilog.Log.Error($"同步{cateType.GetDesc()}时发生异常，{ex.StackTrace}");
             }
 
-            //Serilog.Log.Debug($"本次收藏夹{cateType}同步结果,新增:{addCount},更新:{updateCount},删除:{deleteCount}");
+            //Serilog.Log.Information($"本次收藏夹{cateType}同步结果,新增:{addCount},更新:{updateCount},删除:{deleteCount}");
             // 8. 返回最终结果
             return (addCount, updateCount, deleteCount, isSuccess);
         }

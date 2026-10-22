@@ -1,4 +1,4 @@
-﻿using dy.net.extension;
+using dy.net.extension;
 using dy.net.service;
 using dy.net.utils;
 using Serilog;
@@ -38,9 +38,15 @@ namespace dy.net
             // 数据库建库/CodeFirst 只在启动阶段执行一次，完成后才开始接受请求。
             await app.Services.InitializeDatabaseAsync();
 
+            using (var scope = app.Services.CreateScope())
+            {
+                var config = scope.ServiceProvider.GetRequiredService<DouyinCommonService>().GetConfig();
+                ServiceExtension.SetDebugLoggingEnabled(config?.DebugLogEnabled != false);
+            }
+
             // 配置中间件
             ConfigureMiddleware(app, builder.Environment);
-            Log.Debug($"dy.sync app is started successfully  on  {DefaultListenUrl}");
+            Log.Information($"dysync.net is run successfully  on  {DefaultListenUrl}");
             // 初始化应用服务
             await InitApplicationServices(app, isDevelopment, dbPath);
             Console.WriteLine();
@@ -112,6 +118,7 @@ namespace dy.net
                 }
                 else
                 {
+                    Log.Error($"未找到配置文件 {configFileName}，已检查以下路径：{string.Join("; ", candidateBasePaths)}");
                     // 未找到配置文件，抛出明确异常（或根据需求调整为兜底逻辑）
                     throw new FileNotFoundException(
                         $"未找到配置文件 {configFileName}，已检查以下路径：{string.Join("; ", candidateBasePaths)}",
@@ -277,7 +284,7 @@ namespace dy.net
                 // 初始化配置
                 var config = commonService.InitConfig();
 
-                //Serilog.Log.Debug("isRestart1=" + config.IsFirstRunning);
+                //Serilog.Log.Information("isRestart1=" + config.IsFirstRunning);
                 //await cookieService.UpdateCookieToSupportOldVersionAsync();
 
                 if (!isDevelopment)
@@ -293,7 +300,7 @@ namespace dy.net
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "Failed to initialize services on startup");
+                Serilog.Log.Error(ex, "Failed to start dysync.net");
             }
         }
 

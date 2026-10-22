@@ -1,4 +1,4 @@
-﻿using ClockSnowFlake;
+using ClockSnowFlake;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.repository;
@@ -362,7 +362,7 @@ namespace dy.net.service
             var videos = await _dyCollectVideoRepository.GetByIds(videoIds);
             if (videos == null || !videos.Any())
             {
-                Serilog.Log.Debug("未查询到有效视频记录：Ids={0}", string.Join(",", videoIds));
+                Serilog.Log.Information("未查询到有效视频记录：Ids={0}", string.Join(",", videoIds));
                 return false;
             }
 
@@ -375,7 +375,7 @@ namespace dy.net.service
                 // 跳过无保存路径的视频（避免无效文件操作）
                 if (string.IsNullOrWhiteSpace(video.VideoSavePath))
                 {
-                    Serilog.Log.Debug("视频无保存路径，跳过文件删除：VideoId={0}", video.Id);
+                    Serilog.Log.Information("视频无保存路径，跳过文件删除：VideoId={0}", video.Id);
                     continue;
                 }
 
@@ -396,7 +396,7 @@ namespace dy.net.service
             // 无有效重新下载记录时直接返回
             if (!reDownList.Any())
             {
-                Serilog.Log.Debug("无有效重新下载记录需要创建：VideoIds={0}", string.Join(",", videoIds));
+                Serilog.Log.Information("无有效重新下载记录需要创建：VideoIds={0}", string.Join(",", videoIds));
                 return false;
             }
 
@@ -437,7 +437,7 @@ namespace dy.net.service
                         if (File.Exists(video.path))
                         {
                             File.Delete(video.path); // 异步删除，提升并发性能
-                            Serilog.Log.Debug("视频文件删除成功：Path={0}", video.path);
+                            Serilog.Log.Information("视频文件删除成功：Path={0}", video.path);
 
                             if (!video.onlyImgOrMp3)//如果是纯图片或纯音频文件，则不删除所在文件夹
                             {
@@ -502,7 +502,7 @@ namespace dy.net.service
 
                 //}
                 if (!forever)
-                    Serilog.Log.Debug("重新下载视频流程执行完成：成功创建{0}条重新下载记录，删除{1}个文件,等待重新下载...", reDownList.Count, filePathsToDelete.Count);
+                    Serilog.Log.Information("重新下载视频流程执行完成：成功创建{0}条重新下载记录，删除{1}个文件,等待重新下载...", reDownList.Count, filePathsToDelete.Count);
                 return true;
             }
             catch (Exception ex)
@@ -623,7 +623,7 @@ namespace dy.net.service
                     {
                         //加入删除逻辑
                         var deletes = await AddDeleteVideo(videos);
-                        Serilog.Log.Debug($"批量永久删除博主{videos.FirstOrDefault()?.Author}，共{deletes}条记录");
+                        Serilog.Log.Information($"批量永久删除博主{videos.FirstOrDefault()?.Author}，共{deletes}条记录");
                         return true;
                     }
                     else
@@ -641,7 +641,7 @@ namespace dy.net.service
                         {
                             //加入删除逻辑
                             var deletes = await AddDeleteVideo(videos);
-                            Serilog.Log.Debug($"批量永久删除博主{videos.FirstOrDefault()?.Author}，{deletes}条记录");
+                            Serilog.Log.Information($"批量永久删除博主{videos.FirstOrDefault()?.Author}，{deletes}条记录");
                         }
                         else
                         {
@@ -675,7 +675,7 @@ namespace dy.net.service
                 // 跳过空值（Tag1/Author为空）
                 if (string.IsNullOrEmpty(item.Tag1) || string.IsNullOrEmpty(item.Author))
                 {
-                    Log.Debug($"跳过：Tag1/Author为空，ItemId={item.Id}");
+                    Log.Information($"跳过：Tag1/Author为空，ItemId={item.Id}");
                     continue;
                 }
 
@@ -691,7 +691,7 @@ namespace dy.net.service
                     int tag1Index = Array.IndexOf(pathSegments, item.Tag1);
                     if (tag1Index == -1 || tag1Index + 1 >= pathSegments.Length - 1)
                     {
-                        Log.Debug($"跳过：无Tag1下一级文件夹，Path={oldVideoPath}，Tag1={item.Tag1}");
+                        Log.Information($"跳过：无Tag1下一级文件夹，Path={oldVideoPath}，Tag1={item.Tag1}");
                         continue;
                     }
 
@@ -720,7 +720,7 @@ namespace dy.net.service
                     string folderPairKey = $"{tag1NextLevelFolderFull}|{authorNextLevelFolderFull}";
                     if (processedFolderPairs.Contains(folderPairKey))
                     {
-                        Log.Debug($"跳过：下一级文件夹已处理，Key={folderPairKey}");
+                        Log.Information($"跳过：下一级文件夹已处理，Key={folderPairKey}");
                         continue;
                     }
 
@@ -733,7 +733,7 @@ namespace dy.net.service
                     string[] nextLevelFiles = Directory.GetFiles(tag1NextLevelFolderFull); // 非递归，只查该文件夹下的文件
                     if (nextLevelFiles.Length == 0)
                     {
-                        Log.Debug($"跳过：Tag1下一级文件夹无文件，Path={tag1NextLevelFolderFull}");
+                        Log.Information($"跳过：Tag1下一级文件夹无文件，Path={tag1NextLevelFolderFull}");
                         processedFolderPairs.Add(folderPairKey);
                         continue;
                     }
@@ -745,14 +745,14 @@ namespace dy.net.service
                     // 4.2 目标文件夹已存在则跳过（如需覆盖，可删除此行+添加Directory.Delete(authorNextLevelFolderFull, true)）
                     if (Directory.Exists(authorNextLevelFolderFull))
                     {
-                        Log.Debug($"跳过：目标下一级文件夹已存在，Path={authorNextLevelFolderFull}");
+                        Log.Information($"跳过：目标下一级文件夹已存在，Path={authorNextLevelFolderFull}");
                         processedFolderPairs.Add(folderPairKey);
                         continue;
                     }
 
                     // 4.3 移动整个下一级文件夹（保留名称和内部所有文件）
                     Directory.Move(tag1NextLevelFolderFull, authorNextLevelFolderFull);
-                    Log.Debug($"移动Tag1下一级文件夹成功：{tag1NextLevelFolderFull} → {authorNextLevelFolderFull}");
+                    Log.Information($"移动Tag1下一级文件夹成功：{tag1NextLevelFolderFull} → {authorNextLevelFolderFull}");
 
                     // 5. 关键新增：检查Tag1根目录是否为空，为空则删除
                     if (Directory.Exists(tag1RootFolderFull))
@@ -762,11 +762,11 @@ namespace dy.net.service
                         if (isTag1RootEmpty)
                         {
                             Directory.Delete(tag1RootFolderFull, false); // false=仅删除空目录，避免误删
-                            Log.Debug($"删除空Tag1根目录：{tag1RootFolderFull}");
+                            Log.Information($"删除空Tag1根目录：{tag1RootFolderFull}");
                         }
                         else
                         {
-                            Log.Debug($"Tag1根目录非空，不删除：{tag1RootFolderFull}");
+                            Log.Information($"Tag1根目录非空，不删除：{tag1RootFolderFull}");
                         }
                     }
 
@@ -776,7 +776,7 @@ namespace dy.net.service
                     // 6. 更新当前Item的视频路径（替换Tag1为Author，保留后续层级）
                     string newVideoPath = oldVideoPath.Replace(item.Tag1, item.Author);
                     item.VideoSavePath = newVideoPath;
-                    Log.Debug($"更新Item路径：{oldVideoPath} → {newVideoPath}");
+                    Log.Information($"更新Item路径：{oldVideoPath} → {newVideoPath}");
                 }
                 catch (IOException ex)
                 {
@@ -798,7 +798,7 @@ namespace dy.net.service
                 var updated = await BatchInsertOrUpdate(list);
                 if (updated)
                 {
-                    Log.Debug($"批量更新数据库完成，共处理{list.Count}条数据");
+                    Log.Information($"批量更新数据库完成，共处理{list.Count}条数据");
                 }
                 else
                 {

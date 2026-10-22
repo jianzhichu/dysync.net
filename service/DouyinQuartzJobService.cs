@@ -1,4 +1,4 @@
-﻿using dy.net.job;
+using dy.net.job;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.utils;
@@ -18,7 +18,6 @@ namespace dy.net.service
         private const string DefaultJobGroup = "dysync.net";
         private const int DefaultIntervalMinutes = 30;
         private const int DefaultCronStartDelaySeconds = 30;
-        private const int DefaultSimpleStartDelaySeconds = 3;
 
         // 任务配置信息（修复了series任务的Key重复问题，确保每个任务Key唯一）
         public static Dictionary<VideoTypeEnum, JobConfig> JobConfigs { get; } = new()
@@ -117,7 +116,7 @@ namespace dy.net.service
                 var validCookies = await douyinCookieService.GetOpendCookiesAsync();
                 if (validCookies == null || !validCookies.Any())
                 {
-                    Serilog.Log.Debug("没有有效的抖音Cookie，无法启动定时任务");
+                    Serilog.Log.Information("没有有效的抖音Cookie，无法启动定时任务");
                     return false;
                 }
 
@@ -139,6 +138,9 @@ namespace dy.net.service
 
                 // 5. 启动符合条件的定时任务
                 int successfullyStartedJobs = 0;
+                var startedJobNames = new List<string>();
+                var failedJobNames = new List<string>();
+                var skippedJobs = new List<(string JobName, string Reason)>();
                 foreach (var jobKey in JobConfigs.Keys)
                 {
                     // 跳过一次性关注用户任务
@@ -149,7 +151,15 @@ namespace dy.net.service
                     if (jobKey == VideoTypeEnum.dy_followuser)
                     {
                         bool startSuccess = await StartSingleJobAsync(jobKey, "60");
-                        if (startSuccess) successfullyStartedJobs++;
+                        if (startSuccess)
+                        {
+                            successfullyStartedJobs++;
+                            startedJobNames.Add(GetJobDisplayName(jobKey));
+                        }
+                        else
+                        {
+                            failedJobNames.Add(GetJobDisplayName(jobKey));
+                        }
                         continue;
                     }
 
@@ -168,12 +178,42 @@ namespace dy.net.service
                     if (isTaskEnabled)
                     {
                         bool startSuccess = await StartSingleJobAsync(jobKey, taskIntervalExpression);
-                        if (startSuccess) successfullyStartedJobs++;
+                        if (startSuccess)
+                        {
+                            successfullyStartedJobs++;
+                            startedJobNames.Add(GetJobDisplayName(jobKey));
+                        }
+                        else
+                        {
+                            failedJobNames.Add(GetJobDisplayName(jobKey));
+                        }
+                    }
+                    else
+                    {
+                        skippedJobs.Add((GetJobDisplayName(jobKey), GetTaskSkipReason(jobKey, validCookies)));
                     }
                 }
 
                 // 6. 输出任务启动统计日志
-                Log.Information($"定时任务初始化完成，共尝试启动 {JobConfigs.Count - 1} 个任务，成功启动 {successfullyStartedJobs} 个");
+                var startedJobSummary = startedJobNames.Count == 0
+                    ? "无"
+                    : $"[{string.Join("、", startedJobNames)}]";
+                var failedJobSummary = failedJobNames.Count == 0
+                    ? "启动失败 0 个"
+                    : $"启动失败 {failedJobNames.Count} 个 [{string.Join("、", failedJobNames)}]";
+                var skippedJobDetails = skippedJobs
+                    .GroupBy(job => job.Reason)
+                    .Select(group => $"{string.Join("、", group.Select(job => job.JobName))}（{group.Key}）")
+                    .ToList();
+                var skippedJobSummary = skippedJobs.Count == 0
+                    ? "配置跳过 0 个"
+                    : $"配置跳过 {skippedJobs.Count} 个 [{string.Join("；", skippedJobDetails)}]";
+                Log.Information(
+                    "定时任务初始化：启动成功 {StartedJobs} 个 {StartedJobNames}；{FailedJobSummary}；{SkippedJobSummary}",
+                    successfullyStartedJobs,
+                    startedJobSummary,
+                    failedJobSummary,
+                    skippedJobSummary);
 
                 return true;
             }
@@ -198,7 +238,7 @@ namespace dy.net.service
         {
             if (string.IsNullOrWhiteSpace(inputExpression))
             {
-                Log.Debug("定时任务表达式为空，使用默认配置（{DefaultMinutes}分钟）", DefaultIntervalMinutes);
+                Log.Information("定时任务表达式为空，使用默认配置（{DefaultMinutes}分钟）", DefaultIntervalMinutes);
                 return DefaultIntervalMinutes.ToString();
             }
             return inputExpression;
@@ -222,6 +262,52 @@ namespace dy.net.service
             };
         }
 
+        private static string GetJobDisplayName(VideoTypeEnum jobKey)
+        {
+            return jobKey switch
+            {
+                VideoTypeEnum.dy_favorite => "点赞",
+                VideoTypeEnum.dy_collects => "收藏",
+                VideoTypeEnum.dy_follows => "关注作品",
+                VideoTypeEnum.dy_followuser => "关注列表",
+                VideoTypeEnum.dy_custom_collect => "自定义收藏夹",
+                VideoTypeEnum.dy_mix => "收藏夹合集",
+                VideoTypeEnum.dy_series => "收藏夹短剧",
+                VideoTypeEnum.dy_followuser_once => "关注列表单次任务",
+                _ => jobKey.ToString()
+            };
+        }
+
+        private static string GetTaskSkipReason(VideoTypeEnum jobKey, IEnumerable<DouyinCookie> cookies)
+        {
+            bool hasSyncEnabledCookie = jobKey switch
+            {
+                VideoTypeEnum.dy_favorite => cookies.Any(x => x.DownFavorite),
+                VideoTypeEnum.dy_collects => cookies.Any(x => x.DownCollect && !x.UseCollectFolder),
+                VideoTypeEnum.dy_follows => cookies.Any(x => x.DownFollowd),
+                VideoTypeEnum.dy_custom_collect => cookies.Any(x => x.UseCollectFolder),
+                VideoTypeEnum.dy_mix => cookies.Any(x => x.DownMix),
+                VideoTypeEnum.dy_series => cookies.Any(x => x.DownSeries),
+                _ => false
+            };
+
+            if (!hasSyncEnabledCookie)
+                return "未开启";
+
+            bool hasConfiguredPath = jobKey switch
+            {
+                VideoTypeEnum.dy_favorite => cookies.Any(x => x.DownFavorite && !string.IsNullOrWhiteSpace(x.FavSavePath)),
+                VideoTypeEnum.dy_collects => cookies.Any(x => x.DownCollect && !x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath)),
+                VideoTypeEnum.dy_follows => cookies.Any(x => x.DownFollowd && !string.IsNullOrWhiteSpace(x.UpSavePath)),
+                VideoTypeEnum.dy_custom_collect => cookies.Any(x => x.UseCollectFolder && !string.IsNullOrWhiteSpace(x.SavePath)),
+                VideoTypeEnum.dy_mix => cookies.Any(x => x.DownMix && !string.IsNullOrWhiteSpace(x.MixPath)),
+                VideoTypeEnum.dy_series => cookies.Any(x => x.DownSeries && !string.IsNullOrWhiteSpace(x.SeriesPath)),
+                _ => false
+            };
+
+            return hasConfiguredPath ? "其他启动条件不满足" : "未设置路径";
+        }
+
         /// <summary>
         /// 启动单个定时任务（封装重复的启动逻辑）
         /// </summary>
@@ -235,7 +321,7 @@ namespace dy.net.service
                 bool startSuccess = await StartJobAsync(jobKey, expression);
                 if (startSuccess)
                 {
-                    Log.Debug($"【quartz】成功启动任务：{jobKey}，执行频率：{expression}分钟");
+                    Log.Information($"【quartz】成功启动任务：{jobKey}，执行频率：{expression}分钟");
                 }
                 else
                 {
@@ -267,7 +353,7 @@ namespace dy.net.service
             {
                 if (await scheduler.CheckExists(jobKey))
                 {
-                    //Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
+                    //Log.Information("【quartz】移除已存在的任务: {JobKey}", jobKey);
                     await scheduler.DeleteJob(jobKey);
                 }
             }
@@ -353,7 +439,7 @@ namespace dy.net.service
                     .Build();
 
                 await scheduler.ScheduleJob(jobDetail, trigger);
-                Log.Debug("【quartz】启动单次任务成功 - 任务描述: {JobDescription}", jobConfig.Description);
+                Log.Information("【quartz】启动单次任务成功 - 任务描述: {JobDescription}", jobConfig.Description);
 
                 return true;
             }
@@ -387,7 +473,7 @@ namespace dy.net.service
                 return TriggerBuilder.Create()
                     .WithIdentity(triggerKey)
                     .WithDescription($"{jobDescription} - 间隔{intervalMinutes}分钟调度")
-                    .StartAt(DateTime.Now.AddSeconds(DefaultSimpleStartDelaySeconds))
+                    .StartNow()
                     .WithSimpleSchedule(x => x
                         .WithIntervalInMinutes(intervalMinutes)
                         .RepeatForever())
@@ -395,13 +481,13 @@ namespace dy.net.service
             }
 
             // 无效表达式，使用默认配置
-            //Log.Debug("【任务服务】无效的任务表达式: {Expression}，使用默认间隔{DefaultMinutes}分钟",
+            //Log.Information("【任务服务】无效的任务表达式: {Expression}，使用默认间隔{DefaultMinutes}分钟",
             //    expression, DefaultIntervalMinutes);
 
             return TriggerBuilder.Create()
                 .WithIdentity(triggerKey)
                 .WithDescription($"{jobDescription} - 默认间隔调度")
-                .StartAt(DateTime.Now.AddSeconds(DefaultSimpleStartDelaySeconds))
+                .StartNow()
                 .WithSimpleSchedule(x => x
                     .WithIntervalInMinutes(DefaultIntervalMinutes)
                     .RepeatForever())
@@ -415,7 +501,7 @@ namespace dy.net.service
         {
             if (await scheduler.CheckExists(jobKey))
             {
-                //Log.Debug("【quartz】移除已存在的任务: {JobKey}", jobKey);
+                //Log.Information("【quartz】移除已存在的任务: {JobKey}", jobKey);
                 await scheduler.DeleteJob(jobKey);
             }
         }

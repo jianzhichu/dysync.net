@@ -17,6 +17,7 @@
       <!-- debug/error单选按钮 -->
       <a-form-item class="toolbar-item">
         <a-radio-group class="log-type-radio-group" v-model:value="typeValue" @change="typeChange" button-style="solid">
+          <a-radio-button value="info">INFO</a-radio-button>
           <a-radio-button value="debug">DEBUG</a-radio-button>
           <a-radio-button value="error">ERROR</a-radio-button>
         </a-radio-group>
@@ -32,11 +33,11 @@
     </a-form>
 
     <div class="container">
-      <a-card title="" :bordered="true" class="log-card" :class="{ 'log-error': typeValue === 'error' }">
+      <a-card title="" :bordered="true" class="log-card" :class="{ 'log-error': typeValue === 'error', 'log-info': typeValue === 'info' }">
         <div class="log-card-header">
           <div class="log-card-title">
             <span class="log-status-dot"></span>
-            <span>{{ typeValue === 'error' ? '错误日志' : '调试日志' }}</span>
+            <span>{{ typeValue === 'error' ? '错误日志' : typeValue === 'info' ? '信息日志' : '调试日志' }}</span>
           </div>
           <span class="log-date-badge">{{ currentDateText }}</span>
         </div>
@@ -56,7 +57,7 @@ import { message } from 'ant-design-vue';
 dayjs.locale('zh-cn');
 
 const currentDate = ref<Dayjs>(dayjs());
-const typeValue = ref<string>('debug');
+const typeValue = ref<string>('info');
 const iframeUrl = ref<string>('');
 const logs = ref<string>('');
 

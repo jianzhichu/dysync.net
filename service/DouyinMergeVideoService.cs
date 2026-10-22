@@ -1,4 +1,4 @@
-﻿using dy.net.extension;
+using dy.net.extension;
 using dy.net.model.dto;
 using dy.net.utils;
 using Serilog;
@@ -169,7 +169,7 @@ namespace dy.net.service
                 // 不合成视频，直接返回成功
                 if (!mergeImg2Viedo)
                 {
-                    Log.Debug($"根据系统配置设置不下载图文视频-[{outputVideoPath}],{(downImage ? "下载图片" : "不下载图片")},{(downMp3 ? "下载音频" : "不下载音频")}");
+                    Log.Information($"根据系统配置设置不下载图文视频-[{outputVideoPath}],{(downImage ? "下载图片" : "不下载图片")},{(downMp3 ? "下载音频" : "不下载音频")}");
                     return true;
                 }
 
@@ -194,7 +194,7 @@ namespace dy.net.service
                         // 进度回调
                         var progress = new Progress<double>(p =>
                         {
-                            Log.Debug($"视频合成进度：{p:F2}%");
+                            Log.Information($"视频合成进度：{p:F2}%");
                         });
 
                         // 超时控制：避免 FFmpeg 进程无限运行（300秒=5分钟）
@@ -205,7 +205,7 @@ namespace dy.net.service
                         {
                             var musicPath = GetRandomMergeMusic();
                             rawAudios = new List<DouyinMergeVideoDto> { new DouyinMergeVideoDto { Path= musicPath } };
-                            Log.Debug("版权原因无法下载音频，使用默认无声音频文件");
+                            Log.Information("版权原因无法下载音频，使用默认无声音频文件");
                         }
 
                         string resultPath = await ffmpegHelper.CreateVideoFromImagesAndAudioAsync(
@@ -217,7 +217,7 @@ namespace dy.net.service
                             progress,
                             cts.Token);
 
-                        Log.Debug($"视频合成成功！文件路径：{resultPath}");
+                        Log.Information($"视频合成成功！文件路径：{resultPath}");
                         return !string.IsNullOrEmpty(resultPath) && File.Exists(resultPath);
                     }
                     finally
@@ -261,7 +261,7 @@ namespace dy.net.service
                 if (!File.Exists(destPath))
                 {
                     await Task.Run(() => File.Copy(sourcePath.Path, destPath, overwrite: false));
-                    Log.Debug($"已保存文件：{destPath}");
+                    Log.Information($"已保存文件：{destPath}");
                 }
             }));
         }
@@ -311,7 +311,7 @@ namespace dy.net.service
                 // 延迟清理：给 FFmpeg 进程足够时间释放文件句柄（1秒）
                 await Task.Delay(1000);
                 Directory.Delete(tempDir, recursive: true);
-                //Log.Debug($"临时目录已清理：{tempDir}");
+                //Log.Information($"临时目录已清理：{tempDir}");
             }
             catch (Exception ex)
             {

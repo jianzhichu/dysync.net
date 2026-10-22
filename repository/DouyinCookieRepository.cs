@@ -91,11 +91,48 @@ namespace dy.net.repository
         {
             if (cookie != null)
             {
-                var res = await Db.Updateable<DouyinCookie>(cookie).IgnoreColumns(x => new { x.MyUserId }).ExecuteCommandAsync();
+                var res = await Db.Updateable<DouyinCookie>(cookie).IgnoreColumns(x => new
+                {
+                    x.MyUserId,
+                    x.FavoritePageCursor,
+                    x.FavoriteBoundaryAwemeId,
+                    x.FavoriteBackfillCompleted,
+                    x.CollectPageCursor,
+                    x.CollectBoundaryAwemeId,
+                    x.CollectBackfillCompleted
+                }).ExecuteCommandAsync();
                 return res > 0;
             }
             return false;
 
+        }
+
+        public async Task<bool> UpdateFavoriteSyncProgress(string id, string cursor, string boundaryAwemeId, bool backfillCompleted)
+        {
+            var result = await Db.Updateable<DouyinCookie>()
+                .SetColumns(x => new DouyinCookie
+                {
+                    FavoritePageCursor = cursor,
+                    FavoriteBoundaryAwemeId = boundaryAwemeId,
+                    FavoriteBackfillCompleted = backfillCompleted
+                })
+                .Where(x => x.Id == id)
+                .ExecuteCommandAsync();
+            return result > 0;
+        }
+
+        public async Task<bool> UpdateCollectSyncProgress(string id, string cursor, string boundaryAwemeId, bool backfillCompleted)
+        {
+            var result = await Db.Updateable<DouyinCookie>()
+                .SetColumns(x => new DouyinCookie
+                {
+                    CollectPageCursor = cursor,
+                    CollectBoundaryAwemeId = boundaryAwemeId,
+                    CollectBackfillCompleted = backfillCompleted
+                })
+                .Where(x => x.Id == id)
+                .ExecuteCommandAsync();
+            return result > 0;
         }
     }
 }

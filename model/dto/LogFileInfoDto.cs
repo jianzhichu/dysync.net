@@ -7,7 +7,7 @@ namespace dy.net.model.dto
 
 
         /// <summary>
-        /// 日志类型（debug/error）
+        /// 日志类型（info/debug/error）
         /// </summary>
         public string Type { get; set; }
 

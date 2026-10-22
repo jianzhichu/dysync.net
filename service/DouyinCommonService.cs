@@ -1,4 +1,4 @@
-﻿using ClockSnowFlake;
+using ClockSnowFlake;
 using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.utils;
@@ -61,6 +61,7 @@ namespace dy.net.service
                     PriorityLevel = "[{\"id\":1,\"name\":\"喜欢的视频\",\"sort\":1},{\"id\":2,\"name\":\"收藏的视频\",\"sort\":2},{\"id\":3,\"name\":\"关注的视频\",\"sort\":3}]",
                     IsFirstRunning = true,
                     OnlySyncNew = true,
+                    DebugLogEnabled = true,
                     DownDynamicVideo = false,
                     KeepDynamicVideo = false,
                     MegDynamicVideo = true,
@@ -297,7 +298,7 @@ namespace dy.net.service
                     .Where(it => it.IsMergeVideo == 1 && it.VideoSavePath.EndsWith("-poster.jpg"))
                     .ExecuteCommand();
                 if (updateCount > 0)
-                    Serilog.Log.Debug($"更新了{updateCount}条图文视频存储路径,修复图文视频无法在页面播放的问题");
+                    Serilog.Log.Information($"更新了{updateCount}条图文视频存储路径,修复图文视频无法在页面播放的问题");
             }
             return true;
         }
@@ -344,7 +345,7 @@ namespace dy.net.service
         //    }, db =>
         //    {
         //        // 日志配置
-        //        db.Aop.OnLogExecuting = (sql, pars) => Serilog.Log.Debug(sql);
+        //        db.Aop.OnLogExecuting = (sql, pars) => Serilog.Log.Information(sql);
         //        db.Aop.OnError = e =>
         //        {
         //            Serilog.Log.Error(e.Message);

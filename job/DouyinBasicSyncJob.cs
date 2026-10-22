@@ -126,6 +126,7 @@ namespace dy.net.job
         /// <returns>一个表示异步操作的任务</returns>
         public async Task Execute(IJobExecutionContext context)
         {
+            Log.Information("【job】进入执行：{JobName}", context.JobDetail.Description ?? context.JobDetail.Key.ToString());
 
             // 获取应用配置
             var config = douyinCommonService.GetConfig();
@@ -136,10 +137,10 @@ namespace dy.net.job
             var cookies = await GetSyncCookies();
             if (cookies == null || !cookies.Any())
             {
-                Log.Debug($"[{VideoType.GetDesc()}]-Cookie无效或同步开关未开启或对应类型的存储路径未设置，请检查...");
+                Log.Information($"[{VideoType.GetDesc()}]-Cookie无效或同步开关未开启或对应类型的存储路径未设置，请检查...");
                 return;
             }
-            Log.Debug($"[{VideoType.GetDesc()}]共发现{cookies.Count}个有效Cookie，同步开始...");
+            Log.Information($"[{VideoType.GetDesc()}]共发现{cookies.Count}个有效Cookie，同步开始...");
 
             // 遍历每个有效的Cookie，执行同步
             foreach (var cookie in cookies)
@@ -313,7 +314,7 @@ namespace dy.net.job
                 return true;
             }
 
-            Log.Warning("[{VideoType}]所有存储目录剩余容量均低于阈值{ThresholdGb}GB，跳过本次下载", VideoType.GetDesc(), config.StorageMinFreeSpaceGb);
+            Log.Information("[{VideoType}]所有存储目录剩余容量均低于阈值{ThresholdGb}GB，跳过本次下载", VideoType.GetDesc(), config.StorageMinFreeSpaceGb);
             return false;
         }
 
@@ -492,7 +493,7 @@ namespace dy.net.job
 
             if (VideoType != VideoTypeEnum.dy_custom_collect || cookie.UseCollectFolder)
             {
-                Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]{tag},本次成功同步{syncCount}条视频");
+                Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]{tag},本次成功同步{syncCount}条视频");
             }
 
             if (cate != null)
@@ -519,7 +520,7 @@ namespace dy.net.job
                     case VideoTypeEnum.dy_follows:
                         if (cookie.DownFollowd)
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]开始同步...");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]开始同步...");
                             //查询关注列表开启了同步的关注
                             var follows = await douyinFollowService.GetSyncFollows(cookie.MyUserId);
                             if (follows != null && follows.Any())
@@ -542,40 +543,34 @@ namespace dy.net.job
                         }
                         else
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
                         }
                         break;
                     case VideoTypeEnum.dy_favorite:
                         if (cookie.DownFavorite)
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]开始同步...");
-                            int syncCount = 0;
-                            string cursor = "0";
-                            bool hasMore = true;
-                            (syncCount, cursor, hasMore) = await GetAndSaveViedos(cookie, config, syncCount, cursor, hasMore, cancellationToken: cancellationToken);
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]开始同步...");
+                            int syncCount = await SyncFavoriteCollectVideos(cookie, config, cancellationToken);
                             await HandleSyncCompletion(cookie, syncCount);
                         }
                         else
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
                         }
                         break;
                     case VideoTypeEnum.dy_collects:
                         if (cookie.UseCollectFolder)
                         {
-                            Log.Debug($"[{VideoType.GetDesc()}]-已开启自定义收藏夹同步...break;");
+                            Log.Information($"[{VideoType.GetDesc()}]-已开启自定义收藏夹同步...break;");
                         }
                         else if (cookie.DownCollect)
                         {
-                            int syncCount = 0;
-                            string cursor = "0";
-                            bool hasMore = true;
-                            (syncCount, cursor, hasMore) = await GetAndSaveViedos(cookie, config, syncCount, cursor, hasMore, cancellationToken: cancellationToken);
+                            int syncCount = await SyncFavoriteCollectVideos(cookie, config, cancellationToken);
                             await HandleSyncCompletion(cookie, syncCount);
                         }
                         else
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
                         }
                         break;
 
@@ -586,7 +581,7 @@ namespace dy.net.job
                         }
                         else
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
                         }
                         break;
                     case VideoTypeEnum.dy_series:
@@ -594,7 +589,7 @@ namespace dy.net.job
                             await SyncCustomListVideos(cookie, config, cancellationToken);
                         else
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
                         }
                         break;
                     case VideoTypeEnum.dy_custom_collect:
@@ -602,7 +597,7 @@ namespace dy.net.job
                             await SyncCustomListVideos(cookie, config, cancellationToken);
                         else
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]同步未开启");
                         }
                         break;
                     case VideoTypeEnum.ImageVideo:
@@ -620,6 +615,170 @@ namespace dy.net.job
             {
                 Log.Error(ex, $"[{cookie.UserName}][{VideoType.GetDesc()}]同步出错!!!,{ex.StackTrace}");
             }
+        }
+
+        /// <summary>
+        /// 收藏和点赞按两条边界处理：每次从第一页追到上次边界以发现新增内容；
+        /// 未开启“仅新视频”时，再从已保存的历史游标继续补齐旧视频。
+        /// </summary>
+        private async Task<int> SyncFavoriteCollectVideos(DouyinCookie cookie, AppConfig config, CancellationToken cancellationToken)
+        {
+            var isFavorite = VideoType == VideoTypeEnum.dy_favorite;
+            var cursor = isFavorite ? cookie.FavoritePageCursor : cookie.CollectPageCursor;
+            var boundary = isFavorite ? cookie.FavoriteBoundaryAwemeId : cookie.CollectBoundaryAwemeId;
+            var backfillCompleted = isFavorite ? cookie.FavoriteBackfillCompleted : cookie.CollectBackfillCompleted;
+            var syncCount = 0;
+            var firstPageNextCursor = string.Empty;
+            var candidateBoundary = string.Empty;
+            var reachedBoundary = false;
+            var firstPage = true;
+
+            // 增量检查永远从最新页开始；只扫到上次确认的边界，不重扫完整历史。
+            var headCursor = "0";
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var data = await FetchVideoData(cookie, headCursor, null, null);
+                if (data?.AwemeList == null || data.AwemeList.Count == 0)
+                {
+                    reachedBoundary = true;
+                    break;
+                }
+
+                var nextCursor = GetNextCursor(data);
+                var hasNextPage = data.HasMore == 1 && !string.IsNullOrWhiteSpace(nextCursor) && nextCursor != headCursor;
+                if (firstPage)
+                {
+                    firstPageNextCursor = hasNextPage ? nextCursor : string.Empty;
+                    candidateBoundary = data.AwemeList.LastOrDefault()?.AwemeId;
+                }
+
+                var boundaryIndex = string.IsNullOrWhiteSpace(boundary)
+                    ? -1
+                    : data.AwemeList.FindIndex(x => x.AwemeId == boundary);
+                var pageItems = boundaryIndex >= 0
+                    ? data.AwemeList.Take(boundaryIndex).ToList()
+                    : data.AwemeList;
+
+                if (pageItems.Count > 0)
+                {
+                    var pageData = new DouyinVideoInfoResponse
+                    {
+                        AwemeList = pageItems,
+                        StatusCode = data.StatusCode
+                    };
+                    var (videos, pageSyncCount) = await ProcessVideoList(syncCount, cookie, pageData, config, completePage: true);
+                    if (videos.Count > 0 && await SaveVideos(cookie, videos) == 0)
+                    {
+                        Log.Debug("[{UserName}][{VideoType}]视频信息保存失败，本页游标保持不变", cookie.UserName, VideoType.GetDesc());
+                        return syncCount;
+                    }
+                    syncCount += pageSyncCount;
+                }
+
+                if (boundaryIndex >= 0)
+                {
+                    reachedBoundary = true;
+                    break;
+                }
+
+                // 首次同步没有旧边界：以第一页末尾建立边界，避免“仅新视频”首次扫完整个历史。
+                if (firstPage && string.IsNullOrWhiteSpace(boundary))
+                {
+                    reachedBoundary = true;
+                    break;
+                }
+
+                if (!hasNextPage)
+                {
+                    reachedBoundary = true;
+                    break;
+                }
+
+                if (syncCount >= Math.Max(1, config.BatchCount))
+                    break;
+
+                firstPage = false;
+                headCursor = nextCursor;
+                await DelayBetweenRequestsAsync(cancellationToken, 2, 9);
+            }
+
+            if (reachedBoundary)
+            {
+                if (!string.IsNullOrWhiteSpace(candidateBoundary))
+                    boundary = candidateBoundary;
+
+                // 建立历史补齐起点：第一页之后。已完成状态下不再重新扫描旧历史。
+                if (string.IsNullOrWhiteSpace(cursor) && !backfillCompleted)
+                    cursor = firstPageNextCursor;
+
+                await SaveFavoriteCollectProgress(cookie, cursor, boundary, backfillCompleted, isFavorite);
+            }
+
+            if (config.OnlySyncNew || backfillCompleted || syncCount >= Math.Max(1, config.BatchCount) || string.IsNullOrWhiteSpace(cursor))
+                return syncCount;
+
+            // 历史补齐从上次完整处理的页之后继续。游标只在整页保存成功后推进。
+            while (!string.IsNullOrWhiteSpace(cursor))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var requestCursor = cursor;
+                var data = await FetchVideoData(cookie, requestCursor, null, null);
+                if (data?.AwemeList == null || data.AwemeList.Count == 0)
+                {
+                    cursor = string.Empty;
+                    backfillCompleted = true;
+                    await SaveFavoriteCollectProgress(cookie, cursor, boundary, backfillCompleted, isFavorite);
+                    break;
+                }
+
+                var (videos, pageSyncCount) = await ProcessVideoList(syncCount, cookie, data, config, completePage: true);
+                if (videos.Count > 0 && await SaveVideos(cookie, videos) == 0)
+                {
+                    Log.Debug("[{UserName}][{VideoType}]视频信息保存失败，本页游标保持不变", cookie.UserName, VideoType.GetDesc());
+                    break;
+                }
+                syncCount += pageSyncCount;
+
+                var nextCursor = GetNextCursor(data);
+                var hasNextPage = data.HasMore == 1 && !string.IsNullOrWhiteSpace(nextCursor) && nextCursor != requestCursor;
+                if (!hasNextPage)
+                {
+                    if (data.HasMore == 1 && nextCursor == requestCursor)
+                        Log.Debug("[{UserName}][{VideoType}]接口返回了重复游标 {Cursor}，停止本轮历史补齐", cookie.UserName, VideoType.GetDesc(), requestCursor);
+
+                    cursor = string.Empty;
+                    backfillCompleted = true;
+                }
+                else
+                {
+                    cursor = nextCursor;
+                }
+
+                await SaveFavoriteCollectProgress(cookie, cursor, boundary, backfillCompleted, isFavorite);
+                if (backfillCompleted || syncCount >= Math.Max(1, config.BatchCount))
+                    break;
+
+                await DelayBetweenRequestsAsync(cancellationToken, 2, 9);
+            }
+
+            return syncCount;
+        }
+
+        private Task<bool> SaveFavoriteCollectProgress(DouyinCookie cookie, string cursor, string boundary, bool backfillCompleted, bool isFavorite)
+        {
+            if (isFavorite)
+            {
+                cookie.FavoritePageCursor = cursor;
+                cookie.FavoriteBoundaryAwemeId = boundary;
+                cookie.FavoriteBackfillCompleted = backfillCompleted;
+                return douyinCookieService.UpdateFavoriteSyncProgress(cookie.Id, cursor, boundary, backfillCompleted);
+            }
+
+            cookie.CollectPageCursor = cursor;
+            cookie.CollectBoundaryAwemeId = boundary;
+            cookie.CollectBackfillCompleted = backfillCompleted;
+            return douyinCookieService.UpdateCollectSyncProgress(cookie.Id, cursor, boundary, backfillCompleted);
         }
         /// <summary>
         /// 同步下载自定义收藏夹、合集、短剧
@@ -650,7 +809,7 @@ namespace dy.net.job
             }
             else
             {
-                Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]没有查询到需要同步的抖音授权账号");
+                Serilog.Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]没有查询到需要同步的抖音授权账号");
             }
         }
 
@@ -665,7 +824,7 @@ namespace dy.net.job
                 var data = await FetchVideoData(cookie, cursor, followed, cate);
                 if (data == null || data.AwemeList == null || !data.AwemeList.Any())
                 {
-                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 没有发布新的视频");
+                    Serilog.Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 没有发布新的视频");
                     break;
                 }
 
@@ -746,7 +905,7 @@ namespace dy.net.job
             {
                 if (syncCount >= 30)
                 {
-                    Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]:本次同步数量{syncCount}，等下次任务继续同步");
+                    Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]:本次同步数量{syncCount}，等下次任务继续同步");
                     return true;
                 }
 
@@ -755,7 +914,7 @@ namespace dy.net.job
             {
                 if (syncCount >= config.BatchCount)
                 {
-                    Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]:本次同步数量{syncCount}，已达配置上限{config.BatchCount}，等下次任务继续同步");
+                    Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]:本次同步数量{syncCount}，已达配置上限{config.BatchCount}，等下次任务继续同步");
                     return true;
                 }
 
@@ -768,14 +927,14 @@ namespace dy.net.job
             //// 获取当前视频类型对应的状态判断逻辑
             //if (!_syncStatusCheckMap.TryGetValue(VideoType, out var isSyncCompleted))
             //{
-            //    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]无匹配的同步状态判断规则，不终止循环");
+            //    //Log.Information($"[{VideoType.GetVideoTypeDesc()}]无匹配的同步状态判断规则，不终止循环");
             //    return false;
             //}
 
             //// 状态满足则记录日志并返回「终止循环」
             //if (isSyncCompleted.Invoke(cookie))
             //{
-            //    Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]本次同步达到上限{config.BatchCount}，停止同步!!!");
+            //    Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]本次同步达到上限{config.BatchCount}，停止同步!!!");
             //    return true;
             //}
 
@@ -790,7 +949,7 @@ namespace dy.net.job
         /// <param name="followed">关注的</param>
         /// <param name="cate">收藏夹、合集、短剧</param>
         /// <returns>处理后的视频实体列表</returns>
-        protected async Task<(List<DouyinVideo> videos, int currentCount)> ProcessVideoList(int syncCount1, DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null)
+        protected async Task<(List<DouyinVideo> videos, int currentCount)> ProcessVideoList(int syncCount1, DouyinCookie cookie, DouyinVideoInfoResponse data, AppConfig config, DouyinFollowed followed = null, DouyinCollectCate cate = null, bool completePage = false)
         {
             int syncCount = 0;
             var videos = new List<DouyinVideo>();
@@ -828,7 +987,7 @@ namespace dy.net.job
                 //判断视频是否是强制删除且不再下载的视频
                 if (deletedAwemeIds.Contains(item.AwemeId))
                 {
-                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
+                    //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频-{item.AwemeId}-[{item.Desc}]已被标记为强制删除，跳过下载");
                     continue;
                 }
 
@@ -904,7 +1063,7 @@ namespace dy.net.job
                     videos.Add(video);
                     syncCount++;
 
-                    if (syncCount + syncCount1 >= config.BatchCount)
+                    if (!completePage && syncCount + syncCount1 >= config.BatchCount)
                     {
                         return (videos, syncCount);
                     }
@@ -950,7 +1109,7 @@ namespace dy.net.job
                             if (!string.IsNullOrEmpty(dynamicVideo.DynamicVideos))
                             {
                                 var dynamicVideos = JsonConvert.DeserializeObject<List<DouyinMergeVideoDto>>(dynamicVideo.DynamicVideos);
-                                Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideos?.Count}个视频...");
+                                Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]-动态视频[{item.Desc}]，下载成功 ,共{dynamicVideos?.Count}个视频...");
                                 if (dynamicVideos != null && dynamicVideos.Count > 0)
                                 {
 
@@ -994,14 +1153,14 @@ namespace dy.net.job
                             }
                             videos.Add(dynamicVideo);
                             syncCount++;
-                            if (syncCount + syncCount1 >= config.BatchCount)
+                            if (!completePage && syncCount + syncCount1 >= config.BatchCount)
                             {
                                 return (videos, syncCount);
                             }
                         }
                         else
                         {
-                            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-动态视频[{item.Desc}]，下载失败...");
+                            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]-动态视频[{item.Desc}]，下载失败...");
                         }
                     }
                     else
@@ -1014,7 +1173,7 @@ namespace dy.net.job
                             {
                                 videos.Add(mergevideo);
                                 syncCount++;
-                                if (syncCount + syncCount1 >= config.BatchCount)
+                                if (!completePage && syncCount + syncCount1 >= config.BatchCount)
                                 {
                                     return (videos, syncCount);
                                 }
@@ -1068,20 +1227,20 @@ namespace dy.net.job
                             if (exitVideoType == VideoType)
                             {
                                 // 已存在同优先级视频 → 跳过下载（避免重复）
-                                //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在（同最高优先级），跳过");
+                                //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在（同最高优先级），跳过");
                                 return false;
                             }
                             else
                             {
                                 // 已存在「低优先级」视频 → 替换（删除旧文件，继续下载新的最高优先级视频）
-                                //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在（低优先级：{exitVideoType.GetVideoTypeDesc()}），替换为最高优先级：{currentVideoType.GetVideoTypeDesc()}");
+                                //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在（低优先级：{exitVideoType.GetVideoTypeDesc()}），替换为最高优先级：{currentVideoType.GetVideoTypeDesc()}");
 
                                 // 删除旧的低优先级文件（可选：也可保留备份，根据需求调整）
                                 try
                                 {
                                     //File.Delete(exitVideo.VideoSavePath);
                                     DeleteOldVideo(exitVideo);
-                                    //Log.Debug($"已删除旧文件：{exitVideo.VideoSavePath}");
+                                    //Log.Information($"已删除旧文件：{exitVideo.VideoSavePath}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -1098,7 +1257,7 @@ namespace dy.net.job
                             if (exitVideoType == maxPriorityType)
                             {
                                 // 已存在「最高优先级」视频 → 跳过（不替换最高优先级）
-                                //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在最高优先级视频（{maxPriorityType}），当前类型（{currentVideoType.GetVideoTypeDesc()}）优先级低，跳过");
+                                //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在最高优先级视频（{maxPriorityType}），当前类型（{currentVideoType.GetVideoTypeDesc()}）优先级低，跳过");
                                 return false;
                             }
                             else
@@ -1111,7 +1270,7 @@ namespace dy.net.job
                                 if (currentSort < exitSort)
                                 {
                                     // 当前类型优先级更高 → 替换旧视频
-                                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在低优先级视频（{exitVideoType.GetVideoTypeDesc()}），替换为当前优先级：{currentVideoType.GetVideoTypeDesc()}");
+                                    //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在低优先级视频（{exitVideoType.GetVideoTypeDesc()}），替换为当前优先级：{currentVideoType.GetVideoTypeDesc()}");
                                     // 删除旧文件
                                     DeleteOldVideo(exitVideo);
                                     // 继续下载
@@ -1119,7 +1278,7 @@ namespace dy.net.job
                                 else
                                 {
                                     // 当前类型优先级更低或相等 → 跳过
-                                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在更高/同等优先级视频（{exitVideoType.GetVideoTypeDesc()}），当前类型（{currentVideoType.GetVideoTypeDesc()}）跳过");
+                                    //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频-{exitVideo.AwemeId}-[{exitVideo.VideoTitle}]已存在更高/同等优先级视频（{exitVideoType.GetVideoTypeDesc()}），当前类型（{currentVideoType.GetVideoTypeDesc()}）跳过");
                                     return false;
                                 }
                             }
@@ -1270,7 +1429,7 @@ namespace dy.net.job
                 if (!string.IsNullOrWhiteSpace(uri))
                 {
                     videoUrl = $"https://www.iesdouyin.com/aweme/v1/play/?video_id={uri}&ratio=default&watermark=0&source=PackSourceEnum_PUBLISH";
-                    Log.Debug("原画URL=" + videoUrl);
+                    Log.Debug($"{item.Desc},原画={videoUrl}");
                 }
             }
 
@@ -1296,11 +1455,11 @@ namespace dy.net.job
             // 如果文件已存在，跳过
             if (File.Exists(savePath))
             {
-                //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
+                //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
                 return null;
             }
 
-            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]开始下载...");
+            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]开始下载...");
             // 随机延迟
             await Task.Delay(_random.Next(1, 4) * 1000);
 
@@ -1318,7 +1477,7 @@ namespace dy.net.job
             }
             else
             {
-                Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载完成.");
+                Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]下载完成.");
             }
             // 下载视频封面
             var coverSavePath = await DownVideoCover(item, savePath, cookie, cate, config);
@@ -1398,7 +1557,7 @@ namespace dy.net.job
             // 拼接视频保存路径
             var savePath = Path.Combine(saveFolder, fileName);
 
-            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-动态视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]开始下载...");
+            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]-动态视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}]开始下载...");
             // 随机延迟
             int i = 1;
 
@@ -1413,7 +1572,7 @@ namespace dy.net.job
                 // 如果文件已存在，跳过
                 if (File.Exists(dynamicSavePath))
                 {
-                    //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
+                    //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-视频[{DouyinFileNameHelper.SanitizePath(item.Desc)}]已存在，跳过下载.");
                     dynamicSavePaths.Add(v);
                     continue;
                 }
@@ -1425,7 +1584,7 @@ namespace dy.net.job
                 else
                 {
                     dynamicSavePaths.Add(v);
-                    Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-动态视频[{dynamicSavePath}]-00{i},下载完成.");
+                    Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}][{item?.Author?.Nickname ?? ""}]-动态视频[{dynamicSavePath}]-00{i},下载完成.");
                 }
                 await Task.Delay(_random.Next(2, 10) * 1000);
             }
@@ -1460,7 +1619,7 @@ namespace dy.net.job
         /// <returns></returns>
         private async Task<(bool flowControl, DouyinVideo value)> SwitchOtherUrlAddressDown(DouyinCookie cookie, Aweme item, string videoUrl, string savePath)
         {
-            Log.Debug($"[ {VideoType.GetDesc()} ][ {item?.Author?.Nickname ?? ""} ]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}],正在尝试切换其他地址再次重新下载...");
+            Log.Information($"[ {VideoType.GetDesc()} ][ {item?.Author?.Nickname ?? ""} ]-视频[{DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId)}],正在尝试切换其他地址再次重新下载...");
             var otherUrls = new List<string>();
 
             foreach (var bit in item.Video.BitRate)
@@ -1486,11 +1645,11 @@ namespace dy.net.job
 
             if (otherUrls.Count > 0)
             {
-                //Log.Debug($"[{VideoType.GetVideoTypeDesc()}]-额外找到{otherUrls.Count}个视频地址，即将再次开始下载...");
+                //Log.Information($"[{VideoType.GetVideoTypeDesc()}]-额外找到{otherUrls.Count}个视频地址，即将再次开始下载...");
                 var (Success, ActualSavePath) = await douyinHttpClientService.DownloadAsync(videoUrl, savePath, cookie.Cookies, otherUrls);
                 if (Success)
                 {
-                    Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-尝试多个地址后，下载成功,{savePath}");
+                    Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]-尝试多个地址后，下载成功,{savePath}");
                 }
                 else
                 {
@@ -1793,7 +1952,7 @@ namespace dy.net.job
         /// <returns>一个表示异步操作的任务</returns>
         private async Task CleanupFailedVideos(DouyinCookie cookie, List<DouyinVideo> videos)
         {
-            Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-数据库保存失败，开始清理本次下载的视频目录...");
+            Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]-数据库保存失败，开始清理本次下载的视频目录...");
 
             foreach (var video in videos)
             {
@@ -1811,7 +1970,7 @@ namespace dy.net.job
                         {
                             Directory.Delete(directory);
                         }
-                        Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-清理失败视频文件成功: {video.VideoSavePath}!!!");
+                        Log.Information($"[{cookie.UserName}][{VideoType.GetDesc()}]-清理失败视频文件成功: {video.VideoSavePath}!!!");
 
                     }
                     catch (Exception ex)

@@ -8,7 +8,7 @@
               <h3 class="section-title">任务调度</h3>
               <div class="sync-settings-grid">
                 <a-form-item has-feedback label="同步周期" name="Cron" :wrapper-col="{ span: 20 }">
-                  <a-input-number v-model:value="formState.Cron" placeholder="请输入数字" :min="15" />
+                  <a-input v-model:value="formState.Cron" class="sync-number-input" inputmode="numeric" placeholder="请输入数字" />
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
                     <span>间隔单位为分钟，最短 15 分钟。</span>
@@ -16,10 +16,10 @@
                 </a-form-item>
 
                 <a-form-item has-feedback label="单次最多" name="BatchCount" :wrapper-col="{ span: 20 }">
-                  <a-input-number v-model:value="formState.BatchCount" placeholder="请输入每次下载数量上限(最大40)" :min="10" :max="40" />
+                  <a-input v-model:value="formState.BatchCount" class="sync-number-input" inputmode="numeric" placeholder="请输入每次下载数量上限(最大40)" />
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                    <span>每次下载 10–40 条；超出部分下次继续。</span>
+                    <span>每次下载 10–40 条；超出部分将在下次任务执行时继续下载。</span>
                   </div>
                 </a-form-item>
 
@@ -28,6 +28,13 @@
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
                     <span>仅同步最近一页（限点赞和默认收藏），减少集中下载。</span>
+                  </div>
+                </a-form-item>
+                <a-form-item has-feedback label="Debug 日志" name="DebugLogEnabled" :wrapper-col="{ span: 20 }">
+                  <a-switch v-model:checked="formState.DebugLogEnabled" />
+                  <div class="flex items-start mt-1 text-sm text-gray-500">
+                    <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                    <span>开启后记录 Debug 级别日志；关闭后重启服务生效。</span>
                   </div>
                 </a-form-item>
               </div>
@@ -93,8 +100,8 @@
                 <a-form-item has-feedback label="默认音频" name="AudioFile" :wrapper-col="{ span: 20 }">
                   <!-- 仅保留检测按钮 -->
                   <div class="audio-check-wrapper" style="display: flex; align-items: center; gap: 16px;">
-                    <a-button class="audio-list-button" type="primary" size="small" @click="checkAudioList">
-                      <play-circle-outlined /> 音频
+                    <a-button class="audio-list-button" type="primary" size="small" aria-label="选择默认音频" title="选择默认音频" @click="checkAudioList">
+                      <play-circle-outlined />
                     </a-button>
                   </div>
 
@@ -134,20 +141,39 @@
               <h3 class="section-title">下载偏好</h3>
               <div class="download-preference-grid">
                 <a-form-item class="preference-priority" v-show="formState.AutoDistinct" has-feedback label="去重优先级" name="PriorityLevel" :wrapper-col="{ span: 20 }">
-                  <!-- Tag 拖拽容器 -->
                   <div class="tag-drag-container">
-                    <!-- Tag 拖拽容器（绑定 ref 供 Sortable 初始化） -->
-                    <div ref="tagContainer" class="tag-list">
-                      <a-tag v-for="(item, index) in tagData" :key="item.id" class="sortable-tag" color="blue">
-                        <!-- 用 "≡" 符号替代 a-icon 作为拖拽手柄 -->
-                        <span class="drag-handle" style="margin-right: 6px; cursor: move;">≡</span>
-                        {{ item.name }}
-                      </a-tag>
+                    <div class="tag-list">
+                      <div v-for="(item, index) in tagData" :key="item.id" class="priority-row">
+                        <div class="priority-label">
+                          <span class="priority-index">{{ index + 1 }}</span>
+                          <span>{{ item.name }}</span>
+                        </div>
+                        <div class="priority-controls">
+                          <a-button
+                            class="priority-move-button"
+                            type="text"
+                            size="small"
+                            :disabled="index === 0"
+                            :aria-label="`左移${item.name}`"
+                            title="左移"
+                            @click.stop="movePriority(index, -1)"
+                          >&#8592;</a-button>
+                          <a-button
+                            class="priority-move-button"
+                            type="text"
+                            size="small"
+                            :disabled="index === tagData.length - 1"
+                            :aria-label="`右移${item.name}`"
+                            title="右移"
+                            @click.stop="movePriority(index, 1)"
+                          >&#8594;</a-button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                    <span>同一视频仅保留优先级最高的一份；拖动标签可调整顺序。</span>
+                    <span>同一视频仅保留优先级最高的一份；点击箭头调整顺序。</span>
                   </div>
                 </a-form-item>
                 <a-form-item label="视频画质" name="VideoQuality">
@@ -164,7 +190,7 @@
                   </a-radio-group>
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                    <span>优先下载 H.265；无对应码流时自动回退到同画质 H.264。</span>
+                    <span v-if="formState.VideoEncoder === 265">优先下载 H.265；没有可用 H.265 码流时回退到 H.264。</span><span v-else>优先下载 H.264；没有可用 H.264 码流时回退到 H.265。</span>
                   </div>
                 </a-form-item>
                 <a-form-item label="关闭刮削" name="CloseNfo">
@@ -174,11 +200,11 @@
                     <span>关闭后不生成 NFO，也不下载视频封面和作者头像，Emby、Jellyfin 等媒体库可能无法完整刮削和展示视频信息。</span>
                   </div>
                 </a-form-item>
-                <a-form-item label="忽略检查文件存在" name="SkipFileExistenceCheck">
-                  <a-switch v-model:checked="formState.SkipFileExistenceCheck" />
+                <a-form-item label="检查文件" name="SkipFileExistenceCheck">
+                  <a-switch v-model:checked="checkFileExistence" />
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                    <span>仅按数据库记录判断是否已下载；文件移动或丢失后不会重下，记录中的路径也可能无法播放。</span>
+                    <span>开启：检查数据库记录对应的本地文件；文件已移动或删除时会重新下载。关闭：只要数据库有记录就跳过，不检查文件是否还在，可能导致视频无法播放。</span>
                   </div>
                 </a-form-item>
               </div>
@@ -356,14 +382,13 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, toRaw, ref, watch, onMounted, computed, nextTick } from 'vue';
+import { reactive, toRaw, ref, watch, onMounted, computed } from 'vue';
 import type { UnwrapRef } from 'vue';
 import { Form, Tooltip } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
 import { useApiStore } from '@/store';
 import { message, Modal } from 'ant-design-vue';
-import { Sortable } from 'sortablejs';
 import type { UploadProps } from 'ant-design-vue/es/upload/interface';
 import {
   InfoCircleOutlined,
@@ -407,9 +432,9 @@ const downImageVideoHandler = () => {
 };
 // 表单数据结构（包含 FullFollowedTitleTemplate 字段）
 interface FormState {
-  Cron: number;
+  Cron: string;
   Id: string;
-  BatchCount: number;
+  BatchCount: string;
   DownImageVideo: boolean;
   //UperSaveTogether: boolean;
   UperUseViedoTitle: boolean;
@@ -426,6 +451,7 @@ interface FormState {
   MegDynamicVideo: boolean; // 补充原有缺失字段
   KeepDynamicVideo: boolean; // 补充原有缺失字段
   OnlySyncNew: boolean;
+  DebugLogEnabled: boolean;
   VideoQuality: number;
   VideoEncoder: number;
   CloseNfo: boolean;
@@ -441,9 +467,9 @@ interface FormState {
 
 // 表单初始数据
 const formState: UnwrapRef<FormState> = reactive({
-  Cron: 30,
+  Cron: '30',
   Id: '0',
-  BatchCount: 10,
+  BatchCount: '10',
   LogKeepDay: 10,
   UperUseViedoTitle: false,
   // UperSaveTogether: false,
@@ -460,6 +486,7 @@ const formState: UnwrapRef<FormState> = reactive({
   MegDynamicVideo: false, // 初始化缺失字段
   KeepDynamicVideo: false, // 初始化缺失字段
   OnlySyncNew: false,
+  DebugLogEnabled: true,
   VideoQuality: 0,
   VideoEncoder: 265,
   CloseNfo: false,
@@ -471,6 +498,13 @@ const formState: UnwrapRef<FormState> = reactive({
   ActiveFollowedStorageRootIndex: 0,
   ActiveMixStorageRootIndex: 0,
   ActiveSeriesStorageRootIndex: 0,
+});
+
+const checkFileExistence = computed({
+  get: () => !formState.SkipFileExistenceCheck,
+  set: (enabled: boolean) => {
+    formState.SkipFileExistenceCheck = !enabled;
+  },
 });
 
 const expansionRoots = computed(() =>
@@ -559,9 +593,9 @@ const getConfig = () => {
         const parsedTemplateArr = parseTemplateToArr(fullTemplate);
 
         Object.assign(formState, {
-          Cron: res.data.cron,
+          Cron: String(res.data.cron ?? ''),
           Id: String(res.data.id ?? res.data.Id ?? formState.Id),
-          BatchCount: res.data.batchCount,
+          BatchCount: String(res.data.batchCount ?? ''),
           DownImageVideo: res.data.downImageVideo,
           UperUseViedoTitle: res.data.uperUseViedoTitle,
           // UperSaveTogether: res.data.uperSaveTogether,
@@ -578,6 +612,7 @@ const getConfig = () => {
           MegDynamicVideo: res.data.megDynamicVideo || false, // 补充赋值
           KeepDynamicVideo: res.data.keepDynamicVideo || false, // 补充赋值
           OnlySyncNew: res.data.onlySyncNew,
+          DebugLogEnabled: res.data.debugLogEnabled ?? true,
           VideoQuality: res.data.videoQuality ?? 0,
           VideoEncoder: res.data.videoEncoder ?? 265,
           CloseNfo: res.data.closeNfo,
@@ -630,9 +665,6 @@ const parseTemplateToArr = (templateStr: string | null | undefined) => {
 };
 
 // 拖拽容器 ref
-const tagContainer = ref(null);
-let sortableInstance = ref<any>(null);
-// 模拟 Tag 数据
 const tagData = ref([
   { id: 1, name: '喜欢的视频', sort: 1 },
   { id: 2, name: '收藏的视频', sort: 2 },
@@ -706,30 +738,31 @@ const closeAudioListModal = () => {
   }
 };
 // 组件挂载时获取配置
-onMounted(async () => {
+const movePriority = (index: number, direction: -1 | 1) => {
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= tagData.value.length) return;
+
+  const [item] = tagData.value.splice(index, 1);
+  tagData.value.splice(targetIndex, 0, item);
+  updateTagSort();
+};
+
+onMounted(() => {
   void loadStorageDeploymentSettings();
   getConfig();
-  await nextTick();
-  if (tagContainer.value) {
-    sortableInstance.value = new Sortable(tagContainer.value, {
-      handle: '.drag-handle',
-      animation: 150,
-      ghostClass: 'tag-ghost',
-      preventOnFilter: true,
-      onEnd: (evt) => {
-        const [movedTag] = tagData.value.splice(evt.oldIndex, 1);
-        tagData.value.splice(evt.newIndex, 0, movedTag);
-        updateTagSort();
-        console.log('最新 Tag 数据（含 sort）：', tagData.value);
-      },
-    });
-  } else {
-    console.warn('拖拽容器未找到，请检查 ref 绑定');
-  }
 });
-
-// 提交表单
 const onSubmit = () => {
+  const cron = Number(formState.Cron);
+  const batchCount = Number(formState.BatchCount);
+  if (!/^\d+$/.test(formState.Cron) || !Number.isSafeInteger(cron) || cron < 15 || cron > 2147483647) {
+    message.error('同步周期必须是大于等于 15 分钟的整数');
+    return;
+  }
+  if (!/^\d+$/.test(formState.BatchCount) || !Number.isInteger(batchCount) || batchCount < 10 || batchCount > 40) {
+    message.error('单次最多下载数量必须是 10 到 40 之间的整数');
+    return;
+  }
+
   formRef.value
     ?.validate()
     .then(() => {
@@ -740,6 +773,8 @@ const onSubmit = () => {
 
       const submitData = {
         ...toRaw(formState),
+        Cron: cron,
+        BatchCount: batchCount,
         StorageExpansionRoots: JSON.stringify(expansionRoots.value),
         ActiveCollectStorageRootIndex: Math.min(formState.ActiveCollectStorageRootIndex, expansionRoots.value.length),
         ActiveFavoriteStorageRootIndex: Math.min(formState.ActiveFavoriteStorageRootIndex, expansionRoots.value.length),
@@ -971,32 +1006,7 @@ const renfo = () => {
 }
 
 /* 拖拽中的 Tag 占位样式 */
-.tag-ghost {
-  opacity: 0.5;
-  background-color: #e6f7ff !important;
-  border-color: #91d5ff !important;
-}
 
-/* 拖拽手柄样式优化 */
-.drag-handle {
-  font-size: 14px;
-  color: #666;
-  user-select: none;
-}
-
-.drag-handle:hover {
-  color: #1890ff;
-}
-
-/* Tag  hover 效果 */
-.sortable-tag {
-  transition: all 0.2s;
-}
-
-.sortable-tag:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
 
 // 悬浮按钮容器
 .config-float-btn-container {
@@ -1367,28 +1377,86 @@ const renfo = () => {
 
 /* 拖拽优先级 */
 .tag-drag-container {
-  padding: 9px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 5px;
   border: 1px dashed #d9e0e8;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f8fafb;
 }
 
 .tag-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px !important;
 }
 
-.sortable-tag {
-  margin: 0 !important;
-  padding: 4px 10px !important;
-  border: 0 !important;
-  border-radius: 999px !important;
-  color: #5d35b5 !important;
-  background: rgba(124, 58, 237, 0.09) !important;
-  cursor: default;
+.priority-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-height: 27px;
+  padding: 2px 5px;
+  border-radius: 6px;
+  color: #4b3680;
+  background: rgba(124, 58, 237, 0.08);
+  font-size: 12px;
 }
 
-.drag-handle {
-  color: #7c3aed !important;
+.priority-label,
+.priority-controls {
+  display: flex;
+  align-items: center;
+}
+
+.priority-label {
+  gap: 5px;
+}
+
+.priority-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  background: #7c3aed;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.priority-controls {
+  gap: 2px;
+}
+
+.priority-move-button {
+  width: 20px;
+  height: 20px;
+  padding: 0 !important;
+  color: #6d28d9 !important;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.preference-priority :deep(.ant-form-item-row) {
+  align-items: center !important;
+}
+
+.priority-move-button:disabled {
+  color: #b8b4c2 !important;
+}
+
+html.dark-mode .priority-row {
+  color: #e2d8f5;
+  background: rgba(139, 92, 246, 0.16);
+}
+
+html.dark-mode .priority-move-button:disabled {
+  color: #666273 !important;
 }
 
 /* 音频按钮 */
@@ -1405,12 +1473,22 @@ const renfo = () => {
 }
 
 .audio-check-wrapper :deep(.ant-btn-primary.audio-list-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 44px;
+  min-width: 44px;
   height: 24px;
-  padding: 0 8px;
+  padding: 0;
   border-radius: 6px;
-  font-size: 12px;
-  line-height: 22px;
+  font-size: 11px;
+  line-height: 20px;
   box-shadow: 0 2px 6px rgba(109, 40, 217, 0.16);
+}
+
+.audio-check-wrapper :deep(.audio-list-button .anticon) {
+  font-size: 12px;
 }
 
 /* 操作区横跨两列 */
@@ -1557,11 +1635,6 @@ html.dark-mode .system-config-form :deep(.flex.items-start.mt-1.text-sm.text-gra
 html.dark-mode .tag-drag-container {
   border-color: #3b3d54;
   background: rgba(255, 255, 255, 0.035);
-}
-
-html.dark-mode .sortable-tag {
-  color: #c8a9ff !important;
-  background: rgba(139, 92, 246, 0.16) !important;
 }
 
 html.dark-mode .sub-float-btn {
@@ -1859,32 +1932,98 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 
 .storage-root-settings-grid .storage-setting {
   display: grid;
-  grid-template-columns: 180px minmax(180px, 280px) minmax(0, 1fr);
+  grid-template-columns: 150px minmax(220px, 340px) minmax(0, 1fr);
   align-items: center;
-  column-gap: 12px;
-  margin-bottom: 14px;
+  column-gap: 10px;
+  margin-bottom: 10px;
 }
 
 .storage-root-settings-grid .storage-setting-label {
   margin: 0;
+  color: #475569;
+  font-size: 13px;
+  text-align: right;
 }
 
 .storage-root-settings-grid .storage-setting-help {
   grid-column: 3;
   margin-top: 0;
+  padding: 7px 10px;
+  border-left: 2px solid #c4b5fd;
+  border-radius: 0 7px 7px 0;
+  background: #f8fafc;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .storage-root-settings-grid #storage-min-free-space {
-  width: 60px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 340px;
+}
+
+.storage-root-settings-grid :deep(.ant-input),
+.storage-root-settings-grid :deep(.ant-input-number),
+.storage-root-settings-grid :deep(.ant-select-selector) {
+  min-height: 38px;
+  border-radius: 8px !important;
+}
+
+.storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selector),
+.storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selection-overflow) {
+  align-items: center;
+}
+
+.storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selector) {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selection-item) {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 26px;
+  margin: 0 4px 0 0;
+  padding: 0 7px;
+  border: 1px solid #e2d8ff;
+  border-radius: 6px;
+  color: #6336b5;
+  background: #f3efff;
+  line-height: 1;
+}
+
+.storage-root-settings-grid :deep(.ant-select-selection-item-content),
+.storage-root-settings-grid :deep(.ant-select-selection-item-remove) {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selection-item-remove) {
+  margin-left: 5px;
+  color: #8b75b5;
+}
+
+.storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selection-item-remove:hover) {
+  color: #6d28d9;
 }
 
 .storage-active-roots-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 14px;
   align-items: start;
-  margin-top: 8px;
+  margin-top: 12px;
+}
+
+.storage-active-roots-grid .storage-setting-label {
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.storage-active-roots-grid :deep(.ant-select-selector) {
+  min-height: 36px;
+  border-radius: 8px !important;
 }
 
 .storage-setting {
@@ -1909,12 +2048,12 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
   align-items: flex-start;
   gap: 4px;
   margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #f5f7fa;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: #f7f8fb;
   color: #8992a1;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .storage-setting-help :deep(.anticon) {
@@ -1934,7 +2073,11 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 
 @media (max-width: 760px) {
   .storage-root-settings-grid .storage-setting {
-    grid-template-columns: 110px minmax(140px, 200px) minmax(160px, 1fr);
+    grid-template-columns: 105px minmax(0, 1fr);
+  }
+
+  .storage-root-settings-grid .storage-setting-help {
+    grid-column: 2;
   }
 
   .storage-active-roots-grid {
@@ -1993,6 +2136,16 @@ html.dark-mode .storage-setting-label {
 html.dark-mode .storage-setting-help {
   background: rgba(255, 255, 255, 0.06);
   color: #9ca3af;
+}
+
+html.dark-mode .storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selection-item) {
+  border-color: #4a3d67;
+  color: #ddccff;
+  background: rgba(139, 92, 246, 0.18);
+}
+
+html.dark-mode .storage-root-settings-grid :deep(.ant-select-multiple .ant-select-selection-item-remove) {
+  color: #b7a4d8;
 }
 
 /* 中等屏幕改为等宽双列 */
@@ -2270,6 +2423,11 @@ html.dark-mode .right-column-actions {
 .settings-tab-panel :deep(.ant-form-item-control-input-content > .ant-input) {
   max-width: 360px;
   flex: 0 1 360px;
+}
+.settings-tab-panel :deep(.sync-number-input) {
+  width: 50px;
+  max-width: 50px !important;
+  flex: 0 0 50px !important;
 }
 .settings-tab-panel :deep(.ant-form-item-control-input-content > .ant-select) {
   width: min(360px, 45%) !important;

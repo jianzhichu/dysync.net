@@ -45,6 +45,8 @@ namespace dy.net.extension
         // CodeFirst 只允许在应用启动阶段执行一次，避免每个请求重复建表/改表。
         private static readonly SemaphoreSlim _databaseInitLock = new(1, 1);
         private static int _databaseInitialized;
+        // Start quietly until the persisted setting is loaded after database initialization.
+        private static readonly LoggingLevelSwitch _loggingLevelSwitch = new(LogEventLevel.Information);
         // 缓存响应压缩MIME类型，避免每次请求拼接
         private static readonly IEnumerable<string> _compressionMimeTypes;
         #endregion
@@ -303,7 +305,7 @@ namespace dy.net.extension
                     .GetRequiredService<DatabaseConfigurationService>();
                 var databaseSettings = databaseConfiguration.GetActiveSettings();
 
-                Log.Information("开始执行数据库初始化和 CodeFirst，共 {EntityCount} 个实体", _entityTypes.Length);
+                Log.Debug("开始执行数据库初始化和 CodeFirst，共 {EntityCount} 个实体", _entityTypes.Length);
                 databaseConfiguration.EnsureDatabaseAvailable(db, databaseSettings);
                 db.CodeFirst.InitTables(_entityTypes);
                 // Quartz runtime tables use its official ADO schema, not business CodeFirst.
@@ -324,11 +326,11 @@ namespace dy.net.extension
                 }
 
                 Volatile.Write(ref _databaseInitialized, 1);
-                Log.Information("数据库初始化和 CodeFirst 执行完成");
+                Log.Debug("数据库初始化和 CodeFirst 执行完成");
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "数据库初始化或 CodeFirst 执行失败，应用停止启动");
+                Log.Error(ex, "数据库初始化或 CodeFirst 执行失败，应用停止启动");
                 throw;
             }
             finally
@@ -562,9 +564,7 @@ namespace dy.net.extension
                 : $"ANALYZE {Q("dy_collect_video")}";
             db.Ado.ExecuteCommand(analyzeSql);
 
-            Log.Information(
-                "dy_collect_video 索引检查完成，索引数量={IndexCount}",
-                indexes.Length);
+            Log.Debug("dy_collect_video 索引检查完成，索引数量={IndexCount}",indexes.Length);
         }
 
 
@@ -686,23 +686,38 @@ namespace dy.net.extension
         /// </summary>
         public static void ConfigureLogging(this WebApplicationBuilder builder)
         {
-            builder.Host.ConfigureLogging(logging => logging.ClearProviders())
-                       .UseSerilog();
+            builder.Host.ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddFilter("Quartz", LogLevel.None);
+                logging.AddFilter("System.Net.Http.HttpClient.douyin-client", LogLevel.Warning);
+            }).UseSerilog();
             string dateFile = "";// DateTime.Now.ToString("yyyyMMdd");
 
             Log.Logger = new LoggerConfiguration()
                 //.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .MinimumLevel.Is(LogEventLevel.Debug)
+                .MinimumLevel.ControlledBy(_loggingLevelSwitch)
                 .Enrich.FromLogContext()
-                .Filter.ByExcluding(e => e.Level == LogEventLevel.Information) // 排除Info级别的日志
                 .Filter.ByExcluding(Matching.FromSource("Microsoft"))
                 .Filter.ByExcluding(Matching.FromSource("Quartz"))
+                .Filter.ByExcluding(e => e.MessageTemplate.Text.Contains("Registering datasource", StringComparison.Ordinal))
+                .Filter.ByExcluding(e =>
+                    e.MessageTemplate.Text.StartsWith("Start processing HTTP request", StringComparison.Ordinal) ||
+                    e.MessageTemplate.Text.StartsWith("Sending HTTP request", StringComparison.Ordinal) ||
+                    e.MessageTemplate.Text.StartsWith("Received HTTP response headers", StringComparison.Ordinal) ||
+                    e.MessageTemplate.Text.StartsWith("End processing HTTP request", StringComparison.Ordinal))
                 .WriteTo.Console(new RenderedCompactJsonFormatter(), LogEventLevel.Debug)
                 //.WriteTo.MySQL(connectionString: builder.Configuration.GetConnectionString("DbConnectionString"), tableName: "Logs") // 输出到数据库
                 .WriteTo.Logger(configure => configure
                     .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Debug)
                     .WriteTo.File(
                         $"logs/log-debug-{dateFile}.txt",
+                        rollingInterval: RollingInterval.Day,
+                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
+                .WriteTo.Logger(configure => configure
+                    .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Information)
+                    .WriteTo.File(
+                        $"logs/log-info-{dateFile}.txt",
                         rollingInterval: RollingInterval.Day,
                         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"))
                 //.WriteTo.Logger(configure => configure
@@ -723,6 +738,11 @@ namespace dy.net.extension
                 //    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
                 //    restrictedToMinimumLevel: LogEventLevel.Debug)
                 .CreateLogger();
+        }
+
+        public static void SetDebugLoggingEnabled(bool enabled)
+        {
+            _loggingLevelSwitch.MinimumLevel = enabled ? LogEventLevel.Debug : LogEventLevel.Information;
         }
 
         /// <summary>

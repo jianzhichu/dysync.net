@@ -1,4 +1,4 @@
-﻿namespace dy.image
+namespace dy.image
 {
 
     /// <summary>
@@ -80,7 +80,7 @@
                     if (!mergeImg2Viedo)
                     {
                         // 不合成视频，直接返回成功
-                        Serilog.Log.Debug($"不合成视频，直接返回");
+                        Serilog.Log.Information($"不合成视频，直接返回");
                         return true;
                     }
 

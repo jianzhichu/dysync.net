@@ -127,6 +127,16 @@ namespace dy.net.service
             return await _cookieRepository.UpdateCookie(dyUserCookies);
         }
 
+        public Task<bool> UpdateFavoriteSyncProgress(string id, string cursor, string boundaryAwemeId, bool backfillCompleted)
+        {
+            return _cookieRepository.UpdateFavoriteSyncProgress(id, cursor, boundaryAwemeId, backfillCompleted);
+        }
+
+        public Task<bool> UpdateCollectSyncProgress(string id, string cursor, string boundaryAwemeId, bool backfillCompleted)
+        {
+            return _cookieRepository.UpdateCollectSyncProgress(id, cursor, boundaryAwemeId, backfillCompleted);
+        }
+
         // 删除（根据主键）
         public async Task<bool> DeleteByIdAsync(string id)
         {

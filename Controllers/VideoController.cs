@@ -1,4 +1,4 @@
-﻿using dy.net.model.dto;
+using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.service;
 using dy.net.utils;
@@ -656,7 +656,7 @@ namespace dy.net.Controllers
         //                try
         //                {
         //                    NfoFileGenerator.GenerateVideoNfoFile(video);
-        //                    Serilog.Log.Debug($"刮削视频（Path：{video.VideoSavePath}）生成NFO成功!");
+        //                    Serilog.Log.Information($"刮削视频（Path：{video.VideoSavePath}）生成NFO成功!");
         //                    await Task.Delay(50);
         //                }
         //                catch (Exception singleEx)

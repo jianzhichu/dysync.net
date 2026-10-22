@@ -72,6 +72,37 @@ namespace dy.net.model.entity
         [SugarColumn(Length = 500, IsNullable = true)]
         public string FavSavePath { get; set; }
 
+        // Favorite/collection pagination state is internal and must not be overwritten by cookie form updates.
+        [SugarColumn(Length = 500, IsNullable = true)]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public string FavoritePageCursor { get; set; }
+
+        [SugarColumn(Length = 500, IsNullable = true)]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public string FavoriteBoundaryAwemeId { get; set; }
+
+        [SugarColumn(IsNullable = true)]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public bool FavoriteBackfillCompleted { get; set; }
+
+        [SugarColumn(Length = 500, IsNullable = true)]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public string CollectPageCursor { get; set; }
+
+        [SugarColumn(Length = 500, IsNullable = true)]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public string CollectBoundaryAwemeId { get; set; }
+
+        [SugarColumn(IsNullable = true)]
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public bool CollectBackfillCompleted { get; set; }
+
         ///// <summary>
         ///// 最新收藏夹的分页页码
         ///// </summary>
