@@ -1420,7 +1420,7 @@ namespace dy.net.job
             }
 
             string videoUrl = null;
-            var targetQuality = config?.VideoQuality ?? 0;
+            var targetQuality = followed?.DownloadOriginalQuality == true ? 0 : config?.VideoQuality ?? 0;
 
             // 1. 若配置为原画优先(0)，优先拼装官方 302 无水印发布原画直链 (方案 A)
             if (targetQuality == 0)

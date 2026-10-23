@@ -61,6 +61,8 @@
 
         public string SavePath { get; set; }
 
+        public bool DownloadOriginalQuality { get; set; }
+
         public string UperId { get; set; }
 
     }

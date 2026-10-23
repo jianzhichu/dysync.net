@@ -101,8 +101,12 @@
                       </a-button>
                     </template>
                   </div>
+                  <div class="sync-switch-wrapper original-quality-switch">
+                    <span class="sync-label">原画</span>
+                    <a-switch v-model:checked="item.downloadOriginalQuality" size="small" @change="(checked) => handleOriginalQualityChange(item, checked)" />
+                  </div>
                   <div class="sync-switch-wrapper">
-                    <span class="sync-label">全量同步</span>
+                    <span class="sync-label">全量</span>
                     <a-switch v-model:checked="item.fullSync" size="small" @change="(checked) => handleSyncChange(item, checked)" />
                   </div>
                 </template>
@@ -196,6 +200,7 @@ interface FollowItem {
   signature: string;
   uperAvatar: string;
   fullSync: boolean;
+  downloadOriginalQuality: boolean;
   openSync: boolean;
   savePath?: string;
   isEditing: boolean;
@@ -607,6 +612,11 @@ const handleSyncChange = (item: FollowItem, checked: boolean) => {
   uploadSyncStatus(item);
 };
 
+const handleOriginalQualityChange = (item: FollowItem, checked: boolean) => {
+  item.downloadOriginalQuality = checked;
+  uploadSyncStatus(item);
+};
+
 // 编辑存储路径
 const handleEditPath = (item: FollowItem) => {
   if (item.isSaving) return;
@@ -635,6 +645,7 @@ const uploadSyncStatus = (item: FollowItem) => {
       OpenSync: item.openSync,
       FullSync: item.fullSync,
       SavePath: item.savePath,
+      DownloadOriginalQuality: item.downloadOriginalQuality,
       uperId: item.uperId, // 原userId改为uperId
     })
     .then((res) => {
@@ -2713,5 +2724,12 @@ html.dark-mode .dept-user-card-container .empty-container {
   .card-inner {
     padding-bottom: 7px !important;
   }
+}
+.sync-switch-wrapper {
+  width: auto !important;
+  flex: 0 0 auto;
+  justify-content: center;
+  padding: 0 6px;
+  gap: 4px;
 }
 </style>

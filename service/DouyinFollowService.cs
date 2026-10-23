@@ -170,6 +170,7 @@ namespace dy.net.service
                 followed.OpenSync = dto.OpenSync;
                 followed.FullSync = dto.OpenSync && dto.FullSync;
                 followed.SavePath = dto.SavePath;
+                followed.DownloadOriginalQuality = dto.DownloadOriginalQuality;
                 return await _followRepository.Update(followed);
             }
             return false;

@@ -70,6 +70,9 @@ namespace dy.net.model.entity
         /// </summary>
         public bool IsNoFollowed { get; set; }
 
+        /// <summary>是否对该博主的视频优先下载原画。</summary>
+        public bool DownloadOriginalQuality { get; set; }
+
         [SugarColumn(IsNullable = true, Length = 100)]
         public string DouyinNo { get; set; }
     }
