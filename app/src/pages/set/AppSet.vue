@@ -53,11 +53,11 @@
                     <span>下载动态片段并合成为一个视频。</span>
                   </div>
                 </a-form-item>
-                <a-form-item v-if="formState.DownDynamicVideo" has-feedback label="保留原视频" name="KeepDynamicVideo" :wrapper-col="{ span: 20 }">
+                <a-form-item has-feedback label="保留原视频" name="KeepDynamicVideo" :wrapper-col="{ span: 20 }">
                   <a-switch v-model:checked="formState.KeepDynamicVideo" />
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                    <span>保留合成前的片段文件；媒体库中可能显示为多个独立视频。</span>
+                    <span>保留合成前的片段文件，前提要开启动态视频下载。</span>
                   </div>
                 </a-form-item>
               </div>
@@ -67,7 +67,7 @@
                   <a-switch v-model:checked="formState.DownImageVideo" @change="downImageVideoHandler" />
                   <div class="flex items-start mt-1 text-sm text-gray-500">
                     <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                    <span>将图文中的图片和音频合成为视频。</span>
+                    <span>将图文视频中的图片和音频合成为视频。</span>
                   </div>
                 </a-form-item>
                 <!-- <a-form-item v-if="formState.DownImageVideo" has-feedback label="单独存储" name="ImageViedoSaveAlone" :wrapper-col="{ span: 20 }">
@@ -84,7 +84,7 @@
                     <a-switch v-model:checked="formState.DownMp3" />
                     <div class="flex items-start mt-1 text-sm text-gray-500">
                       <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                      <span>同时保留原音频文件。</span>
+                      <span>额外保留原音频文件。</span>
                     </div>
                   </a-form-item>
 
@@ -92,7 +92,7 @@
                     <a-switch v-model:checked="formState.DownImage" />
                     <div class="flex items-start mt-1 text-sm text-gray-500">
                       <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                      <span>同时保留原图片文件。</span>
+                      <span>额外保留原图片文件。</span>
                     </div>
                   </a-form-item>
                 </div>
@@ -149,24 +149,8 @@
                           <span>{{ item.name }}</span>
                         </div>
                         <div class="priority-controls">
-                          <a-button
-                            class="priority-move-button"
-                            type="text"
-                            size="small"
-                            :disabled="index === 0"
-                            :aria-label="`左移${item.name}`"
-                            title="左移"
-                            @click.stop="movePriority(index, -1)"
-                          >&#8592;</a-button>
-                          <a-button
-                            class="priority-move-button"
-                            type="text"
-                            size="small"
-                            :disabled="index === tagData.length - 1"
-                            :aria-label="`右移${item.name}`"
-                            title="右移"
-                            @click.stop="movePriority(index, 1)"
-                          >&#8594;</a-button>
+                          <a-button class="priority-move-button" type="text" size="small" :disabled="index === 0" :aria-label="`左移${item.name}`" title="左移" @click.stop="movePriority(index, -1)">&#8592;</a-button>
+                          <a-button class="priority-move-button" type="text" size="small" :disabled="index === tagData.length - 1" :aria-label="`右移${item.name}`" title="右移" @click.stop="movePriority(index, 1)">&#8594;</a-button>
                         </div>
                       </div>
                     </div>
@@ -1006,7 +990,6 @@ const renfo = () => {
 }
 
 /* 拖拽中的 Tag 占位样式 */
-
 
 // 悬浮按钮容器
 .config-float-btn-container {
@@ -2480,10 +2463,34 @@ html.dark-mode .right-column-actions {
   grid-column: 1 / -1;
 }
 .settings-tab-panel--download {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.system-config-form :deep(.anticon-info-circle) {
+  color: #7c3aed !important;
 }
 .media-switch-grid {
-  display: block;
+  display: contents;
+}
+.media-download-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+}
+.media-download-settings > .section-title {
+  grid-column: 1 / -1;
+}
+.media-download-settings > div {
+  display: contents;
+}
+.media-download-settings :deep(.ant-form-item) {
+  min-width: 0;
+}
+@media (max-width: 680px) {
+  .media-download-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .filename-preview-grid {
   display: block;
